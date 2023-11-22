@@ -1,0 +1,611 @@
+,Name,Default,Rtn. Safe Priv. Opt.,Rtn. UIDs Opt.,Rtn. Dev. Id. Opt.,Rtn. Pat. Chars. Opt.,Offset Long. Modif. Dates Opt.,Remove Long. Modif. Dates Opt.,Rtn. Long. Modif. Dates Opt.,Rtn. Desc. Opt.
+00080050,Accession Number,X,,,,,,,,
+00184000,Acquisition Comments,X,,,,,,,,K
+00400555,Acquisition Context Sequence,X,,,,,,,,
+00080022,Acquisition Date,X,,,,,C,X,K,
+0008002A,Acquisition DateTime,X,,,,,C,X,K,
+00181400,Acquisition Device Processing Description,X,,,,,,,,K
+001811BB,Acquisition Field Of View Label,X,,,,,,,,K
+00189424,Acquisition Protocol Description,X,,,,,,,,K
+00080032,Acquisition Time,X,,,,,C,X,K,
+00080017,Acquisition UID,X,,K,,,,,,
+00404035,Actual Human Performers Sequence,X,,,,,,,,
+001021B0,Additional Patient History,X,,,,,,,,K
+0040A353,Address (Trial),X,,,,,,,,
+00380010,Admission ID,X,,,,,,,,
+00380020,Admitting Date,X,,,,,C,X,K,
+00081084,Admitting Diagnoses Code Sequence,X,,,,,,,,K
+00081080,Admitting Diagnoses Description,X,,,,,,,,K
+00380021,Admitting Time,X,,,,,C,X,K,
+00001000,Affected SOP Instance UID,X,,K,,,,,,
+00102110,Allergies,X,,,,K,,,,K
+006A0006,Annotation Group Description,X,,,,,,,,K
+006A0005,Annotation Group Label,X,,,,,,,,K
+006A0003,Annotation Group UID,X,,K,,,,,,
+00440004,Approval Status DateTime,X,,,,,C,X,K,
+40000010,Arbitrary,X,,,,,,,,
+00440104,Assertion DateTime,X,,,,,C,X,K,
+00440105,Assertion Expiration DateTime,X,,,,,C,X,K,
+04000562,Attribute Modification DateTime,X,,,,,C,X,K,
+0040A078,Author Observer Sequence,X,,,,,,,,
+22000005,Barcode Value,X,,,,,,,,
+300A00C3,Beam Description,X,,,,,,,,K
+300C0127,Beam Hold Transition DateTime,X,,,K,,C,X,K,
+300A00DD,Bolus Description,X,,,,,,,,K
+00101081,Branch of Service,X,,,,,,,,
+0014407E,Calibration Date,X,,,K,,C,X,K,
+00181203,Calibration DateTime,X,,,K,,C,X,K,
+0014407C,Calibration Time,X,,,K,,C,X,K,
+0016004D,Camera Owner Name,X,,,,,,,,
+00181007,Cassette ID,X,,,K,,,,,
+04000115,Certificate of Signer,X,,,,,,,,
+04000310,Certified Timestamp,X,,,,,C,X,K,
+00120060,Clinical Trial Coordinating Center Name,X,,,,,,,,
+00120082,Clinical Trial Protocol Ethics Committee Approval Number,X,,,,,,,,
+00120081,Clinical Trial Protocol Ethics Committee Name,X,,,,,,,,
+00120020,Clinical Trial Protocol ID,X,,,,,,,,
+00120021,Clinical Trial Protocol Name,X,,,,,,,,
+00120072,Clinical Trial Series Description,X,,,,,,,,K
+00120071,Clinical Trial Series ID,X,,,,,,,,
+00120030,Clinical Trial Site ID,X,,,,,,,,
+00120031,Clinical Trial Site Name,X,,,,,,,,
+00120010,Clinical Trial Sponsor Name,X,,,,,,,,
+00120040,Clinical Trial Subject ID,X,,,,,,,,
+00120042,Clinical Trial Subject Reading ID,X,,,,,,,,
+00120051,Clinical Trial Time Point Description,X,,,,,,,,K
+00120050,Clinical Trial Time Point ID,X,,,,,,,,
+00400310,Comments on Radiation Dose,X,,,,,,,,K
+00400280,Comments on the Performed Procedure Step,X,,,,,,,,K
+300A02EB,Compensator Description,X,,,,,,,,K
+00209161,Concatenation UID,X,,K,,,,,,
+3010000F,Conceptual Volume Combination Description,X,,,,,,,,K
+30100017,Conceptual Volume Description,X,,,,,,,,K
+30100006,Conceptual Volume UID,X,,K,,,,,,
+00403001,Confidentiality Constraint on Patient Data Description,X,,,,,,,,
+30100013,Constituent Conceptual Volume UID,X,,K,,,,,,
+0008009D,Consulting Physician Identification Sequence,X,,,,,,,,
+0008009C,Consulting Physician's Name,X,,,,,,,,
+0050001B,Container Component ID,X,,,,,,,,
+0040051A,Container Description,X,,,,,,,,K
+00400512,Container Identifier,X,,,,,,,,
+00700086,Content Creator's Identification Code Sequence,X,,,,,,,,
+00700084,Content Creator's Name,X,,,,,,,,
+00080023,Content Date,X,,,,,C,X,K,
+0040A730,Content Sequence,X,,,,,,,,
+00080033,Content Time,X,,,,,C,X,K,
+00080107,Context Group Local Version,X,,,,,C,X,K,
+00080106,Context Group Version,X,,,,,C,X,K,
+00180010,Contrast/Bolus Agent,X,,,,,,,,K
+00181042,Contrast/Bolus Start Time,X,,,,,C,X,K,
+00181043,Contrast/Bolus Stop Time,X,,,,,C,X,K,
+0018A002,Contribution DateTime,X,,,,,C,X,K,
+0018A003,Contribution Description,X,,,,,,,,K
+00102150,Country of Residence,X,,,,,,,,
+21000040,Creation Date,X,,,,,C,X,K,
+21000050,Creation Time,X,,,,,C,X,K,
+0040A307,Current Observer (Trial),X,,,,,,,,
+00380300,Current Patient Location,X,,,,,,,,
+50xxxxxx,Curve Data,X,,,,,,,,
+00080025,Curve Date,X,,,,,C,X,K,
+00080035,Curve Time,X,,,,,C,X,K,
+0040A07C,Custodial Organization Sequence,X,,,,,,,,
+FFFCFFFC,Data Set Trailing Padding,X,,,,,,,,
+0040A121,Date,X,,,,,C,X,K,
+0040A110,Date of Document or Verbal Transaction (Trial),X,,,,,C,X,K,
+00181205,Date of Installation,X,,,K,,C,X,K,
+00181200,Date of Last Calibration,X,,,K,,C,X,K,
+0018700C,Date of Last Detector Calibration,X,,,K,,C,X,K,
+00181204,Date of Manufacture,X,,,K,,C,X,K,
+00181012,Date of Secondary Capture,X,,,,,C,X,K,
+0040A120,DateTime,X,,,,,C,X,K,
+00181202,DateTime of Last Calibration,X,,,K,,C,X,K,
+00189701,Decay Correction DateTime,X,,,,,C,X,K,
+0018937F,Decomposition Description,X,,,,,,,,K
+00082111,Derivation Description,X,,,,,,,,K
+21000140,Destination AE,X,,,K,,,,,
+0018700A,Detector ID,X,,,K,,,,,
+3010001B,Device Alternate Identifier,X,,,,,,,,
+00500020,Device Description,X,,,K,,,,,
+3010002D,Device Label,X,,,K,,,,,
+00181000,Device Serial Number,X,,,K,,,,,
+0016004B,Device Setting Description,X,,,,,,,,K
+00181002,Device UID,X,,K,K,,,,,
+04000105,Digital Signature DateTime,X,,,,,C,X,K,
+04000100,Digital Signature UID,X,,,,,,,,
+FFFAFFFA,Digital Signatures Sequence,X,,,,,,,,
+00209164,Dimension Organization UID,X,,K,,,,,,
+00380030,Discharge Date,X,,,,,C,X,K,
+00380040,Discharge Diagnosis Description,X,,,,,,,,K
+00380032,Discharge Time,X,,,,,C,X,K,
+300A079A,Displacement Reference Label,X,,,,,,,,K
+4008011A,Distribution Address,X,,,,,,,,
+40080119,Distribution Name,X,,,,,,,,
+300A0016,Dose Reference Description,X,,,,,,,,K
+300A0013,Dose Reference UID,X,,K,,,,,,
+3010006E,Dosimetric Objective UID,X,,K,,,,,,
+00686226,Effective DateTime,X,,,,,C,X,K,
+00420011,Encapsulated Document,X,,,,,,,,
+00189517,End Acquisition DateTime,X,,,,,C,X,K,
+30100037,Entity Description,X,,,,,,,,K
+30100035,Entity Label,X,,,,,,,,K
+30100038,Entity Long Label,X,,,,,,,,K
+30100036,Entity Name,X,,,,,,,,K
+300A0676,Equipment Frame of Reference Description,X,,,,,,,,K
+00120087,Ethics Committee Approval Effectiveness End Date,X,,,,,C,X,K,
+00120086,Ethics Committee Approval Effectiveness Start Date,X,,,,,C,X,K,
+00102160,Ethnic Group,X,,,,K,,,,
+00189804,Exclusion Start DateTime,X,,,,,C,X,K,
+00404011,Expected Completion DateTime,X,,,,,C,X,K,
+00080058,Failed SOP Instance UID List,X,,K,,,,,,
+0070031A,Fiducial UID,X,,K,,,,,,
+00402017,Filler Order Number / Imaging Service Request,X,,,,,,,,
+003A032B,Filter Lookup Table Description,X,,,,,,,,K
+0040A023,Findings Group Recording Date (Trial),X,,,,,C,X,K,
+0040A024,Findings Group Recording Time (Trial),X,,,,,C,X,K,
+30080054,First Treatment Date,X,,,,,C,X,K,
+300A0196,Fixation Device Description,X,,,,,,,,K
+00340002,Flow Identifier,X,,,,,,,,
+00340001,Flow Identifier Sequence,X,,,,,,,,
+300A0072,Fraction Group Description,X,,,,,,,,K
+3010007F,Fractionation Notes,X,,,,,,,,K
+00189074,Frame Acquisition DateTime,X,,,,,C,X,K,
+00209158,Frame Comments,X,,,,,,,,K
+00340007,Frame Origin Timestamp,X,,,,,C,X,K,
+00189151,Frame Reference DateTime,X,,,,,C,X,K,
+00200052,Frame of Reference UID,X,,K,,,,,,
+00189623,Functional Sync Pulse,X,,,,,C,X,K,
+00160076,GPS Altitude​,X,,,,,,,,
+00160075,GPS Altitude​ Ref,X,,,,,,,,
+0016008C,GPS Area ​Information,X,,,,,,,,
+0016007B,GPS DOP,X,,,,,,,,
+0016008D,GPS Date​ Stamp,X,,,,,C,X,K,
+00160088,GPS Dest ​Bearing,X,,,,,,,,
+0016008A,GPS Dest ​Distance,X,,,,,,,,
+00160089,GPS Dest ​Distance Ref,X,,,,,,,,
+00160086,GPS Dest ​Longitude,X,,,,,,,,
+00160085,GPS Dest ​Longitude Ref,X,,,,,,,,
+00160087,GPS Dest​ Bearing Ref,X,,,,,,,,
+00160084,GPS Dest​ Latitude,X,,,,,,,,
+00160083,GPS Dest​ Latitude Ref,X,,,,,,,,
+0016008E,GPS Differential,X,,,,,,,,
+00160081,GPS Img ​Direction,X,,,,,,,,
+00160080,GPS Img​ Direction Ref,X,,,,,,,,
+00160072,GPS Latitude​,X,,,,,,,,
+00160071,GPS Latitude​ Ref,X,,,,,,,,
+00160074,GPS Longitude,X,,,,,,,,
+00160073,GPS Longitude Ref,X,,,,,,,,
+00160082,GPS Map​ Datum,X,,,,,,,,
+0016007A,GPS Measure ​Mode,X,,,,,,,,
+0016008B,GPS Processing​ Method,X,,,,,,,,
+00160078,GPS Satellites,X,,,,,,,,
+0016007D,GPS Speed​,X,,,,,,,,
+0016007C,GPS Speed​ Ref,X,,,,,,,,
+00160079,GPS Status,X,,,,,,,,
+00160077,GPS Time​ Stamp,X,,,,,,,,
+0016007F,GPS Track,X,,,,,,,,
+0016007E,GPS Track ​Ref,X,,,,,,,,
+00160070,GPS Version ID,X,,,,,,,,
+00181008,Gantry ID,X,,,K,,,,,
+00181005,Generator ID,X,,,K,,,,,
+00700001,Graphic Annotation Sequence,X,,,,,,,,
+0040E004,HL7 Document Effective Time,X,,,,,C,X,K,
+0072000A,Hanging Protocol Creation DateTime,X,,,,,C,X,K,
+00404037,Human Performer's Name,X,,,,,,,,
+00404036,Human Performer's Organization,X,,,,,,,,
+00880200,Icon Image Sequence  (see Note 11),X,,,,,,,,
+00084000,Identifying Comments,X,,,,,,,,K
+00204000,Image Comments,X,,,,,,,,K
+00284000,Image Presentation Comments,X,,,,,,,,
+00402400,Imaging Service Request Comments,X,,,,,,,,K
+003A0314,Impedance Measurement DateTime,X,,,,,C,X,K,
+40080300,Impressions,X,,,,,,,,K
+00686270,Information Issue DateTime,X,,,,,C,X,K,
+00080015,Instance Coercion DateTime,X,,,,,C,X,K,
+00080012,Instance Creation Date,X,,,,,C,X,K,
+00080013,Instance Creation Time,X,,,,,C,X,K,
+00080014,Instance Creator UID,X,,K,,,,,,
+04000600,Instance Origin Status,X,,,,,,,,
+00080081,Institution Address,X,,,,,,,,
+00080082,Institution Code Sequence,X,,,,,,,,
+00080080,Institution Name,X,,,,,,,,
+00081040,Institutional Department Name,X,,,,,,,,
+00081041,Institutional Department Type Code Sequence,X,,,,,,,,
+00189919,Instruction Performed DateTime,X,,,,,C,X,K,
+00101050,Insurance Plan Identification,X,,,,,,,,
+30100085,Intended Fraction Start Time,X,,,,,C,X,K,
+3010004D,Intended Phase End Date,X,,,,,C,X,K,
+3010004C,Intended Phase Start Date,X,,,,,C,X,K,
+00401011,Intended Recipients of Results Identification Sequence,X,,,,,,,,
+300A0741,Interlock DateTime,X,,,,,C,X,K,
+300A0742,Interlock Description,X,,,,,,,,K
+300A0783,Interlock Origin Description,X,,,,,,,,K
+40080112,Interpretation Approval Date,X,,,,,C,X,K,
+40080113,Interpretation Approval Time,X,,,,,C,X,K,
+40080111,Interpretation Approver Sequence,X,,,,,,,,
+4008010C,Interpretation Author,X,,,,,,,,
+40080115,Interpretation Diagnosis Description,X,,,,,,,,K
+40080200,Interpretation ID,X,,,,,,,,
+40080202,Interpretation ID Issuer,X,,,,,,,,
+40080100,Interpretation Recorded Date,X,,,,,C,X,K,
+40080101,Interpretation Recorded Time,X,,,,,C,X,K,
+40080102,Interpretation Recorder,X,,,,,,,,
+4008010B,Interpretation Text,X,,,,,,,,K
+4008010A,Interpretation Transcriber,X,,,,,,,,
+40080108,Interpretation Transcription Date,X,,,,,C,X,K,
+40080109,Interpretation Transcription Time,X,,,,,C,X,K,
+00180035,Intervention Drug Start Time,X,,,,,C,X,K,
+00180027,Intervention Drug Stop Time,X,,,,,C,X,K,
+00083010,Irradiation Event UID,X,,K,,,,,,
+00402004,Issue Date of Imaging Service Request,X,,,,,C,X,K,
+00402005,Issue Time of Imaging Service Request,X,,,,,C,X,K,
+00380011,Issuer of Admission ID,X,,,,,,,,
+00380014,Issuer of Admission ID Sequence,X,,,,,,,,
+00100021,Issuer of Patient ID,X,,,,,,,,
+00380061,Issuer of Service Episode ID,X,,,,,,,,
+00380064,Issuer of Service Episode ID Sequence,X,,,,,,,,
+00400513,Issuer of the Container Identifier Sequence,X,,,,,,,,
+00400562,Issuer of the Specimen Identifier Sequence,X,,,,,,,,
+22000002,Label Text,X,,,,,,,,K
+00281214,Large Palette Color Lookup Table UID,X,,K,,,,,,
+001021D0,Last Menstrual Date,X,,,,,C,X,K,
+0016004F,Lens Make,X,,,K,,,,,
+00160050,Lens Model,X,,,K,,,,,
+00160051,Lens Serial Number,X,,,K,,,,,
+0016004E,Lens Specification,X,,,K,,,,,
+00500021,Long Device Description,X,,,,,,,,K
+04000404,MAC,X,,,,,,,,
+0016002B,Maker Note,X,,,,,,,,K
+0018100B,Manufacturer's Device Class UID,X,,K,K,,,,,
+30100043,Manufacturer's Device Identifier,X,,,K,,,,,
+00020003,Media Storage SOP Instance UID,X,,K,,,,,,
+00102000,Medical Alerts,X,,,,,,,,K
+00101090,Medical Record Locator,X,,,,,,,,
+00101080,Military Rank,X,,,,,,,,
+04000550,Modified Attributes Sequence,X,,,,,,,,
+00203403,Modified Image Date,X,,,,,C,X,K,
+00203406,Modified Image Description,X,,,,,,,,
+00203405,Modified Image Time,X,,,,,C,X,K,
+00203401,Modifying Device ID,X,,,K,,,,,
+04000563,Modifying System,X,,,K,,,,,
+30080056,Most Recent Treatment Date,X,,,,,C,X,K,
+0018937B,Multi-energy Acquisition Description,X,,,,,,,,K
+003A0310,Multiplex Group UID,X,,K,,,,,,
+00081060,Name of Physician(s) Reading Study,X,,,,,,,,
+00401010,Names of Intended Recipients of Results,X,,,,,,,,
+00081000,Network ID,X,,,K,,,,,
+04000552,Nonconforming Data Element Value,X,,,,,,,,
+04000551,Nonconforming Modified Attributes Sequence,X,,,,,,,,
+0040A192,Observation Date (Trial),X,,,,,C,X,K,
+0040A032,Observation DateTime,X,,,,,C,X,K,
+0040A033,Observation Start DateTime,X,,,,,C,X,K,
+0040A402,Observation Subject UID (Trial),X,,K,,,,,,
+0040A193,Observation Time (Trial),X,,,,,C,X,K,
+0040A171,Observation UID,X,,K,,,,,,
+00102180,Occupation,X,,,,,,,,K
+00081072,Operator Identification Sequence,X,,,,,,,,
+00081070,Operators' Name,X,,,,,,,,
+00402010,Order Callback Phone Number,X,,,,,,,,
+00402011,Order Callback Telecom Information,X,,,,,,,,
+00402008,Order Entered By,X,,,,,,,,
+00402009,Order Enterer's Location,X,,,,,,,,
+04000561,Original Attributes Sequence,X,,,,,,,,
+21000070,Originator,X,,,K,,,,,
+00101000,Other Patient IDs,X,,,,,,,,
+00101002,Other Patient IDs Sequence,X,,,,,,,,
+00101001,Other Patient Names,X,,,,,,,,
+60xx4000,Overlay Comments,X,,,,,,,,
+60xx3000,Overlay Data,X,,,,,,,,
+00080024,Overlay Date,X,,,,,C,X,K,
+00080034,Overlay Time,X,,,,,C,X,K,
+300A0760,Override DateTime,X,,,,,C,X,K,
+00281199,Palette Color Lookup Table UID,X,,K,,,,,,
+0040A07A,Participant Sequence,X,,,,,,,,
+0040A082,Participation DateTime,X,,,,,C,X,K,
+00104000,Patient Comments,X,,,,,,,,K
+00100020,Patient ID,Z,,,,,,,,
+300A0794,Patient Setup Photo Description,X,,,,,,,,K
+300A0650,Patient Setup UID,X,,K,,,,,,
+00380500,Patient State,X,,,,K,,,,K
+00401004,Patient Transport Arrangements,X,,,,,,,,
+300A0792,Patient Treatment Preparation Method Description,X,,,,,,,,K
+300A078E,Patient Treatment Preparation Procedure Parameter Description,X,,,,,,,,K
+00101040,Patient's Address,X,,,,,,,,
+00101010,Patient's Age,X,,,,K,,,,
+00100030,Patient's Birth Date,X,,,,,,,,
+00101005,Patient's Birth Name,X,,,,,,,,
+00100032,Patient's Birth Time,X,,,,,,,,
+00380400,Patient's Institution Residence,X,,,,,,,,
+00100050,Patient's Insurance Plan Code Sequence,X,,,,,,,,
+00101060,Patient's Mother's Birth Name,X,,,,,,,,
+00100010,Patient's Name,Z,,,,,,,,
+00100101,Patient's Primary Language Code Sequence,X,,,,,,,,
+00100102,Patient's Primary Language Modifier Code Sequence,X,,,,,,,,
+001021F0,Patient's Religious Preference,X,,,,,,,,
+00100040,Patient's Sex,X,,,,K,,,,
+00102203,Patient's Sex Neutered,X,,,,K,,,,
+00101020,Patient's Size,X,,,,K,,,,
+00102155,Patient's Telecom Information,X,,,,,,,,
+00102154,Patient's Telephone Numbers,X,,,,,,,,
+00101030,Patient's Weight,X,,,,K,,,,
+00400243,Performed Location,X,,,,,,,,
+00400254,Performed Procedure Step Description,X,,,,,,,,K
+00400250,Performed Procedure Step End Date,X,,,,,C,X,K,
+00404051,Performed Procedure Step End DateTime,X,,,,,C,X,K,
+00400251,Performed Procedure Step End Time,X,,,,,C,X,K,
+00400253,Performed Procedure Step ID,X,,,,,,,,
+00400244,Performed Procedure Step Start Date,X,,,,,C,X,K,
+00404050,Performed Procedure Step Start DateTime,X,,,,,C,X,K,
+00400245,Performed Procedure Step Start Time,X,,,,,C,X,K,
+00400241,Performed Station AE Title,X,,,K,,,,,
+00404030,Performed Station Geographic Location Code Sequence,X,,,K,,,,,
+00400242,Performed Station Name,X,,,K,,,,,
+00404028,Performed Station Name Code Sequence,X,,,K,,,,,
+00081052,Performing Physician Identification Sequence,X,,,,,,,,
+00081050,Performing Physician's Name,X,,,,,,,,
+00401101,Person Identification Code Sequence,X,,,,,,,,
+0040A123,Person Name,X,,,,,,,,
+00401102,Person's Address,X,,,,,,,,
+00401104,Person's Telecom Information,X,,,,,,,,
+00401103,Person's Telephone Numbers,X,,,,,,,,
+40080114,Physician Approving Interpretation,X,,,,,,,,
+00081062,Physician(s) Reading Study Identification Sequence,X,,,,,,,,
+00081048,Physician(s) of Record,X,,,,,,,,
+00081049,Physician(s) of Record Identification Sequence,X,,,,,,,,
+00402016,Placer Order Number / Imaging Service Request,X,,,,,,,,
+00181004,Plate ID,X,,,K,,,,,
+30020123,Position Acquisition Template Description,X,,,,,,,,K
+30020121,Position Acquisition Template Name,X,,,,,,,,K
+00400012,Pre-Medication,X,,,,K,,,,
+001021C0,Pregnancy Status,X,,,,K,,,,
+300A000E,Prescription Description,X,,,,,,,,K
+3010007B,Prescription Notes,X,,,,,,,,K
+30100081,Prescription Notes Sequence,X,,,,,,,,K
+00700082,Presentation Creation Date,X,,,,,C,X,K,
+00700083,Presentation Creation Time,X,,,,,C,X,K,
+00701101,Presentation Display Collection UID,X,,K,,,,,,
+00701102,Presentation Sequence Collection UID,X,,K,,,,,,
+30100061,Prior Treatment Dose Description,X,,,,,,,,K
+ggggeeee where gggg is odd,Private Attributes,X,K,,,,,,,
+00404052,Procedure Step Cancellation DateTime,X,,,,,C,X,K,
+0044000B,Product Expiration DateTime,X,,,,,C,X,K,
+00181030,Protocol Name,X,,,,,,,,K
+00081088,Pyramid Description,X,,,,,,,,K
+00200027,Pyramid Label,X,,,,,,,,K
+00080019,Pyramid UID,X,,K,,,,,,
+30060028,ROI Description,X,,,,,,,,K
+30060038,ROI Generation Description,X,,,,,,,,K
+300600A6,ROI Interpreter,X,,,,,,,,
+30060026,ROI Name,X,,,,,,,,K
+30060088,ROI Observation Description,X,,,,,,,,K
+30060085,ROI Observation Label,X,,,,,,,,K
+300A0615,RT Accessory Device Slot ID,X,,,,,,,,
+300A0611,RT Accessory Holder Slot ID,X,,,,,,,,
+3010005A,RT Physician Intent Narrative,X,,,,,,,,K
+300A0006,RT Plan Date,X,,,,,C,X,K,
+300A0004,RT Plan Description,X,,,,,,,,K
+300A0002,RT Plan Label,X,,,,,,,,K
+300A0003,RT Plan Name,X,,,,,,,,K
+300A0007,RT Plan Time,X,,,,,C,X,K,
+30100054,RT Prescription Label,X,,,,,,,,K
+300A062A,RT Tolerance Set Label,X,,,,,,,,K
+30100056,RT Treatment Approach Label,X,,,,,,,,K
+3010003B,RT Treatment Phase UID,X,,K,,,,,,
+300A0619,Radiation Dose Identification Label,X,,,,,,,,K
+300A0623,Radiation Dose In-Vivo Measurement Label,X,,,,,,,,K
+300A067D,Radiation Generation Mode Description,X,,,,,,,,K
+300A067C,Radiation Generation Mode Label,X,,,,,,,,K
+00181078,Radiopharmaceutical Start DateTime,X,,,,,C,X,K,
+00181072,Radiopharmaceutical Start Time,X,,,,,C,X,K,
+00181079,Radiopharmaceutical Stop DateTime,X,,,,,C,X,K,
+00181073,Radiopharmaceutical Stop Time,X,,,,,C,X,K,
+300C0113,Reason for Omission Description,X,,,,,,,,K
+0040100A,Reason for Requested Procedure Code Sequence,X,,,,,,,,K
+00321030,Reason for Study,X,,,,,,,,K
+3010005C,Reason for Superseding,X,,,,,,,,K
+00321066,Reason for Visit,X,,,,,,,,K
+00321067,Reason for Visit Code Sequence,X,,,,,,,,K
+04000565,Reason for the Attribute Modification,X,,,,,,,,K
+00402001,Reason for the Imaging Service Request,X,,,,,,,,K
+00401002,Reason for the Requested Procedure,X,,,,,,,,K
+00741234,Receiving AE,X,,,K,,,,,
+300A073A,Recorded RT Control Point DateTime,X,,,,,C,X,K,
+3010000B,Referenced Conceptual Volume UID,X,,K,,,,,,
+0040A13A,Referenced DateTime,X,,,,,C,X,K,
+04000402,Referenced Digital Signature Sequence,X,,,,,,,,
+300A0083,Referenced Dose Reference UID,X,,K,,,,,,
+3010006F,Referenced Dosimetric Objective UID,X,,K,,,,,,
+30100031,Referenced Fiducials UID,X,,K,,,,,,
+30060024,Referenced Frame of Reference UID,X,,K,,,,,,
+00404023,Referenced General Purpose Scheduled Procedure Step Transaction UID,X,,K,,,,,,
+00081140,Referenced Image Sequence,X,,K,,,,,,
+0040A172,Referenced Observation UID (Trial),X,,K,,,,,,
+00380004,Referenced Patient Alias Sequence,X,,,,,,,,
+00101100,Referenced Patient Photo Sequence,X,,,,,,,,
+00081120,Referenced Patient Sequence,X,,K,,,,,,
+00081111,Referenced Performed Procedure Step Sequence,X,,K,,,,,,
+04000403,Referenced SOP Instance MAC Sequence,X,,,,,,,,
+00081155,Referenced SOP Instance UID,X,,K,,,,,,
+00041511,Referenced SOP Instance UID in File,X,,K,,,,,,
+00081110,Referenced Study Sequence,X,,K,,,,,,
+300A0785,Referenced Treatment Position Group UID,X,,K,,,,,,
+00080096,Referring Physician Identification Sequence,X,,,,,,,,
+00080092,Referring Physician's Address,X,,,,,,,,
+00080090,Referring Physician's Name,X,,,,,,,,
+00080094,Referring Physician's Telephone Numbers,X,,,,,,,,
+00102152,Region of Residence,X,,,,,,,,
+300600C2,Related Frame of Reference UID,X,,K,,,,,,
+00400275,Request Attributes Sequence,X,,,,,,,,K
+00321070,Requested Contrast Agent,X,,,,,,,,K
+00401400,Requested Procedure Comments,X,,,,,,,,K
+00321060,Requested Procedure Description,X,,,,,,,,K
+00401001,Requested Procedure ID,X,,,,,,,,
+00401005,Requested Procedure Location,X,,,,,,,,
+00001001,Requested SOP Instance UID,X,,K,,,,,,
+00189937,Requested Series Description,X,,,,,,,,K
+00741236,Requesting AE,X,,,K,,,,,
+00321032,Requesting Physician,X,,,,,,,,
+00321033,Requesting Service,X,,,,,,,,
+00189185,Respiratory Motion Compensation Technique Description,X,,,,,,,,K
+00102299,Responsible Organization,X,,,,,,,,
+00102297,Responsible Person,X,,,,,,,,
+40084000,Results Comments,X,,,,,,,,K
+40080118,Results Distribution List Sequence,X,,,,,,,,
+40080040,Results ID,X,,,,,,,,
+40080042,Results ID Issuer,X,,,,,,,,
+00080054,Retrieve AE Title,X,,,K,,,,,
+300E0004,Review Date,X,,,,,C,X,K,
+300E0005,Review Time,X,,,,,C,X,K,
+300E0008,Reviewer Name,X,,,,,,,,
+01000420,SOP Authorization DateTime,X,,,,,C,X,K,
+00080018,SOP Instance UID,X,,K,,,,,,
+30080162,Safe Position Exit Date,X,,,,,C,X,K,
+30080164,Safe Position Exit Time,X,,,,,C,X,K,
+30080166,Safe Position Return Date,X,,,,,C,X,K,
+30080168,Safe Position Return Time,X,,,,,C,X,K,
+0038001A,Scheduled Admission Date,X,,,,,C,X,K,
+0038001B,Scheduled Admission Time,X,,,,,C,X,K,
+0038001C,Scheduled Discharge Date,X,,,,,C,X,K,
+0038001D,Scheduled Discharge Time,X,,,,,C,X,K,
+00404034,Scheduled Human Performers Sequence,X,,,,,,,,
+0038001E,Scheduled Patient Institution Residence,X,,,,,,,,
+0040000B,Scheduled Performing Physician Identification Sequence,X,,,,,,,,
+00400006,Scheduled Performing Physician's Name,X,,,,,,,,
+00400007,Scheduled Procedure Step Description,X,,,,,,,,K
+00400004,Scheduled Procedure Step End Date,X,,,,,C,X,K,
+00400005,Scheduled Procedure Step End Time,X,,,,,C,X,K,
+00404008,Scheduled Procedure Step Expiration DateTime,X,,,,,C,X,K,
+00400009,Scheduled Procedure Step ID,X,,,,,,,,
+00400011,Scheduled Procedure Step Location,X,,,K,,,,,
+00404010,Scheduled Procedure Step Modification DateTime,X,,,,,C,X,K,
+00400002,Scheduled Procedure Step Start Date,X,,,,,C,X,K,
+00404005,Scheduled Procedure Step Start DateTime,X,,,,,C,X,K,
+00400003,Scheduled Procedure Step Start Time,X,,,,,C,X,K,
+00400001,Scheduled Station AE Title,X,,,K,,,,,
+00404027,Scheduled Station Geographic Location Code Sequence,X,,,K,,,,,
+00400010,Scheduled Station Name,X,,,K,,,,,
+00404025,Scheduled Station Name Code Sequence,X,,,K,,,,,
+00321020,Scheduled Study Location,X,,,K,,,,,
+00321021,Scheduled Study Location AE Title,X,,,K,,,,,
+00321000,Scheduled Study Start Date,X,,,,,C,X,K,
+00321001,Scheduled Study Start Time,X,,,,,C,X,K,
+00321010,Scheduled Study Stop Date,X,,,,,C,X,K,
+00321011,Scheduled Study Stop Time,X,,,,,C,X,K,
+0072005E,Selector AE Value,X,,,K,,,,,
+0072005F,Selector AS Value,X,,,,K,,,,
+00720061,Selector DA Value,X,,,,,C,X,K,
+00720063,Selector DT Value,X,,,,,C,X,K,
+00720066,Selector LO Value,X,,,,,,,,K
+00720068,Selector LT Value,X,,,,,,,,K
+00720065,Selector OB Value,X,,,,,,,,
+0072006A,Selector PN Value,X,,,,,,,,
+0072006C,Selector SH Value,X,,,,,,,,K
+0072006E,Selector ST Value,X,,,,,,,,K
+0072006B,Selector TM Value,X,,,,,C,X,K,
+0072006D,Selector UN Value,X,,,,,,,,
+00720071,Selector UR Value,X,,,,,,,,
+00720070,Selector UT Value,X,,,,,,,,K
+00080021,Series Date,X,,,,,C,X,K,
+0008103E,Series Description,X,,,,,,,,K
+0020000E,Series Instance UID,X,,K,,,,,,
+00080031,Series Time,X,,,,,C,X,K,
+00380062,Service Episode Description,X,,,,,,,,K
+00380060,Service Episode ID,X,,,,,,,,
+300A01B2,Setup Technique Description,X,,,,,,,,K
+300A01A6,Shielding Device Description,X,,,,,,,,K
+004006FA,Slide Identifier,X,,,,,,,,
+001021A0,Smoking Status,X,,,,K,,,,
+30100015,Source Conceptual Volume UID,X,,K,,,,,,
+0018936A,Source End DateTime,X,,,,,C,X,K,
+00640003,Source Frame of Reference UID,X,,K,,,,,,
+00340005,Source Identifier,X,,,,,,,,
+00082112,Source Image Sequence,X,,K,,,,,,
+300A0216,Source Manufacturer,X,,,K,,,,,
+30080105,Source Serial Number,X,,,K,,,,,
+00189369,Source Start DateTime,X,,,,,C,X,K,
+300A022C,Source Strength Reference Date,X,,,,,C,X,K,
+300A022E,Source Strength Reference Time,X,,,,,C,X,K,
+04000564,Source of Previous Values,X,,,,,,,,
+00380050,Special Needs,X,,,,K,,,,
+0040050A,Specimen Accession Number,X,,,,,,,,
+00400602,Specimen Detailed Description,X,,,,,,,,K
+00400551,Specimen Identifier,X,,,,,,,,
+00400610,Specimen Preparation Sequence,X,,,,,,,,
+00400600,Specimen Short Description,X,,,,,,,,K
+00400554,Specimen UID,X,,K,,,,,,
+00189516,Start Acquisition DateTime,X,,,,,C,X,K,
+00080055,Station AE Title,X,,,K,,,,,
+00081010,Station Name,X,,,K,,,,,
+00880140,Storage Media File-set UID,X,,K,,,,,,
+30060008,Structure Set Date,X,,,,,C,X,K,
+30060006,Structure Set Description,X,,,,,,,,K
+30060002,Structure Set Label,X,,,,,,,,K
+30060004,Structure Set Name,X,,,,,,,,K
+30060009,Structure Set Time,X,,,,,C,X,K,
+00321040,Study Arrival Date,X,,,,,C,X,K,
+00321041,Study Arrival Time,X,,,,,C,X,K,
+00324000,Study Comments,X,,,,,,,,K
+00321050,Study Completion Date,X,,,,,C,X,K,
+00321051,Study Completion Time,X,,,,,C,X,K,
+00080020,Study Date,X,,,,,C,X,K,
+00081030,Study Description,X,,,,,,,,K
+00200010,Study ID,X,,,,,,,,
+00320012,Study ID Issuer,X,,,,,,,,
+0020000D,Study Instance UID,X,,K,,,,,,
+00320034,Study Read Date,X,,,,,C,X,K,
+00320035,Study Read Time,X,,,,,C,X,K,
+00080030,Study Time,X,,,,,C,X,K,
+00320032,Study Verified Date,X,,,,,C,X,K,
+00320033,Study Verified Time,X,,,,,C,X,K,
+00440010,Substance Administration DateTime,X,,,,,C,X,K,
+00200200,Synchronization Frame of Reference UID,X,,K,,,,,,
+00182042,Target UID,X,,K,,,,,,
+0040A354,Telephone Number (Trial),X,,,,,,,,
+0040DB0D,Template Extension Creator UID,X,,K,,,,,,
+0040DB0C,Template Extension Organization UID,X,,K,,,,,,
+0040DB07,Template Local Version,X,,,,,C,X,K,
+0040DB06,Template Version,X,,,,,C,X,K,
+40004000,Text Comments,X,,,,,,,,
+20300020,Text String,X,,,,,,,,
+0040A122,Time,X,,,,,C,X,K,
+0040A112,Time of Document Creation or Verbal Transaction (Trial),X,,,,,C,X,K,
+00181201,Time of Last Calibration,X,,,K,,C,X,K,
+0018700E,Time of Last Detector Calibration,X,,,K,,C,X,K,
+00181014,Time of Secondary Capture,X,,,,,C,X,K,
+00080201,Timezone Offset From UTC,X,,,,,C,X,K,
+00880910,Topic Author,X,,,,,,,,
+00880912,Topic Keywords,X,,,,,,,,
+00880906,Topic Subject,X,,,,,,,,
+00880904,Topic Title,X,,,,,,,,
+00620021,Tracking UID,X,,K,,,,,,
+00081195,Transaction UID,X,,K,,,,,,
+00185011,Transducer Identification Sequence,X,,,K,,,,,
+30080024,Treatment Control Point Date,X,,,,,C,X,K,
+30080025,Treatment Control Point Time,X,,,,,C,X,K,
+30080250,Treatment Date,X,,,,,C,X,K,
+300A00B2,Treatment Machine Name,X,,,K,,,,,
+300A0608,Treatment Position Group Label,X,,,,,,,,K
+300A0609,Treatment Position Group UID,X,,K,,,,,,
+300A0700,Treatment Session UID,X,,K,,,,,,
+30100077,Treatment Site,X,,,,,,,,K
+300A000B,Treatment Sites,X,,,,,,,,K
+3010007A,Treatment Technique Notes,X,,,,,,,,K
+30080251,Treatment Time,X,,,,,C,X,K,
+300A0736,Treatment Tolerance Violation DateTime,X,,,,,C,X,K,
+300A0734,Treatment Tolerance Violation Description,X,,,,,,,,K
+0018100A,UDI Sequence,X,,,K,,,,,
+0040A124,UID,X,,,,,,,,
+00181009,Unique Device Identifier,X,,,K,,,,,
+30100033,User Content Label,X,,,,,,,,K
+30100034,User Content Long Label,X,,,,,,,,K
+0040A352,Verbal Source (Trial),X,,,,,,,,
+0040A358,Verbal Source Identifier Code Sequence (Trial),X,,,,,,,,
+0040A030,Verification DateTime,X,,,,,C,X,K,
+0040A088,Verifying Observer Identification Code Sequence,X,,,,,,,,
+0040A075,Verifying Observer Name,X,,,,,,,,
+0040A073,Verifying Observer Sequence,X,,,,,,,,
+0040A027,Verifying Organization,X,,,,,,,,
+00384000,Visit Comments,X,,,,,,,,K
+00189371,X-Ray Detector ID,X,,,K,,,,,
+00189373,X-Ray Detector Label,X,,,K,,,,,
+00189367,X-Ray Source ID,X,,,K,,,,,
+003A0329,​Waveform Filter Description,X,,,,,,,,K
