@@ -58,14 +58,10 @@ dcm[<TAG_INDEX>].value = ''
 Implemented only for VRs that are either `DA` or `TM`.
 
 `DA` -> Such tags are date tags in the format `YYYYMMDD`. The way that `C` is applied in such tags is by taking `YYYYMMDD` and adding to that date a random offset number of $\texttt{days}$ which is sampled from the following uniform distribution $\mathfrak{U}$, as follows
-$$
-\texttt{days} \sim \mathfrak{U}(365 \cdot 10, 2 \cdot (365 \cdot 10))
-$$
+$$\texttt{days} \sim \mathfrak{U}(365 \cdot 10, 2 \cdot (365 \cdot 10))$$
 
 `TM` -> Day time tags in the format `HHMMSS.FFFFFF`. The way that `C` is applied in such a tag is by simply replacing its value with a random offset number of $\texttt{seconds}$ (hence there is no second-fraction), sampled as
-$$
-\texttt{seconds} \sim \mathfrak{U}(0, 3600 \cdot 24)
-$$
+$$\texttt{seconds} \sim \mathfrak{U}(0, 3600 \cdot 24)$$
 
 #### Keep Tag - Code `K`
 
