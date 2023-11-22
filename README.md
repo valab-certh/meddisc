@@ -67,11 +67,11 @@ $$
 \texttt{seconds} \sim \mathfrak{U}(0, 3600 \cdot 24)
 $$
 
-#### Keep Tag - `K`
+#### Keep Tag - Code `K`
 
 Simply keeps a tag as is.
 
-#### Replace Tag - `Z`
+#### Replace Tag - Code `Z`
 
 Replaces tag value with a dummy one. Implemented only for patient ID with tag index `(0010, 0020)` and patient Name with tag index `(0010, 0010)` in which case both values are replaced by a common pseudo patient ID.
 
