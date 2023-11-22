@@ -96,6 +96,6 @@ Replaces tag value with a dummy one. Implemented only for patient ID with tag in
 └── user_input.json
 ```
 
-## References
+## Citation
 
 - Paschalis Bizopoulos: [dicom-de-identification-and-curation-tool](https://github.com/pbizopoulos/dicom-de-identification-and-curation-tool)
