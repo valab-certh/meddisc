@@ -112,7 +112,7 @@ def main():
     with open(file = '../user_default_input.json', mode = 'r') as file:
         user_input = json.load(file)
 
-    ## SERVER SIDE -> After the user modifies this, UPDATE user_input based on these modifications and REPLACE the user_input.json file with POST request taken from form's inputs
+    ## SERVER SIDE -> After the user modifies this user_input, UPDATE user_input based on these modifications and REPLACE the user_input.json file with POST request taken from form's inputs
     with open(file = '../user_input.json', mode = 'w') as file:
         json.dump(user_input, file)
 
@@ -132,6 +132,11 @@ def main():
     while next(rw_obj):
 
         dcm = rw_obj.parse_file()
+        if dcm == False:
+            print('File already converted\nSkipping\n---\n')
+            continue
+
+        print('Starting to process the raw DICOM\'s object')
 
         ## User input parameter validity check
         date_processing_choices = {'keep', 'offset', 'remove'}
@@ -180,6 +185,8 @@ def main():
 
         ## Overwrite session file to save progress
         rw_obj.export_session(session = session)
+
+    print('Operation completed')
 
 
 if __name__ == '__main__':

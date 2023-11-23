@@ -10,3 +10,4 @@ dataset/clean/*
 !dataset/clean/.gitkeep
 !dataset/raw/1-1.dcm
 !dataset/raw/1-2.dcm
+!dataset/raw/1-2.dcm

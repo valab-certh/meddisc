@@ -40,8 +40,11 @@ class rwdcm:
 
         if in_dp[-1] != '/': in_dp = in_dp + '/'
         self.raw_data_dp = in_dp
-        self.raw_dicom_paths = sorted(self.generate_dicom_paths(data_dp = self.raw_data_dp))
+        self.raw_dicom_paths = sorted(self.get_dicom_paths(data_dp = self.raw_data_dp))
         self.clean_data_dp = out_dp + '/' + 'de-identified-files/'
+
+        already_cleaned_dicom_paths = self.get_dicom_paths(data_dp = self.clean_data_dp)
+        self.hashes_of_already_converted_files = [already_cleaned_dicom_path.split('/')[-1].split('.')[0] for already_cleaned_dicom_path in already_cleaned_dicom_paths]
 
         self.n_dicom_files = len(self.raw_dicom_paths)
 
@@ -61,7 +64,7 @@ class rwdcm:
         else:
             return False
 
-    def generate_dicom_paths(self, data_dp):
+    def get_dicom_paths(self, data_dp):
 
         dicom_paths = []
         for extension_name in self.modifiable_file_extension_names:
@@ -78,13 +81,16 @@ class rwdcm:
 
     def parse_file(self):
 
-        dcm = dicom.dcmread(self.raw_dicom_path)
+        self.input_dicom_hash = hashlib.sha256(self.raw_dicom_path.encode('UTF-8')).hexdigest()
 
-        return dcm
+        if self.input_dicom_hash in self.hashes_of_already_converted_files:
+            return False
+        else:
+            dcm = dicom.dcmread(self.raw_dicom_path)
+            print('Parsed\n%s'%(self.raw_dicom_path))
+            return dcm
 
     def export_processed_file(self, dcm):
-
-        input_dicom_hash = hashlib.sha256(self.raw_dicom_path.encode('UTF-8')).hexdigest()
 
         self.clean_dicom_dp = self.clean_data_dp + str(dcm['00100020'].value) + '/' + str(dcm['00080060'].value) + '/' + str(dcm['00200011'].value)
         if not os.path.exists(self.clean_dicom_dp):
@@ -92,7 +98,9 @@ class rwdcm:
 
         ## Clean DICOM file example:
         ## self.clean_data_dp + 'de-identified-files/<TAG-00100020>/<TAG-00080060>/<TAG-00200011>/364a954efb2e4489f1fb5878c57aa1bbbbc97ffe00f236247aeaab22caa284ee.dcm'
-        clean_dicom_fp = self.clean_dicom_dp + '/' + input_dicom_hash + '.dcm'
+        clean_dicom_fp = self.clean_dicom_dp + '/' + self.input_dicom_hash + '.dcm'
+
+        print('Exporting file at\n%s'%(clean_dicom_fp))
 
         dcm.save_as(clean_dicom_fp)
 
