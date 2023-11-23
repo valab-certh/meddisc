@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import pydicom
 import re
-import random
 import datetime
 import time
 
@@ -10,7 +9,7 @@ import time
 def get_action_group(user_input: dict, action_groups_df: pd.DataFrame) -> pd.DataFrame:
     '''
         Description:
-            Based on the user's choice, and an action group lookup table, based on Nema's action principles as per tables Table E.1-1a and Table E.1-1 of https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html, an action group is generated. That action group is in the form of a column from Table E.1-1 acting as a configuration basis for the anonymization of a DICOM file.
+            Depending on the user's choice, and an action group lookup table, based on Nema's action principles as per tables Table E.1-1a and Table E.1-1 of https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html, an action group is generated. That action group is in the form of a column from Table E.1-1 acting as a configuration basis for the anonymization of a DICOM file.
 
         Args:
             user_input. The user's anonymization process. Sufficient property:
@@ -86,7 +85,7 @@ def get_action_group(user_input: dict, action_groups_df: pd.DataFrame) -> pd.Dat
 
     return requested_action_group_df
 
-def adjust_dicom_metadata(user_input: dict, dcm: pydicom.dataset.FileDataset, action_group_fp: str) -> (pydicom.dataset.FileDataset, dict):
+def adjust_dicom_metadata(user_input: dict, dcm: pydicom.dataset.FileDataset, action_group_fp: str, patient_pseudo_id: str, days_total_offset, seconds_total_offset) -> (pydicom.dataset.FileDataset, dict):
     '''
         Description:
             Applies an action group on a DICOM file's metadata.
@@ -96,6 +95,7 @@ def adjust_dicom_metadata(user_input: dict, dcm: pydicom.dataset.FileDataset, ac
             dcm. DICOM object.
             action_group_fp. Path for .csv file that contains the an action group. The file's content is saved in action_group_df.
                 action_group_df. Specifies how exactly the DICOM's metadata will be modified according to its attribute actions.
+            patient_pseudo_id.
 
         Returns:
             updated_dcm. DICOM object adjusted according to configuration.
@@ -124,12 +124,15 @@ def adjust_dicom_metadata(user_input: dict, dcm: pydicom.dataset.FileDataset, ac
 
     tag_value_replacements = dict()
 
-    ## [ToDo] Make this work for sessions - The pseudo ID of a DICOM file's patient. In case we have action code `Z` for tags '00100010', '00100020', we need this to replace the corresponding DICOM tag values with `patient_id`.
-    tag_value_replacements['patient_pseudo_id'] = user_input['patient_pseudo_id_prefix'] + '000000'
-
     ## [ToDo] Make this work for sessions - Pseudo time and pseudo date. In case we need to add offsets to temporal values. Note that the resulting application of these random values is conducted in a way that it preserves temporal relationships (i.e. longitudinal temporal information).
-    tag_value_replacements['days_total_offset'] = random.uniform(10 * 365, (2 * 10) * 365)
-    tag_value_replacements['seconds_total_offset'] = round(random.uniform(0, 24 * 60 * 60))
+
+
+    ## Will be replaced only if date and time offsets are applied to at least one tag
+    tag_value_replacements['days_total_offset'] = 0
+    tag_value_replacements['seconds_total_offset'] = 0
+
+    days_total_offset_was_applied_at_least_once = False
+    seconds_total_offset_was_applied_at_least_once = False
 
     for action_attr_tag_idx in action_group_df.index:
         action = action_group_df.loc[action_attr_tag_idx].iloc[1]
@@ -143,7 +146,7 @@ def adjust_dicom_metadata(user_input: dict, dcm: pydicom.dataset.FileDataset, ac
 
                     assert dcm_tag_idx in ['00100010', '00100020'], 'E: Cannot apply action code `Z` in any other attribute besides Patient ID and Patient Name'
 
-                    dcm[dcm_tag_idx].value = tag_value_replacements['patient_pseudo_id']
+                    dcm[dcm_tag_idx].value = patient_pseudo_id
 
                 elif action == 'X':
 
@@ -153,10 +156,14 @@ def adjust_dicom_metadata(user_input: dict, dcm: pydicom.dataset.FileDataset, ac
 
                     if dcm[dcm_tag_idx].VR == 'DA':
 
-                        dcm[dcm_tag_idx].value = get_pseudo_date(dcm[dcm_tag_idx].value, days_total_offset = tag_value_replacements['days_total_offset'])
+                        dcm[dcm_tag_idx].value = get_pseudo_date(dcm[dcm_tag_idx].value, days_total_offset = days_total_offset)
+
+                        tag_value_replacements['days_total_offset'] = days_total_offset
 
                     elif dcm[dcm_tag_idx].VR == 'TM':
 
                         dcm[dcm_tag_idx].value = get_pseudo_day_time(seconds_total_offset = tag_value_replacements['seconds_total_offset'])
+
+                        tag_value_replacements['seconds_total_offset'] = seconds_total_offset
 
     return dcm, tag_value_replacements

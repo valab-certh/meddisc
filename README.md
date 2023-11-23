@@ -1,14 +1,14 @@
 # DICOM De-Identifier
 
-The executable provided in this repository serves as a tool for the removal of patient's personal identifiable information from DICOM file metadata, based on a user's options. This implementation aligns with the standards specified in Nema's Attribute Confidentiality Profiles that can be found at [[link](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html)].
+The executable provided in this repository serves as a tool for the removal of patient's personal identifiable information from DICOM file metadata, based on a user's options. This implementation aligns with the standards specified in Nema's Attribute Confidentiality Profiles that can be found at [[link](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html)]. This project's primary library for DICOM manipulations is `pydicom`.
 
 ## Utilities
 
 A file named as `.json` contains all the currently available user options, within the following simple JSON configuration structure. One such file may contain
 ```
 {
-    "input_dcm_fp": "../in.dcm",
-    "output_dcm_fp": "../out.dcm",
+    "input_dcm_dp": "../dataset/raw",
+    "output_dcm_dp": "../dataset/clean",
     "clean_image": true,
     "retain_safe_private": false,
     "retain_uids": false,
@@ -23,8 +23,7 @@ This particular configuration is defined to be the default one, in which case th
 
 To explain each field
 
-- `input_dcm_fp`. Type string. specifies the input DICOM file's path.
-- `output_dcm_fp`. Type string. specifies the path of the exported DICOM file.
+- `input_dcm_dp`, `output_dcm_dp`. Both are string type. Specify the directory paths of the imported and exported DICOM files respectively.
 
 From now and on each explained field corresponds to a parameter in the de-identification methodology, 
 
@@ -41,6 +40,27 @@ From now and on each explained field corresponds to a parameter in the de-identi
 - `patient_pseudo_id_prefix`. Type string. The concatenation of that prefix with a dummy number results in the pseudo patient ID.
 
 ## Technical Description
+
+### Directory Structure
+
+```
+.
+├── .gitignore
+├── action_groups_dcm.csv
+├── in.dcm
+├── README.md
+├── requested_action_group_dcm.csv
+├── requirements.txt
+├── src
+│   ├── action_tools.py
+│   ├── generate_action_groups.py
+│   ├── main.py
+│   ├── rw.py
+│   ├── script.js
+│   └── server.py
+├── user_default_input.json
+└── user_input.json
+```
 
 ### Metadata Nema Actions
 
@@ -71,26 +91,13 @@ Simply keeps a tag as is.
 
 Replaces tag value with a dummy one. Implemented only for patient ID with tag index `(0010, 0020)` and patient Name with tag index `(0010, 0010)` in which case both values are replaced by a common pseudo patient ID.
 
-### Directory Structure
+### Additional DICOM Modifications
 
-```
-.
-├── .gitignore
-├── action_groups_dcm.csv
-├── in.dcm
-├── README.md
-├── requested_action_group_dcm.csv
-├── requirements.txt
-├── src
-│   ├── action_tools.py
-│   ├── generate_action_groups.py
-│   ├── main.py
-│   ├── rw.py
-│   ├── script.js
-│   └── server.py
-├── user_default_input.json
-└── user_input.json
-```
+- It should be noted that DICOM files that include instances of the `GroupLength` tag with tag code `(gggg, 0000)`, are being automatically dropped by the respective function that is used to export the DICOM object.
+- Inside the output DICOM file, additional DICOM attributes were included that specify the anonymization process
+    - Tag instance with code `(0012, 0063)` where its value is a concatenated sequence of codes as per Table CID 7050 from [[link](https://dicom.nema.org/medical/dicom/2019a/output/chtml/part16/sect_CID_7050.html)]. These specify how the DICOM de-identification procedure was performed.
+    - Tag instance with code `(0012, 0062)` signifies if patient identity was pseudonymized/removed from both the attributes and the pixel data [[link](https://dicom.innolitics.com/ciods/rt-plan/patient/00120062)].
+    - Tag instance with code `(0028, 0301)` signifies if PII was removed from burned in text in pixel data [[link](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/sect_E.3.html)].
 
 ## Citation
 

@@ -4,3 +4,9 @@ info.md
 server*
 *.dcmdump
 src/script.js
+dataset/raw/*
+!dataset/raw/.gitkeep
+dataset/clean/*
+!dataset/clean/.gitkeep
+!dataset/raw/1-1.dcm
+!dataset/raw/1-2.dcm

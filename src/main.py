@@ -1,13 +1,27 @@
+import os, logging
+
+## Warning supression
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+import tensorflow as tf
+
+## Warning supression
+tf.get_logger().setLevel(logging.ERROR)
+
 import pandas as pd
 import rw
 import pydicom
 import json
-import action_tools
+import random
 
-def encoded_anonymization_attributes(user_input: dict, dcm: pydicom.dataset.FileDataset) -> pydicom.dataset.FileDataset:
+import action_tools
+import dcm_img_text_remover
+
+
+def deidentification_attributes(user_input: dict, dcm: pydicom.dataset.FileDataset) -> pydicom.dataset.FileDataset:
     '''
         Description:
-            Adds additional DICOM attributes that specify the anonymization process as per Table CID 7050 from https://dicom.nema.org/medical/dicom/2019a/output/chtml/part16/sect_CID_7050.html. Additional relevant information can be found at https://dicom.nema.org/medical/dicom/current/output/chtml/part15/sect_E.3.html.
+            Appends additional DICOM attributes that specify the anonymization process as per Table CID 7050 from https://dicom.nema.org/medical/dicom/2019a/output/chtml/part16/sect_CID_7050.html. Additional relevant information can be found at https://dicom.nema.org/medical/dicom/current/output/chtml/part15/sect_E.3.html.
 
         Args:
             user_input.
@@ -71,54 +85,101 @@ def encoded_anonymization_attributes(user_input: dict, dcm: pydicom.dataset.File
 
     return dcm
 
+def main():
 
-def main(session = None):
+    ## Initial parameters
+    GPU = True ## Set to True if you want to invoke NVIDIA GPU
+    SESSION_FP = None#'../session.json' ## A session must have the same exact user_input.json file independently of interruptions!!!
 
-    ## ! Initial anonymization parameters: Begin
+    if (not GPU):
+        tf.config.set_visible_devices([], 'GPU')
+        print('[DISABLED] PARALLEL COMPUTATION\n\n---')
+    elif len(tf.config.list_physical_devices('GPU')) == 0:
+        print('W: No GPU detected, switching to CPU instead')
+        print('[DISABLED] PARALLEL COMPUTATION\n\n---')
+    elif tf.config.list_physical_devices('GPU')[0][1] == 'GPU':
+        print('[ENABLED] PARALLEL COMPUTATION\n\n---')
 
-    ## Parse internal configs
+    ## Parse all possible DICOM metadata configurations
     action_groups_df = pd.read_csv(filepath_or_buffer = '../action_groups_dcm.csv', index_col = 0)
+
+    if SESSION_FP == None:
+        session = dict()
+    else:
+        with open(file = '../session.json', mode = 'r') as file:
+            session = json.load(file)
 
     with open(file = '../user_default_input.json', mode = 'r') as file:
         user_input = json.load(file)
 
-    ## Replace with POST request taken from form's inputs
-    with open(file = '../user_input.json', mode = 'r') as file:
-        user_input = json.load(file)
+    ## SERVER SIDE -> After the user modifies this, UPDATE user_input based on these modifications and REPLACE the user_input.json file with POST request taken from form's inputs
+    with open(file = '../user_input.json', mode = 'w') as file:
+        json.dump(user_input, file)
+
+    pseudo_patient_ids = []
+    for patient_deidentification_properties in session.values():
+        pseudo_patient_ids.append(int(patient_deidentification_properties['patientPseudoId']))
+
+    if pseudo_patient_ids == []:
+        max_pseudo_patient_id = -1
+    else:
+        max_pseudo_patient_id = max(pseudo_patient_ids) - 1
 
     ## Get one input DICOM
-    dcm = pydicom.dcmread(fp = user_input['input_dcm_fp'])
+    # raw_dp = pydicom.dcmread(fp = user_input['input_dcm_dp'])
+    rw_obj = rw.rwdcm(in_dp = user_input['input_dcm_dp'], out_dp = user_input['output_dcm_dp'])
 
-    ## ! Initial anonymization parameters: End
+    while next(rw_obj):
 
-    ## User input parameter validity check
-    date_processing_choices = {'keep', 'offset', 'remove'}
-    assert user_input['date_processing'] in date_processing_choices, 'E: Invalid date processing input'
+        dcm = rw_obj.parse_file()
 
-    ## Define metadata action group based on user input
-    requested_action_group_df = action_tools.get_action_group(user_input = user_input, action_groups_df = action_groups_df)
+        ## User input parameter validity check
+        date_processing_choices = {'keep', 'offset', 'remove'}
+        assert user_input['date_processing'] in date_processing_choices, 'E: Invalid date processing input'
 
-    ## [ToDo] Create session file IF there is no other depending on another user input. The user will be asked right when the session file will be searched by the executable
-    requested_action_group_df.to_csv('../requested_action_group_dcm.csv')
+        real_patient_id = dcm['00100020'].value
+        patient_deidentification_properties = session.get(real_patient_id, False)
+        if not patient_deidentification_properties:
+            max_pseudo_patient_id += 1
+            session[real_patient_id] = {'patientPseudoId': '%.6d'%max_pseudo_patient_id}
+            days_total_offset = random.uniform(10 * 365, (2 * 10) * 365)
+            seconds_total_offset = round(random.uniform(0, 24 * 60 * 60))
+        else:
+            days_total_offset = session[real_patient_id]['daysOffset']
+            seconds_total_offset = session[real_patient_id]['secondsOffset']
 
-    ## Adjusts DICOM metadata based on user parameterization
-    dcm, tag_value_replacements = action_tools.adjust_dicom_metadata\
-    (
-        user_input = user_input,
-        dcm = dcm,
-        action_group_fp = '../requested_action_group_dcm.csv'
-    )
+        ## Define metadata action group based on user input
+        requested_action_group_df = action_tools.get_action_group(user_input = user_input, action_groups_df = action_groups_df)
 
-    ## Adds metadata tag with field that specifies the anonymization process
-    dcm = encoded_anonymization_attributes(user_input = user_input, dcm = dcm)
+        requested_action_group_df.to_csv('../requested_action_group_dcm.csv')
 
-    ## Create proper session file
-    ## Add date if date setting is true
-    ## Add time if time settings is true
+        ## Adjusts DICOM metadata based on user parameterization
+        dcm, tag_value_replacements = action_tools.adjust_dicom_metadata\
+        (
+            user_input = user_input,
+            dcm = dcm,
+            action_group_fp = '../requested_action_group_dcm.csv',
+            patient_pseudo_id = session[real_patient_id]['patientPseudoId'],
+            days_total_offset = days_total_offset,
+            seconds_total_offset = seconds_total_offset
+        )
 
-    ## Create a hash value and export object in file
-    # dcm.save_as(user_input['output_dcm_fp'], write_like_original = False)
-    pydicom.filewriter.dcmwrite(filename = user_input['output_dcm_fp'], dataset = dcm, write_like_original = False)
+        ## Session update
+        session[real_patient_id]['daysOffset'] = tag_value_replacements['days_total_offset']
+        session[real_patient_id]['secondsOffset'] = tag_value_replacements['seconds_total_offset']
+
+        ## Adds metadata tag with field that specifies the anonymization process
+        dcm = deidentification_attributes(user_input = user_input, dcm = dcm)
+
+        if user_input['clean_image']:
+            ## Cleans burned in text in pixel data
+            dcm, _, _ = dcm_img_text_remover.keras_ocr_dicom_image_text_remover(dcm = dcm)
+
+        ## Store DICOM file and create output directories
+        rw_obj.export_processed_file(dcm = dcm)
+
+        ## Overwrite session file to save progress
+        rw_obj.export_session(session = session)
 
 
 if __name__ == '__main__':
