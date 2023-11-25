@@ -93,7 +93,7 @@ def main() -> None:
         dicom_tag_to_nema_action_df.loc[tag_idx, 'Name'] = df_table.loc[df_table['Tag'] == tag, 'Attribute Name'].item()
 
         ## Adjust cell values
-        if tag_idx in ["00100010", "00100020"]:
+        if tag_idx in ['00100010', '00100020']:
             dicom_tag_to_nema_action_df.loc[tag_idx, 'Default'] = 'Z'
         # elif "C" in dicom_tag_to_nema_action_df.loc[tag_idx].values.tolist()[1:]:
         #     dicom_tag_to_nema_action_df.loc[tag_idx, 'Default'] = 'C'

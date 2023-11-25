@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+    <body>
+
+        <form id="myForm" action="/upload_files/" enctype="multipart/form-data" method="post">
+            <div>
+                Load directory with DICOM files:
+            </div>
+            <input name="files" type="file" multiple>
+            <button type="submit" id="SubmitUpload">
+                Submit
+            </button>
+            <div id="UploadStatus">
+                </br>
+                </br>
+                Total uploaded files: 0
+                </br>
+                Size of uploaded content: 0 MB
+                </br>
+                </br>
+            </div>
+        </form>
+
+        Retain safe private:
+        <input type="checkbox" id="retain-safe-private-input-checkbox">
+        </br>
+        Retain UIDs:
+        <input type="checkbox" id="retain-uids-input-checkbox">
+        </br>
+        Retain device identity:
+        <input type="checkbox" id="retain-device-identity-input-checkbox">
+        </br>
+        Retain patient characteristics:
+        <input type="checkbox" id="retain-patient-characteristics-input-checkbox">
+        </br>
+        Date processing:
+        <select id="date-processing-select">
+            <option value="offset">Offset</option>
+            <option value="remove">Remove</option>
+            <option value="keep">Keep</option>
+        </select>
+        </br>
+        Retain descriptors:
+        <input type="checkbox" id="retain-descriptors-input-checkbox">
+        </br>
+        Retain patient characteristics:
+        <input type="text" id="patient-pseudo-id-prefix-input-text">
+        </br>
+        <button type="button" onclick="submit_dicom_processing_request()">
+            Submit
+        </button>
+
+        <script src="/static/client.js"></script>
+    </body>
+</html>

@@ -1,6 +1,6 @@
 # DICOM De-Identifier
 
-The executable provided in this repository serves as a tool for the removal of patient's personal identifiable information from DICOM file metadata, based on a user's options. This implementation aligns with the standards specified in Nema's Attribute Confidentiality Profiles that can be found at [[link](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html)]. This project's primary library for DICOM manipulations is `pydicom`.
+The executable provided in this repository serves as a tool for the removal of a patient's personal identifiable information (PII) from their associated DICOM files, based on a predefined set of user options. This implementation aligns with the standards specified in Nema's Attribute Confidentiality Profiles that can be found at [[link](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html)].
 
 ## Utilities
 
@@ -41,6 +41,8 @@ From now and on each explained field corresponds to a parameter in the de-identi
 
 ## Technical Description
 
+The backend is implemented in Python. During runtime, the input DICOM file's information is stored inside a `pydicom.dataset.FileDataset` object, where all standard object manipulations (e.g. exportation into a DICOM file) are based on the `pydicom` library.
+
 ### Directory Structure
 
 ```
@@ -61,6 +63,14 @@ From now and on each explained field corresponds to a parameter in the de-identi
 ├── user_default_input.json
 └── user_input.json
 ```
+
+##### Information of `requested_action_group_dcm.csv`
+
+This file contains the action group based on which the resulting metadata was de-identified. It is a result of the `user_input.json` and in accordance with Nema's action groups.
+
+### Pixel Data Burned-in Text
+
+A DICOM's image is de-identified based on Keras OCR's pretrained CRAFT model, a versatile rotation invariant text-image detector. [[link](https://github.com/fl0wxr/DICOMImageDeIdentifier)] for more details.
 
 ### Metadata Nema Actions
 

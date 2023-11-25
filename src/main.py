@@ -132,6 +132,7 @@ def main():
     while next(rw_obj):
 
         dcm = rw_obj.parse_file()
+        breakpoint()
         if dcm == False:
             print('File already converted\nSkipping\n---\n')
             continue
@@ -142,7 +143,7 @@ def main():
         date_processing_choices = {'keep', 'offset', 'remove'}
         assert user_input['date_processing'] in date_processing_choices, 'E: Invalid date processing input'
 
-        real_patient_id = dcm['00100020'].value
+        real_patient_id = dcm[0x0010, 0x0020].value
         patient_deidentification_properties = session.get(real_patient_id, False)
         if not patient_deidentification_properties:
             max_pseudo_patient_id += 1

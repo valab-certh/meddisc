@@ -92,7 +92,7 @@ class rwdcm:
 
     def export_processed_file(self, dcm):
 
-        self.clean_dicom_dp = self.clean_data_dp + str(dcm['00100020'].value) + '/' + str(dcm['00080060'].value) + '/' + str(dcm['00200011'].value)
+        self.clean_dicom_dp = self.clean_data_dp + str(dcm[0x0010, 0x0020].value) + '/' + str(dcm[0x0008, 0x0060].value) + '/' + str(dcm[0x0020, 0x0011].value)
         if not os.path.exists(self.clean_dicom_dp):
             os.makedirs(self.clean_dicom_dp)
 
