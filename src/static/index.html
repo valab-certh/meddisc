@@ -1,14 +1,24 @@
 <!DOCTYPE html>
 <html>
-    <body>
+    <head>
+        <meta charset="utf-8">
+        <meta content="width=device-width, initial-scale=1" name="viewport">
+        <title>DICOM de-identification and curation tool</title>
+        <link href="data:," rel="icon">
+    </head>
 
-        <form id="myForm" action="/upload_files/" enctype="multipart/form-data" method="post">
+    <body>
+        <nav>
+            <a href="https://cordis.europa.eu/project/id/952179"><img alt="INCISIVE Cordis webpage" src="https://incisive-project.eu/wp-content/uploads/2021/01/incisive-header-logo.svg" height="20"></a> | <a href="https://github.com/pbizopoulos/dicom-de-identification-and-curation-tool">Source code</a> | <a href="https://pbizopoulos.github.io/incisive">Home page</a> / <b>DICOM de-identification and curation tool</b>
+        </nav>
+        <h3>Input</h3>
+        <form id="UploadForm" action="/upload_files/" enctype="multipart/form-data" method="post">
             <div>
                 Load directory with DICOM files:
             </div>
-            <input name="files" type="file" multiple>
+            <input name="files" type="file" directory webkitdirectory mozdirectory>
             <button type="submit" id="SubmitUpload">
-                Submit
+                Upload Files
             </button>
             <div id="UploadStatus">
                 </br>
@@ -21,6 +31,25 @@
             </div>
         </form>
 
+        <form id="SessionForm" action="/upload_files/" enctype="multipart/form-data" method="post">
+            Load session file: 
+            <input name="file" type="file">
+            <button type="submit" id="SubmitSession">
+                Upload Files
+            </button>
+            </br>
+        </form>
+
+        <h3>De-identification options</h3>
+
+        <i>
+            Based on
+            <a href="https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html"> DICOM PS3.15</a>
+        </i>
+        </br>
+        Clean pixel data:
+        <input type="checkbox" id="clean-image">
+        </br>
         Retain safe private:
         <input type="checkbox" id="retain-safe-private-input-checkbox">
         </br>
@@ -44,10 +73,11 @@
         <input type="checkbox" id="retain-descriptors-input-checkbox">
         </br>
         Retain patient characteristics:
-        <input type="text" id="patient-pseudo-id-prefix-input-text">
+        <input type="text" id="patient-pseudo-id-prefix-input-text" placeholder="e.g. an organization ID">
         </br>
-        <button type="button" onclick="submit_dicom_processing_request()">
-            Submit
+        </br>
+        <button type="button" id="SubmitAnonymizationProcess" onclick="submit_dicom_processing_request()" disabled>
+            De-Identify DICOM Files
         </button>
 
         <script src="/static/client.js"></script>
