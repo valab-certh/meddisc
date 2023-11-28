@@ -100,6 +100,11 @@ async def handle_submit_button_click(user_input_dict: user_input_class):
 
     requested_parameters = dict(user_input_dict)
 
+    dp, _, fps = list(os.walk('../session_data/raw'))[0]
+    # breakpoint()
+    if set(fps).issubset({'.gitkeep'}):
+        return False
+
     ## ! Update `user_input.json`: Begin
 
     with open(file = '../user_default_input.json', mode = 'r') as file:

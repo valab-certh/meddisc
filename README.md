@@ -123,7 +123,7 @@ and through `localhost:8000` you can open the client. Through this window we can
 
 ![](./fig0.png)
 
-which shows the corresponding de-identification options.
+which shows the corresponding patient de-identification options.
 
 ## Citation
 

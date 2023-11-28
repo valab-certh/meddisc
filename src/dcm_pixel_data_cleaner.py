@@ -125,7 +125,7 @@ def keras_ocr_dicom_image_text_remover(dcm):
         pipeline = keras_ocr.detection.Detector()
 
         ## Returns a ndarray with shape (n_bboxes, 4, 2) where 4 is the number of points for each box, 2 are the plane coordinates.
-        bboxes = pipeline.detect([img], detection_threshold = .0)[0]
+        bboxes = pipeline.detect([img])[0]
 
         return bboxes
 
