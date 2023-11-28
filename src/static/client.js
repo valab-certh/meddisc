@@ -114,7 +114,6 @@ async function submit_dicom_processing_request()
         const filesClone = files.clone();
         const empty_input_directory = JSON.parse(await filesClone.text());
 
-        console.log(empty_input_directory)
         if (empty_input_directory === false)
         {
             alert('No files provided. Make sure to press the "Upload Directory" button after you submit your directory.')

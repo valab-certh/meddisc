@@ -4,7 +4,8 @@
 '''
 
 
-import pydicom as dicom
+import pydicom
+from pydicom.errors import InvalidDicomError
 from PIL import Image
 import numpy as np
 import shutil
@@ -21,18 +22,6 @@ class rwdcm:
     '''
 
     def __init__(self, in_dp: str, out_dp: str):
-
-        self.modifiable_file_extension_names = \
-        [
-            'dcm',
-            'dcM',
-            'dCm',
-            'dCM',
-            'Dcm',
-            'DcM',
-            'DCm',
-            'DCM'
-        ]
 
         self.SAFETY_SWITCH = True
         if not self.SAFETY_SWITCH:
@@ -66,18 +55,24 @@ class rwdcm:
 
     def get_dicom_paths(self, data_dp):
 
-        dicom_paths = []
-        for extension_name in self.modifiable_file_extension_names:
-            dicom_paths += \
+        dicom_paths = \
+        (
+            glob\
             (
-                glob\
-                (
-                    pathname = data_dp + '**/*.' + extension_name,
-                    recursive = True
-                )
+                pathname = data_dp + '*',
+                recursive = True
             )
+        )
 
-        return dicom_paths
+        proper_dicom_paths = []
+        for dicom_path in dicom_paths:
+            try:
+                pydicom.dcmread(dicom_path)
+                proper_dicom_paths.append(dicom_path)
+            except InvalidDicomError:
+                continue
+
+        return proper_dicom_paths
 
     def parse_file(self):
 
@@ -86,7 +81,7 @@ class rwdcm:
         if self.input_dicom_hash in self.hashes_of_already_converted_files:
             return False
         else:
-            dcm = dicom.dcmread(self.raw_dicom_path)
+            dcm = pydicom.dcmread(self.raw_dicom_path)
             print('Parsed\n%s'%(self.raw_dicom_path))
             return dcm
 
