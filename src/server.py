@@ -45,6 +45,9 @@ def clean_dirs():
     if os.path.isfile('../session_data/session.json'):
         os.remove('../session_data/session.json')
 
+    if os.path.isfile('../session_data/requested_action_group_dcm.csv'):
+        os.remove('../session_data/requested_action_group_dcm.csv')
+
     dp, _, fps = list(os.walk('../session_data/raw'))[0]
     for fp in fps:
         if fp != '.gitkeep':

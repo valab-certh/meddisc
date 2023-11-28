@@ -1,6 +1,6 @@
 # DICOM De-Identifier
 
-The executable provided in this repository serves as a tool for the removal of a patient's personal identifiable information (PII) from their associated DICOM files, based on a predefined set of user options. This implementation aligns with the standards specified in Nema's Attribute Confidentiality Profiles that can be found at [[link](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html)].
+The executable provided in this repository serves as a tool for the removal of a patient's personal identifiable information (PII) from their associated DICOM files, based on a predefined set of user options. This implementation aligns with the standards specified in Nema's Attribute Confidentiality Profiles which can be accessed at [[link](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html)]. Primarily developed as a component of the INCISIVE project, the tool's main objective is to ensure patient anonymization.
 
 ## Utilities
 
@@ -50,32 +50,16 @@ The backend is implemented in Python. During runtime, the input DICOM file's inf
 ├── action_groups_dcm.csv
 ├── LICENSE
 ├── README.md
-├── requested_action_group_dcm.csv
 ├── requirements.txt
 ├── session_data
 │   ├── clean
-│   │   └── de-identified-files.zip
 │   └── raw
 ├── src
 │   ├── action_tools.py
 │   ├── dcm_deidentifier.py
 │   ├── dcm_pixel_data_cleaner.py
 │   ├── generate_action_groups.py
-│   ├── __pycache__
-│   │   ├── action2dicom.cpython-310.pyc
-│   │   ├── action_tools.cpython-310.pyc
-│   │   ├── config_adjustment.cpython-310.pyc
-│   │   ├── dcm_deidentifier.cpython-310.pyc
-│   │   ├── dcm_img_text_remover.cpython-310.pyc
-│   │   ├── dcm_pixel_data_cleaner.cpython-310.pyc
-│   │   ├── get_action.cpython-310.pyc
-│   │   ├── main.cpython-310.pyc
-│   │   ├── modify_dicom_metadata.cpython-310.pyc
-│   │   ├── rw.cpython-310.pyc
-│   │   ├── server.cpython-310.pyc
-│   │   └── visuals.cpython-310.pyc
 │   ├── rw.py
-│   ├── script.js
 │   ├── server.py
 │   ├── static
 │   │   ├── client.js
@@ -86,7 +70,7 @@ The backend is implemented in Python. During runtime, the input DICOM file's inf
 
 ##### Information of `requested_action_group_dcm.csv`
 
-This file contains the action group based on which the resulting metadata was de-identified. It is a result of the `user_input.json` and in accordance with Nema's action groups.
+This file contains the action group based on which the resulting metadata was de-identified. It is a result of the `user_input.json` and in accordance with Nema's action groups. If this is corrupted or deleted and you want to rebuild it, execute `generate_action_groups.py` with an Internet connection.
 
 ### Pixel Data Burned-in Text
 
@@ -128,6 +112,18 @@ Replaces tag value with a dummy one. Implemented only for patient ID with tag in
     - Tag instance with code `(0012, 0063)` where its value is a concatenated sequence of codes as per Table CID 7050 from [[link](https://dicom.nema.org/medical/dicom/2019a/output/chtml/part16/sect_CID_7050.html)]. These specify how the DICOM de-identification procedure was performed.
     - Tag instance with code `(0012, 0062)` signifies if patient identity was pseudonymized/removed from both the attributes and the pixel data [[link](https://dicom.innolitics.com/ciods/rt-plan/patient/00120062)].
     - Tag instance with code `(0028, 0301)` signifies if PII was removed from burned in text in pixel data [[link](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/sect_E.3.html)].
+
+## Web Application
+
+To run the backend
+```
+uvicorn server:app --reload
+```
+and through `localhost:8000` you can open the client. Through this window we can see
+
+![](./fig0.png)
+
+which shows the corresponding de-identification options.
 
 ## Citation
 

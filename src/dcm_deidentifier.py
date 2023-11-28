@@ -162,14 +162,14 @@ def dicom_deidentifier(SESSION_FP: None or str = None):
         ## Define metadata action group based on user input
         requested_action_group_df = action_tools.get_action_group(user_input = user_input, action_groups_df = action_groups_df)
 
-        requested_action_group_df.to_csv('../requested_action_group_dcm.csv')
+        requested_action_group_df.to_csv('../session_data/requested_action_group_dcm.csv')
 
         ## Adjusts DICOM metadata based on user parameterization
         dcm, tag_value_replacements = action_tools.adjust_dicom_metadata\
         (
             user_input = user_input,
             dcm = dcm,
-            action_group_fp = '../requested_action_group_dcm.csv',
+            action_group_fp = '../session_data/requested_action_group_dcm.csv',
             patient_pseudo_id = session[real_patient_id]['patientPseudoId'],
             days_total_offset = days_total_offset,
             seconds_total_offset = seconds_total_offset

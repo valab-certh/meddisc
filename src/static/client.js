@@ -22,7 +22,6 @@ document.getElementById('UploadForm').addEventListener
         // Response from python script server (result holds whatever the server's "return" function sends)
         const result = await response.json();
 
-        console.log(result.message);
         if (response.ok)
         {
             // document.getElementById('SubmitUpload').disabled = true
