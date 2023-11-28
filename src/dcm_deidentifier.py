@@ -129,7 +129,7 @@ def dicom_deidentifier(SESSION_FP: None or str = None):
     if pseudo_patient_ids == []:
         max_pseudo_patient_id = -1
     else:
-        max_pseudo_patient_id = max(pseudo_patient_ids) - 1
+        max_pseudo_patient_id = max(pseudo_patient_ids)
 
     ## Get one input DICOM
     # raw_dp = pydicom.dcmread(fp = user_input['input_dcm_dp'])

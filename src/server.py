@@ -1,5 +1,3 @@
-from typing import Annotated
-
 from fastapi import FastAPI, File, UploadFile, Form, Body
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
