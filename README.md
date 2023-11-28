@@ -7,8 +7,8 @@ The executable provided in this repository serves as a tool for the removal of a
 A file named as `.json` contains all the currently available user options, within the following simple JSON configuration structure. One such file may contain
 ```
 {
-    "input_dcm_dp": "../dataset/raw",
-    "output_dcm_dp": "../dataset/clean",
+    "input_dcm_dp": "../session_data/raw",
+    "output_dcm_dp": "../session_data/clean",
     "clean_image": true,
     "retain_safe_private": false,
     "retain_uids": false,
@@ -47,21 +47,41 @@ The backend is implemented in Python. During runtime, the input DICOM file's inf
 
 ```
 .
-├── .gitignore
 ├── action_groups_dcm.csv
-├── in.dcm
+├── LICENSE
 ├── README.md
 ├── requested_action_group_dcm.csv
 ├── requirements.txt
+├── session_data
+│   ├── clean
+│   │   └── de-identified-files.zip
+│   └── raw
 ├── src
 │   ├── action_tools.py
+│   ├── dcm_deidentifier.py
+│   ├── dcm_pixel_data_cleaner.py
 │   ├── generate_action_groups.py
-│   ├── main.py
+│   ├── __pycache__
+│   │   ├── action2dicom.cpython-310.pyc
+│   │   ├── action_tools.cpython-310.pyc
+│   │   ├── config_adjustment.cpython-310.pyc
+│   │   ├── dcm_deidentifier.cpython-310.pyc
+│   │   ├── dcm_img_text_remover.cpython-310.pyc
+│   │   ├── dcm_pixel_data_cleaner.cpython-310.pyc
+│   │   ├── get_action.cpython-310.pyc
+│   │   ├── main.cpython-310.pyc
+│   │   ├── modify_dicom_metadata.cpython-310.pyc
+│   │   ├── rw.cpython-310.pyc
+│   │   ├── server.cpython-310.pyc
+│   │   └── visuals.cpython-310.pyc
 │   ├── rw.py
 │   ├── script.js
-│   └── server.py
-├── user_default_input.json
-└── user_input.json
+│   ├── server.py
+│   ├── static
+│   │   ├── client.js
+│   │   └── index.html
+│   └── visuals.py
+└── user_default_input.json
 ```
 
 ##### Information of `requested_action_group_dcm.csv`
