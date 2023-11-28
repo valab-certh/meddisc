@@ -1,1 +1,0 @@
-{"input_dcm_dp": "../dataset/raw", "output_dcm_dp": "../dataset/clean", "clean_image": false, "retain_safe_private": false, "retain_uids": false, "retain_device_identity": false, "retain_patient_characteristics": false, "date_processing": "offset", "retain_descriptors": false, "patient_pseudo_id_prefix": ""}

@@ -4,7 +4,7 @@ from fastapi import FastAPI, File, UploadFile, Form, Body
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import List
+from typing import List, Dict, Any
 import pydicom
 import json
 import dcm_deidentifier
@@ -35,13 +35,19 @@ class session_class(BaseModel):
 
 def clean_dirs():
 
-    if os.path.exists('../dataset/clean/de-identified-files'):
-        shutil.rmtree('../dataset/clean/de-identified-files')
+    if os.path.exists('../session_data/clean/de-identified-files'):
+        shutil.rmtree('../session_data/clean/de-identified-files')
 
-    if os.path.isfile('../dataset/clean/de-identified-files.zip'):
-        os.remove('../dataset/clean/de-identified-files.zip')
+    # if os.path.isfile('../session_data/clean/de-identified-files.zip'):
+    #     os.remove('../session_data/clean/de-identified-files.zip')
 
-    dp, _, fps = list(os.walk('../dataset/raw'))[0]
+    if os.path.isfile('../session_data/user_input.json'):
+        os.remove('../session_data/user_input.json')
+
+    if os.path.isfile('../session_data/session.json'):
+        os.remove('../session_data/session.json')
+
+    dp, _, fps = list(os.walk('../session_data/raw'))[0]
     for fp in fps:
         if fp != '.gitkeep':
             os.remove(dp + '/' + fp)
@@ -67,6 +73,8 @@ async def get_files\
 
     ## Resetting directories
     clean_dirs()
+    if os.path.isfile('../session_data/clean/de-identified-files.zip'):
+        os.remove('../session_data/clean/de-identified-files.zip')
 
     total_uploaded_file_bytes = 0
     files_content = []
@@ -74,7 +82,7 @@ async def get_files\
         ## Serialized file contents
         contents = await file.read()
         files_content.append(contents)
-        with open(file = '../dataset/raw/' + file.filename.split('/')[-1], mode = 'wb') as f:
+        with open(file = '../session_data/raw/' + file.filename.split('/')[-1], mode = 'wb') as f:
             f.write(contents)
         total_uploaded_file_bytes += len(contents)
     total_uploaded_file_megabytes = '%.1f'%(total_uploaded_file_bytes / (10**3)**2)
@@ -82,13 +90,14 @@ async def get_files\
     return {"n_uploaded_files": len(files), "total_size": total_uploaded_file_megabytes}
 
 @app.post('/session')
-async def handle_session_button_click(session_json: str = Body(...)):
-    breakpoint()
+async def handle_session_button_click(session_dict: Dict[str, Any]):
+    with open(file = '../session_data/session.json', mode = 'w') as file:
+        json.dump(session_dict, file)
 
 @app.post('/submit_button_clicked')
-async def handle_submit_button_click(user_input_json: user_input_class):
+async def handle_submit_button_click(user_input_dict: user_input_class):
 
-    requested_parameters = dict(user_input_json)
+    requested_parameters = dict(user_input_dict)
 
     ## ! Update `user_input.json`: Begin
 
@@ -98,13 +107,18 @@ async def handle_submit_button_click(user_input_json: user_input_class):
     for requested_parameter_key, requested_parameter_value in requested_parameters.items():
         user_input[requested_parameter_key] = requested_parameter_value
 
-    with open(file = '../user_input.json', mode = 'w') as file:
+    with open(file = '../session_data/user_input.json', mode = 'w') as file:
         json.dump(user_input, file)
 
     ## ! Update `user_input.json`: End
 
-    dcm_deidentifier.dicom_deidentifier(SESSION_FP = None)
+    session = dcm_deidentifier.dicom_deidentifier(SESSION_FP = '../session_data/session.json')
 
-    shutil.make_archive(base_name = '../dataset/clean/de-identified-files', format = 'zip', root_dir = '../dataset/clean/de-identified-files')
+    with open(file = '../session_data/session.json', mode = 'w') as file:
+        json.dump(session, file)
 
-    return FileResponse(path = '../dataset/clean/de-identified-files.zip', media_type = 'application/octet-stream')
+    shutil.make_archive(base_name = user_input['output_dcm_dp'] + '/de-identified-files', format = 'zip', root_dir = user_input['output_dcm_dp'] + '/de-identified-files')
+
+    clean_dirs()
+
+    return FileResponse(path = user_input['output_dcm_dp'] + '/de-identified-files.zip', media_type = 'application/octet-stream')

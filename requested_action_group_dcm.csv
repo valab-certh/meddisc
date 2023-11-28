@@ -37,7 +37,7 @@
 00181203,Calibration DateTime,C
 0014407C,Calibration Time,C
 0016004D,Camera Owner Name,X
-00181007,Cassette ID,X
+00181007,Cassette ID,K
 04000115,Certificate of Signer,X
 04000310,Certified Timestamp,C
 00120060,Clinical Trial Coordinating Center Name,X
@@ -102,14 +102,14 @@ FFFCFFFC,Data Set Trailing Padding,X
 00189701,Decay Correction DateTime,C
 0018937F,Decomposition Description,X
 00082111,Derivation Description,X
-21000140,Destination AE,X
-0018700A,Detector ID,X
+21000140,Destination AE,K
+0018700A,Detector ID,K
 3010001B,Device Alternate Identifier,X
-00500020,Device Description,X
-3010002D,Device Label,X
-00181000,Device Serial Number,X
+00500020,Device Description,K
+3010002D,Device Label,K
+00181000,Device Serial Number,K
 0016004B,Device Setting Description,X
-00181002,Device UID,X
+00181002,Device UID,K
 04000105,Digital Signature DateTime,C
 04000100,Digital Signature UID,X
 FFFAFFFA,Digital Signatures Sequence,X
@@ -185,8 +185,8 @@ FFFAFFFA,Digital Signatures Sequence,X
 0016007F,GPS Track,X
 0016007E,GPS Track ​Ref,X
 00160070,GPS Version ID,X
-00181008,Gantry ID,X
-00181005,Generator ID,X
+00181008,Gantry ID,K
+00181005,Generator ID,K
 00700001,Graphic Annotation Sequence,X
 0040E004,HL7 Document Effective Time,C
 0072000A,Hanging Protocol Creation DateTime,C
@@ -248,15 +248,15 @@ FFFAFFFA,Digital Signatures Sequence,X
 22000002,Label Text,X
 00281214,Large Palette Color Lookup Table UID,X
 001021D0,Last Menstrual Date,C
-0016004F,Lens Make,X
-00160050,Lens Model,X
-00160051,Lens Serial Number,X
-0016004E,Lens Specification,X
+0016004F,Lens Make,K
+00160050,Lens Model,K
+00160051,Lens Serial Number,K
+0016004E,Lens Specification,K
 00500021,Long Device Description,X
 04000404,MAC,X
 0016002B,Maker Note,X
-0018100B,Manufacturer's Device Class UID,X
-30100043,Manufacturer's Device Identifier,X
+0018100B,Manufacturer's Device Class UID,K
+30100043,Manufacturer's Device Identifier,K
 00020003,Media Storage SOP Instance UID,X
 00102000,Medical Alerts,X
 00101090,Medical Record Locator,X
@@ -265,14 +265,14 @@ FFFAFFFA,Digital Signatures Sequence,X
 00203403,Modified Image Date,C
 00203406,Modified Image Description,X
 00203405,Modified Image Time,C
-00203401,Modifying Device ID,X
-04000563,Modifying System,X
+00203401,Modifying Device ID,K
+04000563,Modifying System,K
 30080056,Most Recent Treatment Date,C
 0018937B,Multi-energy Acquisition Description,X
 003A0310,Multiplex Group UID,X
 00081060,Name of Physician(s) Reading Study,X
 00401010,Names of Intended Recipients of Results,X
-00081000,Network ID,X
+00081000,Network ID,K
 04000552,Nonconforming Data Element Value,X
 04000551,Nonconforming Modified Attributes Sequence,X
 0040A192,Observation Date (Trial),C
@@ -289,7 +289,7 @@ FFFAFFFA,Digital Signatures Sequence,X
 00402008,Order Entered By,X
 00402009,Order Enterer's Location,X
 04000561,Original Attributes Sequence,X
-21000070,Originator,X
+21000070,Originator,K
 00101000,Other Patient IDs,X
 00101002,Other Patient IDs Sequence,X
 00101001,Other Patient Names,X
@@ -336,10 +336,10 @@ FFFAFFFA,Digital Signatures Sequence,X
 00400244,Performed Procedure Step Start Date,C
 00404050,Performed Procedure Step Start DateTime,C
 00400245,Performed Procedure Step Start Time,C
-00400241,Performed Station AE Title,X
-00404030,Performed Station Geographic Location Code Sequence,X
-00400242,Performed Station Name,X
-00404028,Performed Station Name Code Sequence,X
+00400241,Performed Station AE Title,K
+00404030,Performed Station Geographic Location Code Sequence,K
+00400242,Performed Station Name,K
+00404028,Performed Station Name Code Sequence,K
 00081052,Performing Physician Identification Sequence,X
 00081050,Performing Physician's Name,X
 00401101,Person Identification Code Sequence,X
@@ -352,7 +352,7 @@ FFFAFFFA,Digital Signatures Sequence,X
 00081048,Physician(s) of Record,X
 00081049,Physician(s) of Record Identification Sequence,X
 00402016,Placer Order Number / Imaging Service Request,X
-00181004,Plate ID,X
+00181004,Plate ID,K
 30020123,Position Acquisition Template Description,X
 30020121,Position Acquisition Template Name,X
 00400012,Pre-Medication,X
@@ -365,7 +365,7 @@ FFFAFFFA,Digital Signatures Sequence,X
 00701101,Presentation Display Collection UID,X
 00701102,Presentation Sequence Collection UID,X
 30100061,Prior Treatment Dose Description,X
-ggggeeee where gggg is odd,Private Attributes,X
+ggggeeee where gggg is odd,Private Attributes,K
 00404052,Procedure Step Cancellation DateTime,C
 0044000B,Product Expiration DateTime,C
 00181030,Protocol Name,X
@@ -407,7 +407,7 @@ ggggeeee where gggg is odd,Private Attributes,X
 04000565,Reason for the Attribute Modification,X
 00402001,Reason for the Imaging Service Request,X
 00401002,Reason for the Requested Procedure,X
-00741234,Receiving AE,X
+00741234,Receiving AE,K
 300A073A,Recorded RT Control Point DateTime,C
 3010000B,Referenced Conceptual Volume UID,X
 0040A13A,Referenced DateTime,C
@@ -442,7 +442,7 @@ ggggeeee where gggg is odd,Private Attributes,X
 00401005,Requested Procedure Location,X
 00001001,Requested SOP Instance UID,X
 00189937,Requested Series Description,X
-00741236,Requesting AE,X
+00741236,Requesting AE,K
 00321032,Requesting Physician,X
 00321033,Requesting Service,X
 00189185,Respiratory Motion Compensation Technique Description,X
@@ -452,7 +452,7 @@ ggggeeee where gggg is odd,Private Attributes,X
 40080118,Results Distribution List Sequence,X
 40080040,Results ID,X
 40080042,Results ID Issuer,X
-00080054,Retrieve AE Title,X
+00080054,Retrieve AE Title,K
 300E0004,Review Date,C
 300E0005,Review Time,C
 300E0008,Reviewer Name,X
@@ -475,22 +475,22 @@ ggggeeee where gggg is odd,Private Attributes,X
 00400005,Scheduled Procedure Step End Time,C
 00404008,Scheduled Procedure Step Expiration DateTime,C
 00400009,Scheduled Procedure Step ID,X
-00400011,Scheduled Procedure Step Location,X
+00400011,Scheduled Procedure Step Location,K
 00404010,Scheduled Procedure Step Modification DateTime,C
 00400002,Scheduled Procedure Step Start Date,C
 00404005,Scheduled Procedure Step Start DateTime,C
 00400003,Scheduled Procedure Step Start Time,C
-00400001,Scheduled Station AE Title,X
-00404027,Scheduled Station Geographic Location Code Sequence,X
-00400010,Scheduled Station Name,X
-00404025,Scheduled Station Name Code Sequence,X
-00321020,Scheduled Study Location,X
-00321021,Scheduled Study Location AE Title,X
+00400001,Scheduled Station AE Title,K
+00404027,Scheduled Station Geographic Location Code Sequence,K
+00400010,Scheduled Station Name,K
+00404025,Scheduled Station Name Code Sequence,K
+00321020,Scheduled Study Location,K
+00321021,Scheduled Study Location AE Title,K
 00321000,Scheduled Study Start Date,C
 00321001,Scheduled Study Start Time,C
 00321010,Scheduled Study Stop Date,C
 00321011,Scheduled Study Stop Time,C
-0072005E,Selector AE Value,X
+0072005E,Selector AE Value,K
 0072005F,Selector AS Value,X
 00720061,Selector DA Value,C
 00720063,Selector DT Value,C
@@ -519,8 +519,8 @@ ggggeeee where gggg is odd,Private Attributes,X
 00640003,Source Frame of Reference UID,X
 00340005,Source Identifier,X
 00082112,Source Image Sequence,X
-300A0216,Source Manufacturer,X
-30080105,Source Serial Number,X
+300A0216,Source Manufacturer,K
+30080105,Source Serial Number,K
 00189369,Source Start DateTime,C
 300A022C,Source Strength Reference Date,C
 300A022E,Source Strength Reference Time,C
@@ -533,8 +533,8 @@ ggggeeee where gggg is odd,Private Attributes,X
 00400600,Specimen Short Description,X
 00400554,Specimen UID,X
 00189516,Start Acquisition DateTime,C
-00080055,Station AE Title,X
-00081010,Station Name,X
+00080055,Station AE Title,K
+00081010,Station Name,K
 00880140,Storage Media File-set UID,X
 30060008,Structure Set Date,C
 30060006,Structure Set Description,X
@@ -578,11 +578,11 @@ ggggeeee where gggg is odd,Private Attributes,X
 00880904,Topic Title,X
 00620021,Tracking UID,X
 00081195,Transaction UID,X
-00185011,Transducer Identification Sequence,X
+00185011,Transducer Identification Sequence,K
 30080024,Treatment Control Point Date,C
 30080025,Treatment Control Point Time,C
 30080250,Treatment Date,C
-300A00B2,Treatment Machine Name,X
+300A00B2,Treatment Machine Name,K
 300A0608,Treatment Position Group Label,X
 300A0609,Treatment Position Group UID,X
 300A0700,Treatment Session UID,X
@@ -592,9 +592,9 @@ ggggeeee where gggg is odd,Private Attributes,X
 30080251,Treatment Time,C
 300A0736,Treatment Tolerance Violation DateTime,C
 300A0734,Treatment Tolerance Violation Description,X
-0018100A,UDI Sequence,X
+0018100A,UDI Sequence,K
 0040A124,UID,X
-00181009,Unique Device Identifier,X
+00181009,Unique Device Identifier,K
 30100033,User Content Label,X
 30100034,User Content Long Label,X
 0040A352,Verbal Source (Trial),X
@@ -605,7 +605,7 @@ ggggeeee where gggg is odd,Private Attributes,X
 0040A073,Verifying Observer Sequence,X
 0040A027,Verifying Organization,X
 00384000,Visit Comments,X
-00189371,X-Ray Detector ID,X
-00189373,X-Ray Detector Label,X
-00189367,X-Ray Source ID,X
+00189371,X-Ray Detector ID,K
+00189373,X-Ray Detector Label,K
+00189367,X-Ray Source ID,K
 003A0329,​Waveform Filter Description,X

@@ -18,7 +18,7 @@
             </div>
             <input name="files" type="file" directory webkitdirectory mozdirectory>
             <button type="submit" id="SubmitUpload">
-                Upload Files
+                Upload Directory
             </button>
             <div id="UploadStatus">
                 </br>
@@ -31,11 +31,11 @@
             </div>
         </form>
 
-        <form id="SessionForm" action="/upload_files/" enctype="multipart/form-data" method="post">
-            Load session file: 
-            <input name="file" type="file">
+        <form id="SessionForm" action="/upload_files/" enctype="application/json" method="post">
+            Load session file:
+            <input name="file0" type="file">
             <button type="submit" id="SubmitSession">
-                Upload Files
+                Upload Session
             </button>
             </br>
         </form>

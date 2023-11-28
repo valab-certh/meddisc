@@ -8,6 +8,7 @@ document.getElementById('UploadForm').addEventListener
     'submit',
     async function(e)
     {
+        // Prevents from redirecting to its url
         e.preventDefault();
         const formData = new FormData(this);
         const response = await fetch
@@ -40,18 +41,32 @@ document.getElementById('SessionForm').addEventListener
     async function(e)
     {
         e.preventDefault();
-        const data = new FormData(this);
+        const fileInput = this.elements['file0'];
+        const file = fileInput.files[0];
+        const reader = new FileReader();
 
-        // console.log(JSON.stringify(data));
+        // Runs as soon as reader is defined
+        reader.onload = async function()
+        {
+            const payload = JSON.parse(reader.result);
+            // console.log(payload);
 
-        await fetch
-        (
-            '/session/',
-            {
-                method: 'POST',
-                body: data
-            }
-        );
+            const response = await fetch
+            (
+                '/session/',
+                {
+                    method: 'POST',
+                    headers:
+                    {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                }
+            );
+        };
+
+        // .radAsText is an Asynchronous file parsing method; runs in conjunction with the above function, from which .parse is run as soon as the file is being read. Hence the payload can only be read inside that function
+        reader.readAsText(file);
     }
 );
 

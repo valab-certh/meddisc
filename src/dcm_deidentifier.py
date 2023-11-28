@@ -106,16 +106,16 @@ def dicom_deidentifier(SESSION_FP: None or str = None):
     ## Parse all possible DICOM metadata configurations
     action_groups_df = pd.read_csv(filepath_or_buffer = '../action_groups_dcm.csv', index_col = 0)
 
-    if SESSION_FP == None:
+    if SESSION_FP == None or not os.path.isfile(SESSION_FP):
         print('Creating a new session')
         session = dict()
     else:
-        with open(file = '../session.json', mode = 'r') as file:
+        with open(file = '../session_data/session.json', mode = 'r') as file:
             print('Parsing already generated session')
             session = json.load(file)
 
-    if os.path.isfile('../user_input.json'):
-        with open(file = '../user_input.json', mode = 'r') as file:
+    if os.path.isfile('../session_data/user_input.json'):
+        with open(file = '../session_data/user_input.json', mode = 'r') as file:
             user_input = json.load(file)
     else:
         print('W: No client de-identification configuration was provided; overriding default de-identification settings')
@@ -153,7 +153,7 @@ def dicom_deidentifier(SESSION_FP: None or str = None):
         if not patient_deidentification_properties:
             max_pseudo_patient_id += 1
             session[real_patient_id] = {'patientPseudoId': '%.6d'%max_pseudo_patient_id}
-            days_total_offset = random.uniform(10 * 365, (2 * 10) * 365)
+            days_total_offset = round(random.uniform(10 * 365, (2 * 10) * 365))
             seconds_total_offset = round(random.uniform(0, 24 * 60 * 60))
         else:
             days_total_offset = session[real_patient_id]['daysOffset']
@@ -193,6 +193,8 @@ def dicom_deidentifier(SESSION_FP: None or str = None):
         rw_obj.export_session(session = session)
 
     print('Operation completed')
+
+    return session
 
 
 if __name__ == '__main__':
