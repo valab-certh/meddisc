@@ -1,6 +1,6 @@
 # DICOM De-Identifier
 
-The executable provided in this repository serves as a tool for the removal of a patient's personal identifiable information (PII) from their associated DICOM files, based on a predefined set of user options. This implementation aligns with the standards specified in Nema's Attribute Confidentiality Profiles which can be accessed at [[link](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html)]. Primarily developed as a component of the INCISIVE project, the tool's main objective is to ensure patient anonymization.
+The scripts provided in this repository serve as a tool for the removal of a patient's personal identifiable information (PII) from their associated DICOM files, based on a predefined set of user options. This implementation aligns with the standards specified in Nema's Attribute Confidentiality Profiles which can be accessed at [[link](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html)]. Primarily developed as a component of the INCISIVE project, the tool's main objective is to ensure patient anonymization.
 
 ## Utilities
 
@@ -38,6 +38,18 @@ From now and on each explained field corresponds to a parameter in the de-identi
     - `remove`, it overrides the `Rtn. Long. Modif. Dates Opt.` column.
 - `retain_descriptors`. Type boolean. If set to true, it overrides the `Rtn. Desc. Opt.` column.
 - `patient_pseudo_id_prefix`. Type string. The concatenation of that prefix with a dummy number results in the pseudo patient ID.
+
+### Web Application
+
+To run the backend
+```
+uvicorn server:app --reload
+```
+and through `localhost:8000` you can open the client.
+
+![](./fig0.png)
+
+which shows the corresponding patient de-identification options.
 
 ## Technical Description
 
@@ -112,18 +124,6 @@ Replaces tag value with a dummy one. Implemented only for patient ID with tag in
     - Tag instance with code `(0012, 0063)` where its value is a concatenated sequence of codes as per Table CID 7050 from [[link](https://dicom.nema.org/medical/dicom/2019a/output/chtml/part16/sect_CID_7050.html)]. These specify how the DICOM de-identification procedure was performed.
     - Tag instance with code `(0012, 0062)` signifies if patient identity was pseudonymized/removed from both the attributes and the pixel data [[link](https://dicom.innolitics.com/ciods/rt-plan/patient/00120062)].
     - Tag instance with code `(0028, 0301)` signifies if PII was removed from burned in text in pixel data [[link](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/sect_E.3.html)].
-
-## Web Application
-
-To run the backend
-```
-uvicorn server:app --reload
-```
-and through `localhost:8000` you can open the client. Through this window we can see
-
-![](./fig0.png)
-
-which shows the corresponding patient de-identification options.
 
 ## Citation
 

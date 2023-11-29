@@ -18,9 +18,7 @@ import pandas as pd
 import tensorflow as tf
 import pydicom
 from PIL import Image
-from matplotlib import pyplot as plt
 
-import visuals
 import rw
 
 
@@ -65,8 +63,6 @@ def text_remover(img, bboxes: np.ndarray, initial_array_shape, downscaled_array_
                 bboxes[0, 3, :] -> upper right vertex
     '''
 
-    # img = img.max() - img ## In case i want to invert the input
-
     reducted_region_color = np.mean(img).astype(np.uint16)
 
     multiplicative_mask = np.ones(downscaled_array_shape, dtype = np.uint8)
@@ -101,10 +97,6 @@ def text_remover(img, bboxes: np.ndarray, initial_array_shape, downscaled_array_
 
     ## When added after multiplication, bounding box pixels will be replaced with 255
     additive_mask = reducted_region_color * (multiplicative_mask == 0)
-
-    # print(mask.shape)
-    # plt.imshow(mask)
-    # plt.show()
 
     img_ = img.copy()
     img_ = (img_ * multiplicative_mask + additive_mask)
@@ -158,16 +150,6 @@ def keras_ocr_dicom_image_text_remover(dcm):
             initial_array_shape = initial_array_shape,
             downscaled_array_shape = downscaled_array_shape
         )
-
-        ## Contour
-        # contour_display = keras_ocr.tools.drawBoxes\
-        # (
-        #     image = raw_img_uint8_grayscale,
-        #     boxes = bboxes,
-        #     thickness = 5
-        # )
-        # vis_obj = visuals.DetectionVisuals(fig_title = 'Based on keras-ocr')
-        # vis_obj.build_plt(imgs = [raw_img_uint16_grayscale, contour_display, cleaned_img], removal_period = removal_period)
 
         ## Update the DICOM image data with the modified image
         dcm.PixelData = cleaned_img.tobytes()

@@ -104,22 +104,22 @@ def dicom_deidentifier(SESSION_FP: None or str = None):
         print('[ENABLED] PARALLEL COMPUTATION\n\n---')
 
     ## Parse all possible DICOM metadata configurations
-    action_groups_df = pd.read_csv(filepath_or_buffer = '../action_groups_dcm.csv', index_col = 0)
+    action_groups_df = pd.read_csv(filepath_or_buffer = './action_groups/action_groups_dcm.csv', index_col = 0)
 
     if SESSION_FP == None or not os.path.isfile(SESSION_FP):
         print('Creating a new session')
         session = dict()
     else:
-        with open(file = '../session_data/session.json', mode = 'r') as file:
+        with open(file = './session_data/session.json', mode = 'r') as file:
             print('Parsing already generated session')
             session = json.load(file)
 
-    if os.path.isfile('../session_data/user_input.json'):
-        with open(file = '../session_data/user_input.json', mode = 'r') as file:
+    if os.path.isfile('./session_data/user_input.json'):
+        with open(file = './session_data/user_input.json', mode = 'r') as file:
             user_input = json.load(file)
     else:
         print('W: No client de-identification configuration was provided; overriding default de-identification settings')
-        with open(file = '../user_default_input.json', mode = 'r') as file:
+        with open(file = './user_default_input.json', mode = 'r') as file:
             user_input = json.load(file)
 
     pseudo_patient_ids = []
@@ -132,7 +132,6 @@ def dicom_deidentifier(SESSION_FP: None or str = None):
         max_pseudo_patient_id = max(pseudo_patient_ids)
 
     ## Get one input DICOM
-    # raw_dp = pydicom.dcmread(fp = user_input['input_dcm_dp'])
     rw_obj = rw.rwdcm(in_dp = user_input['input_dcm_dp'], out_dp = user_input['output_dcm_dp'])
 
     while next(rw_obj):
@@ -162,14 +161,14 @@ def dicom_deidentifier(SESSION_FP: None or str = None):
         ## Define metadata action group based on user input
         requested_action_group_df = action_tools.get_action_group(user_input = user_input, action_groups_df = action_groups_df)
 
-        requested_action_group_df.to_csv('../session_data/requested_action_group_dcm.csv')
+        requested_action_group_df.to_csv('./session_data/requested_action_group_dcm.csv')
 
         ## Adjusts DICOM metadata based on user parameterization
         dcm, tag_value_replacements = action_tools.adjust_dicom_metadata\
         (
             user_input = user_input,
             dcm = dcm,
-            action_group_fp = '../session_data/requested_action_group_dcm.csv',
+            action_group_fp = './session_data/requested_action_group_dcm.csv',
             patient_pseudo_id = session[real_patient_id]['patientPseudoId'],
             days_total_offset = days_total_offset,
             seconds_total_offset = seconds_total_offset

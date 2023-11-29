@@ -91,8 +91,6 @@ class rwdcm:
         if not os.path.exists(self.clean_dicom_dp):
             os.makedirs(self.clean_dicom_dp)
 
-        ## Clean DICOM file example:
-        ## self.clean_data_dp + 'de-identified-files/<TAG-00100020>/<TAG-00080060>/<TAG-00200011>/364a954efb2e4489f1fb5878c57aa1bbbbc97ffe00f236247aeaab22caa284ee.dcm'
         clean_dicom_fp = self.clean_dicom_dp + '/' + self.input_dicom_hash + '.dcm'
 
         print('Exporting file at\n%s'%(clean_dicom_fp))

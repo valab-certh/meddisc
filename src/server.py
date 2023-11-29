@@ -10,7 +10,7 @@ import os
 import shutil
 
 
-class user_input_class(BaseModel):
+class user_options_class(BaseModel):
     ## These have to match exactly with javascript's "dictionary" keys, both the keys and the data types
     clean_image: bool
     retain_safe_private: bool
@@ -33,22 +33,19 @@ class session_class(BaseModel):
 
 def clean_dirs():
 
-    if os.path.exists('../session_data/clean/de-identified-files'):
-        shutil.rmtree('../session_data/clean/de-identified-files')
+    if os.path.exists('./session_data/clean/de-identified-files'):
+        shutil.rmtree('./session_data/clean/de-identified-files')
 
-    # if os.path.isfile('../session_data/clean/de-identified-files.zip'):
-    #     os.remove('../session_data/clean/de-identified-files.zip')
+    if os.path.isfile('./session_data/user_input.json'):
+        os.remove('./session_data/user_input.json')
 
-    if os.path.isfile('../session_data/user_input.json'):
-        os.remove('../session_data/user_input.json')
+    if os.path.isfile('./session_data/session.json'):
+        os.remove('./session_data/session.json')
 
-    if os.path.isfile('../session_data/session.json'):
-        os.remove('../session_data/session.json')
+    if os.path.isfile('./session_data/requested_action_group_dcm.csv'):
+        os.remove('./session_data/requested_action_group_dcm.csv')
 
-    if os.path.isfile('../session_data/requested_action_group_dcm.csv'):
-        os.remove('../session_data/requested_action_group_dcm.csv')
-
-    dp, _, fps = list(os.walk('../session_data/raw'))[0]
+    dp, _, fps = list(os.walk('./session_data/raw'))[0]
     for fp in fps:
         if fp != '.gitkeep':
             os.remove(dp + '/' + fp)
@@ -74,8 +71,6 @@ async def get_files\
 
     ## Resetting directories
     clean_dirs()
-    if os.path.isfile('../session_data/clean/de-identified-files.zip'):
-        os.remove('../session_data/clean/de-identified-files.zip')
 
     total_uploaded_file_bytes = 0
     files_content = []
@@ -83,7 +78,7 @@ async def get_files\
         ## Serialized file contents
         contents = await file.read()
         files_content.append(contents)
-        with open(file = '../session_data/raw/' + file.filename.split('/')[-1], mode = 'wb') as f:
+        with open(file = './session_data/raw/' + file.filename.split('/')[-1], mode = 'wb') as f:
             f.write(contents)
         total_uploaded_file_bytes += len(contents)
     total_uploaded_file_megabytes = '%.1f'%(total_uploaded_file_bytes / (10**3)**2)
@@ -92,39 +87,32 @@ async def get_files\
 
 @app.post('/session')
 async def handle_session_button_click(session_dict: Dict[str, Any]):
-    with open(file = '../session_data/session.json', mode = 'w') as file:
+    with open(file = './session_data/session.json', mode = 'w') as file:
         json.dump(session_dict, file)
 
 @app.post('/submit_button_clicked')
-async def handle_submit_button_click(user_input_dict: user_input_class):
+async def handle_submit_button_click(user_options: user_options_class):
 
-    requested_parameters = dict(user_input_dict)
+    user_options = dict(user_options)
 
-    dp, _, fps = list(os.walk('../session_data/raw'))[0]
-    # breakpoint()
+    dp, _, fps = list(os.walk('./session_data/raw'))[0]
     if set(fps).issubset({'.gitkeep'}):
         return False
 
-    ## ! Update `user_input.json`: Begin
+    ## ! Update `user_options.json`: Begin
 
-    with open(file = '../user_default_input.json', mode = 'r') as file:
-        user_input = json.load(file)
+    with open(file = './user_default_input.json', mode = 'r') as file:
+        user_options = json.load(file)
 
-    for requested_parameter_key, requested_parameter_value in requested_parameters.items():
-        user_input[requested_parameter_key] = requested_parameter_value
+    user_options['input_dcm_dp'] = './session_data/raw'
+    user_options['output_dcm_dp'] = './session_data/clean'
 
-    with open(file = '../session_data/user_input.json', mode = 'w') as file:
-        json.dump(user_input, file)
+    with open(file = './session_data/user_options.json', mode = 'w') as file:
+        json.dump(user_options, file)
 
-    ## ! Update `user_input.json`: End
+    ## ! Update `user_options.json`: End
 
-    session = dcm_deidentifier.dicom_deidentifier(SESSION_FP = '../session_data/session.json')
+    session = dcm_deidentifier.dicom_deidentifier(SESSION_FP = './session_data/session.json')
 
-    with open(file = '../session_data/session.json', mode = 'w') as file:
+    with open(file = './session_data/session.json', mode = 'w') as file:
         json.dump(session, file)
-
-    shutil.make_archive(base_name = user_input['output_dcm_dp'] + '/de-identified-files', format = 'zip', root_dir = user_input['output_dcm_dp'] + '/de-identified-files')
-
-    clean_dirs()
-
-    return FileResponse(path = user_input['output_dcm_dp'] + '/de-identified-files.zip', media_type = 'application/octet-stream')

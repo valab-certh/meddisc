@@ -2,15 +2,26 @@ var form = document.getElementById('UploadForm');
 var button = document.getElementById('SubmitAnonymizationProcess');
 
 
-document.getElementById('UploadForm').addEventListener
+form.addEventListener
 (
-    // Inside this area, the expression ".getElementById(<html_element_id>)" works strictly inside the form corresponding to UploadForm.
     'submit',
-    async function(e)
+    function(event)
     {
-        // Prevents from redirecting to its url
-        e.preventDefault();
-        const formData = new FormData(this);
+        button.disabled = false;
+    }
+);
+
+document.querySelector('input[name="files"]').addEventListener
+(
+    'change',
+    async function()
+    {
+        const formData = new FormData();
+        for (let i = 0; i < this.files.length; i++)
+        {
+            formData.append('files', this.files[i]);
+        }
+
         const response = await fetch
         (
             '/upload_files/',
@@ -19,18 +30,8 @@ document.getElementById('UploadForm').addEventListener
                 body: formData
             }
         );
-        // Response from python script server (result holds whatever the server's "return" function sends)
-        const result = await response.json();
 
-        if (response.ok)
-        {
-            // document.getElementById('SubmitUpload').disabled = true
-            document.getElementById('UploadStatus').innerHTML = `</br>\nFiles Uploaded Successfully\n</br>\nTotal uploaded files: ${result.n_uploaded_files}\n</br>\nSize of uploaded content: ${result.total_size} MB\n</br>\n</br>`
-        }
-        else
-        {
-            document.getElementById('SubmitUpload').innerHTML = "Retry Submitting";
-        }
+        const result = await response.json();
     }
 );
 
@@ -44,11 +45,9 @@ document.getElementById('SessionForm').addEventListener
         const file = fileInput.files[0];
         const reader = new FileReader();
 
-        // Runs as soon as reader is defined
         reader.onload = async function()
         {
             const payload = JSON.parse(reader.result);
-            // console.log(payload);
 
             const response = await fetch
             (
@@ -64,7 +63,6 @@ document.getElementById('SessionForm').addEventListener
             );
         };
 
-        // .radAsText is an Asynchronous file parsing method; runs in conjunction with the above function, from which .parse is run as soon as the file is being read. Hence the payload can only be read inside that function
         reader.readAsText(file);
     }
 );
@@ -92,8 +90,6 @@ async function submit_dicom_processing_request()
         'patient_pseudo_id_prefix': patient_pseudo_id_prefix_input_text.value
     };
 
-    // This object is what the server receives
-    // Downloads file
     const files = await fetch
     (
         '/submit_button_clicked',
@@ -106,38 +102,4 @@ async function submit_dicom_processing_request()
             body: JSON.stringify(data)
         }
     );
-
-    
-    // The downloaded files are then seen by the browser as a set of downloadables
-    if (files.ok)
-    {
-        const filesClone = files.clone();
-        const empty_input_directory = JSON.parse(await filesClone.text());
-
-        if (empty_input_directory === false)
-        {
-            alert('No files provided. Make sure to press the "Upload Directory" button after you submit your directory.')
-            return;
-        }
-        const blob = await files.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = 'de-identified-files.zip';
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-    }
 }
-
-// Add an event listener for the submit event on the form
-form.addEventListener
-(
-    'submit',
-    function(event)
-    {
-        // Enable the button
-        button.disabled = false;
-    }
-);

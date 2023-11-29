@@ -124,9 +124,6 @@ def adjust_dicom_metadata(user_input: dict, dcm: pydicom.dataset.FileDataset, ac
 
     tag_value_replacements = dict()
 
-    ## [ToDo] Make this work for sessions - Pseudo time and pseudo date. In case we need to add offsets to temporal values. Note that the resulting application of these random values is conducted in a way that it preserves temporal relationships (i.e. longitudinal temporal information).
-
-
     ## Will be replaced only if date and time offsets are applied to at least one tag
     tag_value_replacements['days_total_offset'] = 0
     tag_value_replacements['seconds_total_offset'] = 0

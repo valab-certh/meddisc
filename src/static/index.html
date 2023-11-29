@@ -17,9 +17,6 @@
                 Load directory with DICOM files:
             </div>
             <input name="files" type="file" directory webkitdirectory mozdirectory>
-            <button type="submit" id="SubmitUpload">
-                Upload Directory
-            </button>
             <div id="UploadStatus">
                 </br>
                 </br>
@@ -48,19 +45,19 @@
         </i>
         </br>
         Clean pixel data:
-        <input type="checkbox" id="clean-image">
+        <input type="checkbox" id="clean-image" checked>
         </br>
         Retain safe private:
-        <input type="checkbox" id="retain-safe-private-input-checkbox">
+        <input type="checkbox" id="retain-safe-private-input-checkbox" checked>
         </br>
         Retain UIDs:
-        <input type="checkbox" id="retain-uids-input-checkbox">
+        <input type="checkbox" id="retain-uids-input-checkbox" checked>
         </br>
         Retain device identity:
-        <input type="checkbox" id="retain-device-identity-input-checkbox">
+        <input type="checkbox" id="retain-device-identity-input-checkbox" checked>
         </br>
         Retain patient characteristics:
-        <input type="checkbox" id="retain-patient-characteristics-input-checkbox">
+        <input type="checkbox" id="retain-patient-characteristics-input-checkbox" checked>
         </br>
         Date processing:
         <select id="date-processing-select">
@@ -70,7 +67,7 @@
         </select>
         </br>
         Retain descriptors:
-        <input type="checkbox" id="retain-descriptors-input-checkbox">
+        <input type="checkbox" id="retain-descriptors-input-checkbox" checked>
         </br>
         Pseudo Patient ID prefix:
         <input type="text" id="patient-pseudo-id-prefix-input-text" placeholder="e.g. an organization ID">
