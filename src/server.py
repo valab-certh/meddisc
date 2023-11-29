@@ -67,10 +67,31 @@ def clean_dirs():
     if os.path.isfile('./session_data/requested_action_group_dcm.csv'):
         os.remove('./session_data/requested_action_group_dcm.csv')
 
+    if os.path.isfile('./session_data/display_content/raw_dcm.png'):
+        os.remove('./session_data/display_content/raw_dcm.png')
+
+    if os.path.isfile('./session_data/display_content/clean_dcm.png'):
+        os.remove('./session_data/display_content/clean_dcm.png')
+
     dp, _, fps = list(os.walk('./session_data/raw'))[0]
     for fp in fps:
         if fp != '.gitkeep':
             os.remove(dp + '/' + fp)
+
+def DCM2DictMetadata(dcm):
+
+    dcm_metadata_dict = {}
+    for dcm_attr in dcm:
+        dcm_tag_idx = re.sub('[(,) ]', '', str(dcm_attr.tag))
+        if dcm_tag_idx == '7fe00010': continue
+        dcm_metadata_dict[dcm_tag_idx] = \
+        {
+            'vr': dcm_attr.VR,
+            'name': dcm_attr.name,
+            'value': dcm_attr.value,
+        }
+
+        return dcm_metadata_dict
 
 app = FastAPI()
 app.mount\
@@ -84,6 +105,21 @@ app.mount\
 async def get_root():
     return FileResponse('./static/index.html')
 
+@app.post('/conversion_info')
+async def conversion_info(dicom_pair_fp: List[str] = Body(...)):
+
+    raw_dcm = pydicom.dcmread(dicom_pair_fp[0])
+    clean_dcm = pydicom.dcmread(dicom_pair_fp[1])
+
+    Image.fromarray(basic_preprocessing(raw_dcm.pixel_array, downscale = False, toint8 = True, multichannel = True)).save('./session_data/display_content/raw_dcm.png')
+    Image.fromarray(basic_preprocessing(clean_dcm.pixel_array, downscale = False, toint8 = True, multichannel = True)).save('./session_data/display_content/clean_dcm.png')
+
+    return \
+    {
+        'raw_dicom_metadata': DCM2DictMetadata(raw_dcm),
+        'cleaned_dicom_metadata': DCM2DictMetadata(clean_dcm)
+    }
+
 @app.post('/upload_files/')
 async def get_files\
 (
@@ -94,25 +130,34 @@ async def get_files\
     ## Resetting directories
     clean_dirs()
 
+    proper_dicom_paths = []
     total_uploaded_file_bytes = 0
-    files_content = []
     for file in files:
+
         ## Serialized file contents
         contents = await file.read()
-        files_content.append(contents)
-        with open(file = './session_data/raw/' + file.filename.split('/')[-1], mode = 'wb') as f:
+
+        fp = './session_data/raw/' + file.filename.split('/')[-1]
+        with open(file = fp, mode = 'wb') as f:
             f.write(contents)
+        try:
+            pydicom.dcmread(fp)
+            proper_dicom_paths.append(fp)
+        except InvalidDicomError:
+            print('W: The following path does not correspond to a DICOM file\n%s'%(fp))
+            os.remove(fp)
+            print('Irrelevant file deleted')
         total_uploaded_file_bytes += len(contents)
     total_uploaded_file_megabytes = '%.1f'%(total_uploaded_file_bytes / (10**3)**2)
 
-    return {"n_uploaded_files": len(files), "total_size": total_uploaded_file_megabytes}
+    return {'n_uploaded_files': len(proper_dicom_paths), 'total_size': total_uploaded_file_megabytes}
 
 @app.post('/session')
 async def handle_session_button_click(session_dict: Dict[str, Any]):
     with open(file = './session_data/session.json', mode = 'w') as file:
         json.dump(session_dict, file)
 
-@app.post('/submit_button_clicked')
+@app.post('/submit_button')
 async def handle_submit_button_click(user_options: user_options_class):
 
     user_options = dict(user_options)
@@ -134,10 +179,123 @@ async def handle_submit_button_click(user_options: user_options_class):
 
     ## ! Update `user_options.json`: End
 
-    session = dicom_deidentifier(SESSION_FP = './session_data/session.json')
+    session, dicom_pair_fps = dicom_deidentifier(SESSION_FP = './session_data/session.json')
 
     with open(file = './session_data/session.json', mode = 'w') as file:
         json.dump(session, file)
+
+    return dicom_pair_fps
+
+def dicom_deidentifier(SESSION_FP: None or str = None):
+    '''
+        Args:
+            SESSION_FP. File path for the session.json file. A session must have the same exact `user_input.json` file independently of interruptions. If None then a new session file will be created at the parent directory.
+    '''
+
+    ## Initial parameters
+    GPU = True ## Set to True if you want to invoke NVIDIA GPU
+
+    if (not GPU):
+        tf.config.set_visible_devices([], 'GPU')
+        print('[DISABLED] PARALLEL COMPUTATION\n\n---')
+    elif len(tf.config.list_physical_devices('GPU')) == 0:
+        print('W: No GPU detected, switching to CPU instead')
+        print('[DISABLED] PARALLEL COMPUTATION\n\n---')
+    elif tf.config.list_physical_devices('GPU')[0][1] == 'GPU':
+        print('[ENABLED] PARALLEL COMPUTATION\n\n---')
+
+    ## Parse all possible DICOM metadata configurations
+    action_groups_df = pd.read_csv(filepath_or_buffer = './action_groups/action_groups_dcm.csv', index_col = 0)
+
+    if SESSION_FP == None or not os.path.isfile(SESSION_FP):
+        print('Creating a new session')
+        session = dict()
+    else:
+        with open(file = './session_data/session.json', mode = 'r') as file:
+            print('Parsing already generated session')
+            session = json.load(file)
+
+    if os.path.isfile('./session_data/user_input.json'):
+        with open(file = './session_data/user_input.json', mode = 'r') as file:
+            user_input = json.load(file)
+    else:
+        print('W: No client de-identification configuration was provided; overriding default de-identification settings')
+        with open(file = './user_default_input.json', mode = 'r') as file:
+            user_input = json.load(file)
+
+    pseudo_patient_ids = []
+    for patient_deidentification_properties in session.values():
+        pseudo_patient_ids.append(int(patient_deidentification_properties['patientPseudoId']))
+
+    if pseudo_patient_ids == []:
+        max_pseudo_patient_id = -1
+    else:
+        max_pseudo_patient_id = max(pseudo_patient_ids)
+
+    ## Get one input DICOM
+    global rw_obj
+    rw_obj = rwdcm(in_dp = user_input['input_dcm_dp'], out_dp = user_input['output_dcm_dp'])
+
+    while next(rw_obj):
+
+        dcm = rw_obj.parse_file()
+        if dcm == False:
+            print('File already converted\nSkipping\n---\n')
+            continue
+
+        print('Starting to process the raw DICOM\'s object')
+
+        ## User input parameter validity check
+        date_processing_choices = {'keep', 'offset', 'remove'}
+        assert user_input['date_processing'] in date_processing_choices, 'E: Invalid date processing input'
+
+        real_patient_id = dcm[0x0010, 0x0020].value
+        patient_deidentification_properties = session.get(real_patient_id, False)
+        if not patient_deidentification_properties:
+            max_pseudo_patient_id += 1
+            session[real_patient_id] = {'patientPseudoId': '%.6d'%max_pseudo_patient_id}
+            days_total_offset = round(random.uniform(10 * 365, (2 * 10) * 365))
+            seconds_total_offset = round(random.uniform(0, 24 * 60 * 60))
+        else:
+            days_total_offset = session[real_patient_id]['daysOffset']
+            seconds_total_offset = session[real_patient_id]['secondsOffset']
+
+        ## Define metadata action group based on user input
+        requested_action_group_df = get_action_group(user_input = user_input, action_groups_df = action_groups_df)
+
+        requested_action_group_df.to_csv('./session_data/requested_action_group_dcm.csv')
+
+        ## Adjusts DICOM metadata based on user parameterization
+        dcm, tag_value_replacements = adjust_dicom_metadata\
+        (
+            user_input = user_input,
+            dcm = dcm,
+            action_group_fp = './session_data/requested_action_group_dcm.csv',
+            patient_pseudo_id = session[real_patient_id]['patientPseudoId'],
+            days_total_offset = days_total_offset,
+            seconds_total_offset = seconds_total_offset
+        )
+
+        ## Session update
+        session[real_patient_id]['daysOffset'] = tag_value_replacements['days_total_offset']
+        session[real_patient_id]['secondsOffset'] = tag_value_replacements['seconds_total_offset']
+
+        ## Adds metadata tag with field that specifies the anonymization process
+        dcm = deidentification_attributes(user_input = user_input, dcm = dcm)
+
+        if user_input['clean_image']:
+            ## Cleans burned in text in pixel data
+            dcm, _, _ = keras_ocr_dicom_image_text_remover(dcm = dcm)
+
+        ## Store DICOM file and create output directories
+        rw_obj.export_processed_file(dcm = dcm)
+
+        ## Overwrite session file to save progress
+        rw_obj.export_session(session = session)
+
+    print('Operation completed')
+
+    return session, rw_obj.dicom_pair_fps
 
 def deidentification_attributes(user_input: dict, dcm: pydicom.dataset.FileDataset) -> pydicom.dataset.FileDataset:
     '''
@@ -205,116 +363,6 @@ def deidentification_attributes(user_input: dict, dcm: pydicom.dataset.FileDatas
         )
 
     return dcm
-
-def dicom_deidentifier(SESSION_FP: None or str = None):
-    '''
-        Args:
-            SESSION_FP. File path for the session.json file. A session must have the same exact `user_input.json` file independently of interruptions. If None then a new session file will be created at the parent directory.
-    '''
-
-    ## Initial parameters
-    GPU = True ## Set to True if you want to invoke NVIDIA GPU
-
-    if (not GPU):
-        tf.config.set_visible_devices([], 'GPU')
-        print('[DISABLED] PARALLEL COMPUTATION\n\n---')
-    elif len(tf.config.list_physical_devices('GPU')) == 0:
-        print('W: No GPU detected, switching to CPU instead')
-        print('[DISABLED] PARALLEL COMPUTATION\n\n---')
-    elif tf.config.list_physical_devices('GPU')[0][1] == 'GPU':
-        print('[ENABLED] PARALLEL COMPUTATION\n\n---')
-
-    ## Parse all possible DICOM metadata configurations
-    action_groups_df = pd.read_csv(filepath_or_buffer = './action_groups/action_groups_dcm.csv', index_col = 0)
-
-    if SESSION_FP == None or not os.path.isfile(SESSION_FP):
-        print('Creating a new session')
-        session = dict()
-    else:
-        with open(file = './session_data/session.json', mode = 'r') as file:
-            print('Parsing already generated session')
-            session = json.load(file)
-
-    if os.path.isfile('./session_data/user_input.json'):
-        with open(file = './session_data/user_input.json', mode = 'r') as file:
-            user_input = json.load(file)
-    else:
-        print('W: No client de-identification configuration was provided; overriding default de-identification settings')
-        with open(file = './user_default_input.json', mode = 'r') as file:
-            user_input = json.load(file)
-
-    pseudo_patient_ids = []
-    for patient_deidentification_properties in session.values():
-        pseudo_patient_ids.append(int(patient_deidentification_properties['patientPseudoId']))
-
-    if pseudo_patient_ids == []:
-        max_pseudo_patient_id = -1
-    else:
-        max_pseudo_patient_id = max(pseudo_patient_ids)
-
-    ## Get one input DICOM
-    rw_obj = rwdcm(in_dp = user_input['input_dcm_dp'], out_dp = user_input['output_dcm_dp'])
-
-    while next(rw_obj):
-
-        dcm = rw_obj.parse_file()
-        if dcm == False:
-            print('File already converted\nSkipping\n---\n')
-            continue
-
-        print('Starting to process the raw DICOM\'s object')
-
-        ## User input parameter validity check
-        date_processing_choices = {'keep', 'offset', 'remove'}
-        assert user_input['date_processing'] in date_processing_choices, 'E: Invalid date processing input'
-
-        real_patient_id = dcm[0x0010, 0x0020].value
-        patient_deidentification_properties = session.get(real_patient_id, False)
-        if not patient_deidentification_properties:
-            max_pseudo_patient_id += 1
-            session[real_patient_id] = {'patientPseudoId': '%.6d'%max_pseudo_patient_id}
-            days_total_offset = round(random.uniform(10 * 365, (2 * 10) * 365))
-            seconds_total_offset = round(random.uniform(0, 24 * 60 * 60))
-        else:
-            days_total_offset = session[real_patient_id]['daysOffset']
-            seconds_total_offset = session[real_patient_id]['secondsOffset']
-
-        ## Define metadata action group based on user input
-        requested_action_group_df = get_action_group(user_input = user_input, action_groups_df = action_groups_df)
-
-        requested_action_group_df.to_csv('./session_data/requested_action_group_dcm.csv')
-
-        ## Adjusts DICOM metadata based on user parameterization
-        dcm, tag_value_replacements = adjust_dicom_metadata\
-        (
-            user_input = user_input,
-            dcm = dcm,
-            action_group_fp = './session_data/requested_action_group_dcm.csv',
-            patient_pseudo_id = session[real_patient_id]['patientPseudoId'],
-            days_total_offset = days_total_offset,
-            seconds_total_offset = seconds_total_offset
-        )
-
-        ## Session update
-        session[real_patient_id]['daysOffset'] = tag_value_replacements['days_total_offset']
-        session[real_patient_id]['secondsOffset'] = tag_value_replacements['seconds_total_offset']
-
-        ## Adds metadata tag with field that specifies the anonymization process
-        dcm = deidentification_attributes(user_input = user_input, dcm = dcm)
-
-        if user_input['clean_image']:
-            ## Cleans burned in text in pixel data
-            dcm, _, _ = keras_ocr_dicom_image_text_remover(dcm = dcm)
-
-        ## Store DICOM file and create output directories
-        rw_obj.export_processed_file(dcm = dcm)
-
-        ## Overwrite session file to save progress
-        rw_obj.export_session(session = session)
-
-    print('Operation completed')
-
-    return session
 
 def ndarray_size(arr: np.ndarray) -> int:
     return arr.itemsize*arr.size
@@ -629,6 +677,7 @@ class rwdcm:
         if in_dp[-1] != '/': in_dp = in_dp + '/'
         self.raw_data_dp = in_dp
         self.raw_dicom_paths = sorted(self.get_dicom_paths(data_dp = self.raw_data_dp))
+        self.dicom_pair_fps = []
         self.clean_data_dp = out_dp + '/' + 'de-identified-files/'
 
         already_cleaned_dicom_paths = self.get_dicom_paths(data_dp = self.clean_data_dp)
@@ -695,6 +744,8 @@ class rwdcm:
         print('Exporting file at\n%s'%(clean_dicom_fp))
 
         dcm.save_as(clean_dicom_fp)
+
+        self.dicom_pair_fps.append((self.raw_dicom_path, clean_dicom_fp))
 
     def export_session(self, session):
 

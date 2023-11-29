@@ -74,7 +74,96 @@
         <button type="button" id="SubmitAnonymizationProcess" onclick="submit_dicom_processing_request()" disabled>
             De-Identify DICOM Files
         </button>
+        </br>
+        <h3>DICOM Conversion Result</h3>
+        <div id="ControlPanel">
+            <div id="DICOMBarWrap">
+                <input id="DICOMBar" type="range" min="0" max="0" value="0" step="1" class="slider" id="DICOMRange" style="width: 500px;" oninput="updateValue(this.value)">
+            </div>
+            <div id="DICOMIDX">
+                Index: -
+                </br>
+                Input Filename: -
+                </br>
+                Output Filename: -
+            </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; grid-gap: 10px; padding: 10px;">
+            <center>
+                <div style="font-weight: bold;">Raw</div>
+            </center>
+            <center>
+                <div style="font-weight: bold;">Clean</div>
+            </center>
+            <div style="border: 1px solid black; padding: 10px;">
+                <img src="https://health.osu.edu/-/media/health/images/stories/2023/02/x-ray.jpg" alt="Image 1" style="width: 100%; height: auto; object-fit: cover;">
+            </div>
+            <div style="border: 1px solid black; padding: 10px;">
+                <img src="https://health.osu.edu/-/media/health/images/stories/2023/02/x-ray.jpg" alt="Image 2" style="width: 100%; height: auto; object-fit: cover;">
+            </div>
+            <div style="border: 1px solid black; padding: 10px;">
+                <table>
+                    <tr>
+                        <th>Tag ID</th>
+                        <th>VR</th>
+                        <th>Tag Name</th>
+                        <th>Tag Value</th>
+                    </tr>
+                    <tr>
+                        <td>(0008,0031)</td>
+                        <td>TM</td>
+                        <td>SeriesTime</td>
+                        <td>040335.31000310003100031000310003100031000310</td>
+                    </tr>
+                    <tr>
+                        <td>(0008,0031)</td>
+                        <td>TM</td>
+                        <td>SeriesTime</td>
+                        <td>040335.31000</td>
+                    </tr>
+                    <tr>
+                        <td>(0008,0031)</td>
+                        <td>TM</td>
+                        <td>SeriesTime</td>
+                        <td>040335.31000</td>
+                    </tr>
+                    <tr>
+                        <td>(0008,0031)</td>
+                        <td>TM</td>
+                        <td>SeriesTime</td>
+                        <td>040335.31000</td>
+                    </tr>
+                </table>
+            </div>
+            <div style="border: 1px solid black; padding: 10px;">
+                <table>
+                    <tr>
+                        <th>Tag ID</th>
+                        <th>VR</th>
+                        <th>Tag Name</th>
+                        <th>Tag Value</th>
+                    </tr>
+                    <tr>
+                        <td>040335.31000</td>
+                        <td>040335.31000</td>
+                        <td>040335.31000</td>
+                        <td>040335.31000</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
 
+        <style>
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            th, td {
+                text-align: center;
+                padding: 10px;
+                border: 1px solid rgb(209, 209, 209);
+            }
+        </style>
         <script src="/static/client.js"></script>
     </body>
 </html>
