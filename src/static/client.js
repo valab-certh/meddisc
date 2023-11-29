@@ -11,7 +11,7 @@ form.addEventListener
     }
 );
 
-document.querySelector('input[name="files"]').addEventListener
+document.querySelector('#UploadForm input[name="files"]').addEventListener
 (
     'change',
     async function()
@@ -30,42 +30,47 @@ document.querySelector('input[name="files"]').addEventListener
                 body: formData
             }
         );
-
         const result = await response.json();
-    }
-);
 
-document.getElementById('SessionForm').addEventListener
-(
-    'submit',
-    async function(e)
-    {
-        e.preventDefault();
-        const fileInput = this.elements['file0'];
-        const file = fileInput.files[0];
-        const reader = new FileReader();
-
-        reader.onload = async function()
+        if (response.ok)
         {
-            const payload = JSON.parse(reader.result);
+            document.getElementById('UploadStatus').innerHTML = `</br>\nFiles Uploaded Successfully\n</br>\nTotal uploaded files: ${result.n_uploaded_files}\n</br>\nSize of uploaded content: ${result.total_size} MB\n</br>\n</br>`
+            document.getElementById('SubmitAnonymizationProcess').disabled = false
+        }
+        else
+        {
+            document.getElementById('SubmitUpload').innerHTML = "Retry Submitting";
+        }
 
-            const response = await fetch
-            (
-                '/session/',
-                {
-                    method: 'POST',
-                    headers:
-                    {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                }
-            );
-        };
-
-        reader.readAsText(file);
     }
 );
+
+document.querySelector('#SessionForm input[name="file0"]').addEventListener('change', async function(e)
+{
+    e.preventDefault();
+    const fileInput = this;
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+
+    reader.onload = async function() {
+        const payload = JSON.parse(reader.result);
+
+        const response = await fetch
+        (
+            '/session/',
+            {
+                method: 'POST',
+                headers:
+                {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            }
+        );
+    };
+
+    reader.readAsText(file);
+});
 
 async function submit_dicom_processing_request()
 {
