@@ -67,11 +67,11 @@ def clean_dirs():
     if os.path.isfile('./session_data/requested_action_group_dcm.csv'):
         os.remove('./session_data/requested_action_group_dcm.csv')
 
-    if os.path.isfile('./session_data/display_content/raw_dcm.png'):
-        os.remove('./session_data/display_content/raw_dcm.png')
+    if os.path.isfile('./static/client_data/raw_dcm.png'):
+        os.remove('./static/client_data/raw_dcm.png')
 
-    if os.path.isfile('./session_data/display_content/clean_dcm.png'):
-        os.remove('./session_data/display_content/clean_dcm.png')
+    if os.path.isfile('./static/client_data/clean_dcm.png'):
+        os.remove('./static/client_data/clean_dcm.png')
 
     dp, _, fps = list(os.walk('./session_data/raw'))[0]
     for fp in fps:
@@ -88,10 +88,10 @@ def DCM2DictMetadata(dcm):
         {
             'vr': dcm_attr.VR,
             'name': dcm_attr.name,
-            'value': dcm_attr.value,
+            'value': str(dcm_attr.value),
         }
 
-        return dcm_metadata_dict
+    return dcm_metadata_dict
 
 app = FastAPI()
 app.mount\
@@ -109,15 +109,24 @@ async def get_root():
 async def conversion_info(dicom_pair_fp: List[str] = Body(...)):
 
     raw_dcm = pydicom.dcmread(dicom_pair_fp[0])
-    clean_dcm = pydicom.dcmread(dicom_pair_fp[1])
+    cleaned_dcm = pydicom.dcmread(dicom_pair_fp[1])
 
-    Image.fromarray(basic_preprocessing(raw_dcm.pixel_array, downscale = False, toint8 = True, multichannel = True)).save('./session_data/display_content/raw_dcm.png')
-    Image.fromarray(basic_preprocessing(clean_dcm.pixel_array, downscale = False, toint8 = True, multichannel = True)).save('./session_data/display_content/clean_dcm.png')
+    raw_img = basic_preprocessing(raw_dcm.pixel_array, downscale = False, toint8 = True, multichannel = True)
+    raw_hash = hashlib.sha256(raw_img.tobytes()).hexdigest()
+    raw_img_fp = './static/client_data/' + raw_hash + '.png'
+    Image.fromarray(raw_img).save(raw_img_fp)
+
+    cleaned_img = basic_preprocessing(cleaned_dcm.pixel_array, downscale = False, toint8 = True, multichannel = True)
+    cleaned_hash = hashlib.sha256(cleaned_img.tobytes()).hexdigest()
+    cleaned_img_fp = './static/client_data/' + cleaned_hash + '.png'
+    Image.fromarray(cleaned_img).save(cleaned_img_fp)
 
     return \
     {
         'raw_dicom_metadata': DCM2DictMetadata(raw_dcm),
-        'cleaned_dicom_metadata': DCM2DictMetadata(clean_dcm)
+        'raw_dicom_img_fp': raw_img_fp,
+        'cleaned_dicom_metadata': DCM2DictMetadata(cleaned_dcm),
+        'cleaned_dicom_img_fp': cleaned_img_fp
     }
 
 @app.post('/upload_files/')
@@ -168,11 +177,11 @@ async def handle_submit_button_click(user_options: user_options_class):
 
     ## ! Update `user_options.json`: Begin
 
-    with open(file = './user_default_input.json', mode = 'r') as file:
-        user_options = json.load(file)
+    with open(file = './user_default_options.json', mode = 'r') as file:
+        default_options = json.load(file)
 
-    user_options['input_dcm_dp'] = './session_data/raw'
-    user_options['output_dcm_dp'] = './session_data/clean'
+    user_options['input_dcm_dp'] = default_options['input_dcm_dp']
+    user_options['output_dcm_dp'] = default_options['output_dcm_dp']
 
     with open(file = './session_data/user_options.json', mode = 'w') as file:
         json.dump(user_options, file)
@@ -215,13 +224,11 @@ def dicom_deidentifier(SESSION_FP: None or str = None):
             print('Parsing already generated session')
             session = json.load(file)
 
-    if os.path.isfile('./session_data/user_input.json'):
-        with open(file = './session_data/user_input.json', mode = 'r') as file:
+    if os.path.isfile('./session_data/user_options.json'):
+        with open(file = './session_data/user_options.json', mode = 'r') as file:
             user_input = json.load(file)
     else:
-        print('W: No client de-identification configuration was provided; overriding default de-identification settings')
-        with open(file = './user_default_input.json', mode = 'r') as file:
-            user_input = json.load(file)
+        exit('E: No client de-identification configuration was provided')
 
     pseudo_patient_ids = []
     for patient_deidentification_properties in session.values():
@@ -628,37 +635,57 @@ def adjust_dicom_metadata(user_input: dict, dcm: pydicom.dataset.FileDataset, ac
     days_total_offset_was_applied_at_least_once = False
     seconds_total_offset_was_applied_at_least_once = False
 
+    # print('Debugging: 0xad4a9cb412. Remove some lines directly below')
+    # print('Creating a dummy sequence with 2 sequence daasets containing values that should be removed')
+    # for dcm_attr in dcm:
+    #     dcm_tag_idx = re.sub('[(,) ]', '', str(dcm_attr.tag))
+    #     if dcm[dcm_tag_idx].VR == 'SQ':
+    #         for dcm_seq in dcm[dcm_tag_idx]:
+    #             for dcm_seq_attr in dcm_seq:
+    #                 dcm_seq_attr_idx = re.sub('[(,) ]', '', str(dcm_seq_attr.tag))
+    #                 breakpoint()
+    #                 dcm[dcm_tag_idx].value = ''
+    #                 dcm.add_new\
+    #                 (
+    #                     tag = (0x0008, 0x0050),
+    #                     VR = 'SH',
+    #                     value = '11111111111111111'
+    #                 )
+
     for action_attr_tag_idx in action_group_df.index:
         action = action_group_df.loc[action_attr_tag_idx].iloc[1]
-        for dcm_attr in dcm:
-            dcm_tag_idx = re.sub('[(,) ]', '', str(dcm_attr.tag))
-            if action_attr_tag_idx == dcm_tag_idx:
 
-                if dcm[dcm_tag_idx].VR == 'SQ': continue
+        def clean_tags():
+            for dcm_attr in dcm:
+                dcm_tag_idx = re.sub('[(,) ]', '', str(dcm_attr.tag))
+                if action_attr_tag_idx == dcm_tag_idx:
 
-                if action == 'Z':
+                    if dcm[dcm_tag_idx].VR == 'SQ':
+                        continue
 
-                    assert dcm_tag_idx in ['00100010', '00100020'], 'E: Cannot apply action code `Z` in any other attribute besides Patient ID and Patient Name'
+                    if action == 'Z':
 
-                    dcm[dcm_tag_idx].value = patient_pseudo_id
+                        assert dcm_tag_idx in ['00100010', '00100020'], 'E: Cannot apply action code `Z` in any other attribute besides Patient ID and Patient Name'
 
-                elif action == 'X':
+                        dcm[dcm_tag_idx].value = patient_pseudo_id
 
-                    dcm[dcm_tag_idx].value = ''
+                    elif action == 'X':
 
-                elif action == 'C':
+                        dcm[dcm_tag_idx].value = ''
 
-                    if dcm[dcm_tag_idx].VR == 'DA':
+                    elif action == 'C':
 
-                        dcm[dcm_tag_idx].value = get_pseudo_date(dcm[dcm_tag_idx].value, days_total_offset = days_total_offset)
+                        if dcm[dcm_tag_idx].VR == 'DA':
 
-                        tag_value_replacements['days_total_offset'] = days_total_offset
+                            dcm[dcm_tag_idx].value = get_pseudo_date(dcm[dcm_tag_idx].value, days_total_offset = days_total_offset)
 
-                    elif dcm[dcm_tag_idx].VR == 'TM':
+                            tag_value_replacements['days_total_offset'] = days_total_offset
 
-                        dcm[dcm_tag_idx].value = get_pseudo_day_time(seconds_total_offset = tag_value_replacements['seconds_total_offset'])
+                        elif dcm[dcm_tag_idx].VR == 'TM':
 
-                        tag_value_replacements['seconds_total_offset'] = seconds_total_offset
+                            dcm[dcm_tag_idx].value = get_pseudo_day_time(seconds_total_offset = tag_value_replacements['seconds_total_offset'])
+
+                            tag_value_replacements['seconds_total_offset'] = seconds_total_offset
 
     return dcm, tag_value_replacements
 
