@@ -67,11 +67,10 @@ def clean_dirs():
     if os.path.isfile('./session_data/requested_action_group_dcm.csv'):
         os.remove('./session_data/requested_action_group_dcm.csv')
 
-    if os.path.isfile('./static/client_data/raw_dcm.png'):
-        os.remove('./static/client_data/raw_dcm.png')
-
-    if os.path.isfile('./static/client_data/clean_dcm.png'):
-        os.remove('./static/client_data/clean_dcm.png')
+    dp, _, fps = list(os.walk('./static/client_data'))[0]
+    for fp in fps:
+        if fp != '.gitkeep':
+            os.remove(dp + '/' + fp)
 
     dp, _, fps = list(os.walk('./session_data/raw'))[0]
     for fp in fps:
@@ -624,6 +623,49 @@ def adjust_dicom_metadata(user_input: dict, dcm: pydicom.dataset.FileDataset, ac
 
         return output_time_str
 
+    def clean_one_attribute_on_one_dataset_level(ds: pydicom.dataset.Dataset, action: str, action_attr_tag_idx: str) -> pydicom.dataset.Dataset:
+
+        for ds_attr in ds:
+            ds_tag_idx = re.sub('[(,) ]', '', str(ds_attr.tag))
+            if ds[ds_tag_idx].VR == 'SQ':
+                for inner_ds_idx in range(ds[ds_tag_idx].VM):
+                    ds[ds_tag_idx].value[inner_ds_idx] = clean_one_attribute_on_one_dataset_level\
+                    (
+                        ds = ds[ds_tag_idx][inner_ds_idx],
+                        action = action,
+                        action_attr_tag_idx = action_attr_tag_idx
+                    )
+
+            ## Leaf node
+            elif action_attr_tag_idx == ds_tag_idx:
+
+                if action == 'Z':
+
+                    assert ds_tag_idx in ['00100010', '00100020'], 'E: Cannot apply action code `Z` in any other attribute besides Patient ID and Patient Name; the issue is likely on the action group config object'
+
+                    ds[ds_tag_idx].value = patient_pseudo_id
+
+                elif action == 'X':
+
+                    ds[ds_tag_idx].value = ''
+
+                elif action == 'C':
+
+                    if ds[ds_tag_idx].VR == 'DA':
+
+                        tag_value_replacements['days_total_offset'] = days_total_offset
+
+                        ds[ds_tag_idx].value = get_pseudo_date(input_date_str = ds[ds_tag_idx].value, days_total_offset = days_total_offset)
+
+                    ## W: Significant temporal information is wasted as it is not implemented using an offset that is added to the corresponding timestamp value; it instead substitutes a common random value; this was implemented like this to avoid potential 24-hour overflows, which would potentially lead to an increase of some datetime day by 1, but from which DA tag?
+                    elif ds[ds_tag_idx].VR == 'TM':
+
+                        tag_value_replacements['seconds_total_offset'] = seconds_total_offset
+
+                        ds[ds_tag_idx].value = get_pseudo_day_time(seconds_total_offset = tag_value_replacements['seconds_total_offset'])
+
+        return ds
+
     action_group_df = pd.read_csv(filepath_or_buffer = action_group_fp, index_col = 0)
 
     tag_value_replacements = dict()
@@ -635,57 +677,33 @@ def adjust_dicom_metadata(user_input: dict, dcm: pydicom.dataset.FileDataset, ac
     days_total_offset_was_applied_at_least_once = False
     seconds_total_offset_was_applied_at_least_once = False
 
-    # print('Debugging: 0xad4a9cb412. Remove some lines directly below')
-    # print('Creating a dummy sequence with 2 sequence daasets containing values that should be removed')
-    # for dcm_attr in dcm:
-    #     dcm_tag_idx = re.sub('[(,) ]', '', str(dcm_attr.tag))
-    #     if dcm[dcm_tag_idx].VR == 'SQ':
-    #         for dcm_seq in dcm[dcm_tag_idx]:
-    #             for dcm_seq_attr in dcm_seq:
-    #                 dcm_seq_attr_idx = re.sub('[(,) ]', '', str(dcm_seq_attr.tag))
-    #                 breakpoint()
-    #                 dcm[dcm_tag_idx].value = ''
-    #                 dcm.add_new\
-    #                 (
-    #                     tag = (0x0008, 0x0050),
-    #                     VR = 'SH',
-    #                     value = '11111111111111111'
-    #                 )
+    print('Debugging section: 0xad4a9cb412. Remove some lines directly below.')
+    print('Creating a dummy sequence with multiple recursive sequences of multiple datasets each, containing values that should be removed.')
+    for dcm_attr in dcm:
+        dcm_tag_idx = re.sub('[(,) ]', '', str(dcm_attr.tag))
+        if dcm[dcm_tag_idx].VR == 'SQ':
+            # dcm[dcm_tag_idx].value.append(dcm[dcm_tag_idx][0])
+            ds = pydicom.dataset.Dataset()
+            ds.PatientName = "CITIZEN^Joan"
+            ds.add_new(0x00100020, 'LO', '12345')
+            ds[0x0008, 0x0022] = pydicom.DataElement(0x00080022, 'DA', '20010101')
+            ds.add_new((0x0008, 0x1032), 'SQ', pydicom.sequence.Sequence())
+            ds[0x0008, 0x1032].value = [pydicom.dataset.Dataset()]
+            ds[0x0008, 0x1032][0].add_new(0x00100010, 'LO', 'CITIZEN^Joan')
+            ds[0x0008, 0x1032][0].add_new(0x00100020, 'LO', 'WTF')
+            dcm[dcm_tag_idx].value = [ds, ds]
 
+    ## Cleaning primary DICOM
+    ## Scans all DICOM tags until it intercepts `action_attr_tag_idx`. Then it updates that exact tag index per dataset. You can view this recursion statically, as an arbitrary directed graph.
+    ## Each leaf node counts as one attribute update. Cumulatively this can alter multiple tags of the DICOM object.
     for action_attr_tag_idx in action_group_df.index:
         action = action_group_df.loc[action_attr_tag_idx].iloc[1]
-
-        def clean_tags():
-            for dcm_attr in dcm:
-                dcm_tag_idx = re.sub('[(,) ]', '', str(dcm_attr.tag))
-                if action_attr_tag_idx == dcm_tag_idx:
-
-                    if dcm[dcm_tag_idx].VR == 'SQ':
-                        continue
-
-                    if action == 'Z':
-
-                        assert dcm_tag_idx in ['00100010', '00100020'], 'E: Cannot apply action code `Z` in any other attribute besides Patient ID and Patient Name'
-
-                        dcm[dcm_tag_idx].value = patient_pseudo_id
-
-                    elif action == 'X':
-
-                        dcm[dcm_tag_idx].value = ''
-
-                    elif action == 'C':
-
-                        if dcm[dcm_tag_idx].VR == 'DA':
-
-                            dcm[dcm_tag_idx].value = get_pseudo_date(dcm[dcm_tag_idx].value, days_total_offset = days_total_offset)
-
-                            tag_value_replacements['days_total_offset'] = days_total_offset
-
-                        elif dcm[dcm_tag_idx].VR == 'TM':
-
-                            dcm[dcm_tag_idx].value = get_pseudo_day_time(seconds_total_offset = tag_value_replacements['seconds_total_offset'])
-
-                            tag_value_replacements['seconds_total_offset'] = seconds_total_offset
+        dcm = clean_one_attribute_on_one_dataset_level\
+        (
+            ds = dcm,
+            action = action,
+            action_attr_tag_idx = action_attr_tag_idx
+        )
 
     return dcm, tag_value_replacements
 
@@ -722,8 +740,8 @@ class rwdcm:
         self.DICOM_IDX += 1
         if self.DICOM_IDX <= self.n_dicom_files - 1:
             self.raw_dicom_path = self.raw_dicom_paths[self.DICOM_IDX]
-            print('List index:', self.DICOM_IDX)
             print('---\n')
+            print('DICOM List Index:', self.DICOM_IDX)
             return True
         else:
             return False
