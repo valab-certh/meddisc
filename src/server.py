@@ -77,20 +77,33 @@ def clean_dirs():
         if fp != '.gitkeep':
             os.remove(dp + '/' + fp)
 
-def DCM2DictMetadata(dcm):
+def DCM2DictMetadata(ds: pydicom.dataset.Dataset) -> pydicom.dataset.Dataset:
 
-    dcm_metadata_dict = {}
-    for dcm_attr in dcm:
-        dcm_tag_idx = re.sub('[(,) ]', '', str(dcm_attr.tag))
-        if dcm_tag_idx == '7fe00010': continue
-        dcm_metadata_dict[dcm_tag_idx] = \
+    ds_metadata_dict = {}
+    for ds_attr in ds:
+        ds_tag_idx = re.sub('[(,) ]', '', str(ds_attr.tag))
+        if ds_tag_idx == '7fe00010': continue
+        if ds_attr.VR != 'SQ':
+            value = str(ds_attr.value)
+        else:
+            value = []
+            for inner_ds_idx in range(ds[ds_tag_idx].VM):
+                value.append\
+                (
+                    DCM2DictMetadata\
+                    (
+                        ds = ds[ds_tag_idx][inner_ds_idx]
+                    )
+                )
+
+        ds_metadata_dict[ds_tag_idx] = \
         {
-            'vr': dcm_attr.VR,
-            'name': dcm_attr.name,
-            'value': str(dcm_attr.value),
+            'vr': ds_attr.VR,
+            'name': ds_attr.name,
+            'value': value,
         }
 
-    return dcm_metadata_dict
+    return ds_metadata_dict
 
 app = FastAPI()
 app.mount\
@@ -122,9 +135,9 @@ async def conversion_info(dicom_pair_fp: List[str] = Body(...)):
 
     return \
     {
-        'raw_dicom_metadata': DCM2DictMetadata(raw_dcm),
+        'raw_dicom_metadata': DCM2DictMetadata(ds = raw_dcm),
         'raw_dicom_img_fp': raw_img_fp,
-        'cleaned_dicom_metadata': DCM2DictMetadata(cleaned_dcm),
+        'cleaned_dicom_metadata': DCM2DictMetadata(ds = cleaned_dcm),
         'cleaned_dicom_img_fp': cleaned_img_fp
     }
 

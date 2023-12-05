@@ -5,14 +5,54 @@ var n_uploaded_files;
 var dicom_pair_fps;
 
 
-async function updateValue(dcm_idx)
+async function UpdateDICOMDisplayAndTable(dcm_idx)
 {
-    function createTable(metadata)
+    function MetadataTable(metadata)
     {
+        function InnerLevelBuild(OuterLevel)
+        {
+            for (let key in OuterLevel)
+            {
+                let tagID = key;
+                let vr = OuterLevel[key].vr;
+                let tagName = OuterLevel[key].name;
+                let tagValue = OuterLevel[key].value;
+    
+                if (vr === 'SQ')
+                {
+                    tableHTML +=
+                    `
+                        <tr>\n
+                            <td>+</td>\n
+                            <td>${tagID}</td>\n
+                            <td>${vr}</td>\n
+                            <td>${tagName}</td>\n
+                            <td>[SEQUENCE DATA]</td>\n
+                        </tr>\n
+                    `;
+                }
+                else
+                {
+                    tableHTML +=
+                    `
+                        <tr>\n
+                            <td> </td>\n
+                            <td>${tagID}</td>\n
+                            <td>${vr}</td>\n
+                            <td>${tagName}</td>\n
+                            <td>${tagValue}</td>\n
+                        </tr>\n
+                    `;
+                }
+            }
+        }
+
+
         let tableHTML =
         `
             <table>\n
                 <tr>\n
+                    <th> </th>\n
                     <th>Tag ID</th>\n
                     <th>VR</th>\n
                     <th>Tag Name</th>\n
@@ -20,23 +60,8 @@ async function updateValue(dcm_idx)
                 </tr>\n
         `;
 
-        for (let key in metadata)
-        {
-            let tagID = key;
-            let vr = metadata[key].vr;
-            let tagName = metadata[key].name;
-            let tagValue = metadata[key].value;
-    
-            tableHTML +=
-            `
-                <tr>
-                    <td>${tagID}</td>
-                    <td>${vr}</td>
-                    <td>${tagName}</td>
-                    <td>${tagValue}</td>
-                </tr>
-            `;
-        }
+        InnerLevelBuild(metadata)
+
 
         tableHTML += '</table>';
 
@@ -44,7 +69,7 @@ async function updateValue(dcm_idx)
     }
 
     const dicom_pair_fp = dicom_pair_fps[dcm_idx]
-    const response = await fetch
+    const metadata_response = await fetch
     (
         '/conversion_info/',
         {
@@ -57,11 +82,11 @@ async function updateValue(dcm_idx)
         }
     );
 
-    if (response.ok)
+    if (metadata_response.ok)
     {
-        const dicom_pair = await response.json();
-        const raw_dicom_metadata_table = createTable(dicom_pair['raw_dicom_metadata']);
-        const cleaned_dicom_metadata_table = createTable(dicom_pair['cleaned_dicom_metadata']);
+        const dicom_pair = await metadata_response.json();
+        const raw_dicom_metadata_table = MetadataTable(dicom_pair['raw_dicom_metadata']);
+        const cleaned_dicom_metadata_table = MetadataTable(dicom_pair['cleaned_dicom_metadata']);
         const raw_dicom_img_fp = dicom_pair['raw_dicom_img_fp']
         const cleaned_dicom_img_fp = dicom_pair['cleaned_dicom_img_fp']
 
@@ -208,7 +233,7 @@ async function submit_dicom_processing_request()
         'patient_pseudo_id_prefix': patient_pseudo_id_prefix_input_text.value
     };
 
-    const response = await fetch
+    const dicom_pair_fps_response = await fetch
     (
         '/submit_button',
         {
@@ -221,12 +246,13 @@ async function submit_dicom_processing_request()
         }
     );
 
-    dicom_pair_fps = await response.json()
+    dicom_pair_fps = await dicom_pair_fps_response.json()
 
-    document.getElementById('DICOMBarWrap').innerHTML = 
+    // Builds slider based on number of converted input DICOM files
+    document.getElementById('DICOMSliderWrap').innerHTML = 
     `
-        <input id="DICOMBar" type="range" min="0" max="${n_uploaded_files-1}" value="0" step="1" class="slider" id="DICOMRange" style="width: 500px;" oninput="updateValue(this.value)">
+        <input id="DICOMSlider" type="range" min="0" max="${n_uploaded_files-1}" value="0" step="1" class="slider" id="DICOMRange" style="width: 500px;" oninput="UpdateDICOMDisplayAndTable(this.value)">
     `
 
-    updateValue(0)
+    UpdateDICOMDisplayAndTable(0)
 }

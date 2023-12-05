@@ -1,94 +1,112 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta charset="utf-8">
         <meta content="width=device-width, initial-scale=1" name="viewport">
+        <link rel="stylesheet" type="text/css" href="static/style.css">
         <title>DICOM de-identification and curation tool</title>
-        <link href="data:," rel="icon">
     </head>
 
     <body>
+        <header>
+            <h1>DICOM De-identification Tool</h1>
+        </header>
         <nav>
-            <a href="https://cordis.europa.eu/project/id/952179"><img alt="INCISIVE Cordis webpage" src="https://incisive-project.eu/wp-content/uploads/2021/01/incisive-header-logo.svg" height="20"></a> | <a href="https://github.com/pbizopoulos/dicom-de-identification-and-curation-tool">Source code (client side)</a> | <a href="https://github.com/fl0wxr/DICOMDeIdentifier">Source code (server side)</a>
+            <a href="https://cordis.europa.eu/project/id/952179">INCISIVE Cordis webpage</a> |
+            <a href="https://github.com/pbizopoulos/dicom-de-identification-and-curation-tool">Source code (client side)</a> |
+            <a href="https://github.com/fl0wxr/DICOMDeIdentifier">Source code (server side)</a>
         </nav>
-        <h3>Input</h3>
-        <form id="UploadForm" action="/upload_files/" enctype="multipart/form-data" method="post">
-            <div>
-                Load directory with DICOM files:
-            </div>
-            <input name="files" type="file" directory webkitdirectory mozdirectory>
-            <div id="UploadStatus">
-                </br>
-                </br>
-                Total uploaded files: 0
-                </br>
-                Size of uploaded content: 0 MB
-                </br>
-                </br>
-            </div>
-        </form>
-        <form id="SessionForm" action="/upload_files/" enctype="application/json" method="post">
-            Load session file:
-            </br>
-            <input name="file0" type="file">
-            </br>
-        </form>
 
-        <h3>De-identification options</h3>
+        <main>
+            <h3>Input</h3>
+            <form id="UploadForm" action="/upload_files/" enctype="multipart/form-data" method="post">
+                <div>
+                    Load directory with DICOM files:
+                </div>
+                <input name="files" type="file" directory webkitdirectory mozdirectory>
+                <div id="UploadStatus">
+                    </br>
+                    </br>
+                    Total uploaded files: 0
+                    </br>
+                    Size of uploaded content: 0 MB
+                    </br>
+                    </br>
+                </div>
+            </form>
+            <form id="SessionForm" action="/upload_files/" enctype="application/json" method="post">
+                Load session file:
+                </br>
+                <input name="file0" type="file">
+                </br>
+            </form>
 
-        <i>
-            Based on
-            <a href="https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html"> DICOM PS3.15</a>
-        </i>
-        </br>
-        Clean pixel data:
-        <input type="checkbox" id="clean-image">
-        </br>
-        Retain safe private:
-        <input type="checkbox" id="retain-safe-private-input-checkbox" checked>
-        </br>
-        Retain UIDs:
-        <input type="checkbox" id="retain-uids-input-checkbox" checked>
-        </br>
-        Retain device identity:
-        <input type="checkbox" id="retain-device-identity-input-checkbox" checked>
-        </br>
-        Retain patient characteristics:
-        <input type="checkbox" id="retain-patient-characteristics-input-checkbox" checked>
-        </br>
-        Date processing:
-        <select id="date-processing-select">
-            <option value="offset">Offset</option>
-            <option value="remove">Remove</option>
-            <option value="keep">Keep</option>
-        </select>
-        </br>
-        Retain descriptors:
-        <input type="checkbox" id="retain-descriptors-input-checkbox" checked>
-        </br>
-        Pseudo Patient ID prefix:
-        <input type="text" id="patient-pseudo-id-prefix-input-text" placeholder="e.g. an organization ID">
-        </br>
-        </br>
-        <button type="button" id="SubmitAnonymizationProcess" onclick="submit_dicom_processing_request()" disabled>
-            De-Identify DICOM Files
-        </button>
-        </br>
-        <h3>DICOM Conversion Result</h3>
-        <div id="ControlPanel">
-            <div id="DICOMBarWrap">
-                <input id="DICOMBar" type="range" min="0" max="0" value="0" step="1" class="slider" id="DICOMRange" style="width: 500px;" oninput="updateValue(this.value)">
+            <h3>De-identification options</h3>
+
+            <i>
+                Based on
+                <a href="https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html"> DICOM PS3.15</a>
+            </i>
+            </br>
+            </br>
+            <div class="user-options-container">
+                <div class="checkbox-container">
+                    <label class="normal-label">Clean pixel data</label>
+                    <input type="checkbox" id="clean-image" checked>
+                </div>
+                <div class="checkbox-container">
+                    <label class="normal-label">Retain safe private:</label>
+                    <input type="checkbox" id="retain-safe-private-input-checkbox" checked>
+                </div>
+                <div class="checkbox-container">
+                    <label class="normal-label">Retain UIDs:</label>
+                    <input type="checkbox" id="retain-uids-input-checkbox" checked>
+                </div>
+                <div class="checkbox-container">
+                    <label class="normal-label">Retain device identity:</label>
+                    <input type="checkbox" id="retain-device-identity-input-checkbox" checked>
+                </div>
+                <div class="checkbox-container">
+                    <label class="normal-label">Retain patient characteristics:</label>
+                    <input type="checkbox" id="retain-patient-characteristics-input-checkbox" checked>
+                </div>
+                <div class="checkbox-container">
+                    <label class="normal-label">Date processing:</label>
+                    <select id="date-processing-select">
+                        <option value="offset">Offset</option>
+                        <option value="remove">Remove</option>
+                        <option value="keep">Keep</option>
+                    </select>
+                </div>
+                <div class="checkbox-container">
+                    <label class="normal-label"> Descriptors:</label>
+                    <input type="checkbox" id="retain-descriptors-input-checkbox" checked>
+                </div>
+                <div class="checkbox-container">
+                    <label class="normal-label">Pseudo Patient ID prefix:</label>
+                    <input type="text" id="patient-pseudo-id-prefix-input-text" placeholder="e.g. an organization ID">
+                </div>
             </div>
-            <div id="DICOMIDX">
-                Index: -
-                </br>
-                Raw File Path: -
-                </br>
-                Clean File Path: -
+            <button type="button" id="SubmitAnonymizationProcess" onclick="submit_dicom_processing_request()" disabled>
+                De-Identify DICOM Files
+            </button>
+            </br>
+            <h3>DICOM Conversion Result</h3>
+            <div id="ControlPanel">
+                <div id="DICOMSliderWrap">
+                    <input id="DICOMSlider" type="range" min="0" max="0" value="0" step="1" class="slider" id="DICOMRange" style="width: 500px;" oninput="updateValue(this.value)">
+                </div>
+                <div id="DICOMIDX">
+                    Index: -
+                    </br>
+                    Raw File Path: -
+                    </br>
+                    Clean File Path: -
+                </div>
             </div>
-        </div>
-        <div id="ConversionResult" style="display: grid; grid-template-columns: 1fr 1fr; grid-gap: 10px; padding: 10px;">
-        </div>
+            <div id="ConversionResult" style="display: grid; grid-template-columns: 1fr 1fr; grid-gap: 10px; padding: 10px;">
+            </div>
+        </main>
 
         <style>
             table {
