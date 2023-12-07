@@ -8,66 +8,128 @@ var dicom_pair_fps;
 async function UpdateDICOMDisplayAndTable(dcm_idx)
 {
     // FIX IT
-    function MetadataTable(metadata)
+    function table_v2(RawDCMMetadataObject, CleanedDCMMetadataObject)
     {
-        function InnerLevelBuild(OuterLevel)
+        function RecursiveLevelBuild(MetadataTable, RawDCMMetadataObjectLvN, CleanedDCMMetadataObjectLvN, LeftMarginLvN)
         {
-            for (let key in OuterLevel)
+            for (let tagID in RawDCMMetadataObjectLvN)
             {
-                let tagID = key;
-                let vr = OuterLevel[key].vr;
-                let tagName = OuterLevel[key].name;
-                let tagValue = OuterLevel[key].value;
+                const vr = RawDCMMetadataObjectLvN[tagID].vr;
+                const name = RawDCMMetadataObjectLvN[tagID].name;
+                const raw_value = RawDCMMetadataObjectLvN[tagID].value;
+                // const cleaned_value = CleanedDCMMetadataObjectLvN[tagID].value;
 
+                
                 if (vr === 'SQ')
                 {
-                    metadata_table +=
+                    MetadataTable += 
                     `
-                        <tr>\n
-                            <td>+</td>\n
-                            <td>${tagID}</td>\n
-                            <td>${vr}</td>\n
-                            <td>${tagName}</td>\n
-                            <td>[SEQUENCE DATA]</td>\n
-                        </tr>\n
-                    `;
+                        <div class="outer-row">
+                            <div class="cell-expand-row">-</div>
+                            <div class="inner-row">
+                                <div class="left-row">
+                                    <div class="cell-dcmtag-id">${tagID}</div>
+                                    <div class="cell-dcmtag-vr">${vr}</div>
+                                    <div class="cell-dcmtag-value"></div>
+                                    <div class="cell-dcmtag-name">${name}</div>
+                                </div>
+                                <div class="cell-vertical-separator"></div>
+                                <div class="right-row">
+                                    <div class="cell-dcmtag-id">${tagID}</div>
+                                    <div class="cell-dcmtag-vr">${vr}</div>
+                                    <div class="cell-dcmtag-value"></div>
+                                    <div class="cell-dcmtag-name">${name}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `
+
+                    LeftMarginLvN += 20
+
+                    for (let ds_idx in raw_value)
+                    {
+                        MetadataTable += 
+                        `
+                            <div class="outer-row">
+                                <div class="cell-expand-row-margin"></div>
+                                <div class="inner-row">
+                                    <div class="left-row">
+                                        <div class="cell-dataset">
+                                            Dataset ${ds_idx}
+                                        </div>
+                                    </div>
+                                    <div class="cell-vertical-separator"></div>
+                                    <div class="right-row">
+                                        <div class="cell-dataset">
+                                            Dataset ${ds_idx}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+
+                        let DCMMetadataObjectLvNp1 = raw_value[ds_idx]
+                        MetadataTable = RecursiveLevelBuild(MetadataTable, DCMMetadataObjectLvNp1, LeftMarginLvN + 20)
+                    }
                 }
                 else
                 {
-                    metadata_table +=
+                    MetadataTable += 
                     `
-                        <tr>\n
-                            <td> </td>\n
-                            <td>${tagID}</td>\n
-                            <td>${vr}</td>\n
-                            <td>${tagName}</td>\n
-                            <td>${tagValue}</td>\n
-                        </tr>\n
-                    `;
+                        <div class="outer-row">
+                            <div class="cell-expand-row"></div>
+                            <div class="inner-row">
+                                <div class="left-row">
+                                    <div class="cell-dcmtag-id">${tagID}</div>
+                                    <div class="cell-dcmtag-vr">${vr}</div>
+                                    <div class="cell-dcmtag-value">${raw_value}</div>
+                                    <div class="cell-dcmtag-name">${name}</div>
+                                </div>
+                                <div class="cell-vertical-separator"></div>
+                                <div class="right-row">
+                                    <div class="cell-dcmtag-id">${tagID}</div>
+                                    <div class="cell-dcmtag-vr">${vr}</div>
+                                    <div class="cell-dcmtag-value">${raw_value}</div>
+                                    <div class="cell-dcmtag-name">${name}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `
                 }
             }
 
-            return metadata_table;
-        }
+            return MetadataTable;
+        };
 
-        let metadata_table =
+        let MetadataTable = 
         `
-            <table>\n
-                <tr>\n
-                    <th> </th>\n
-                    <th>Tag ID</th>\n
-                    <th>VR</th>\n
-                    <th>Tag Name</th>\n
-                    <th>Tag Value</th>\n
-                </tr>\n
+            <div class="outer-row">
+                <div class="cell-expand-row"></div>
+                <div class="inner-row">
+                    <div class="left-row">
+                        <div class="cell-dcmtag-id">Tag ID</div>
+                        <div class="cell-dcmtag-vr">VR</div>
+                        <div class="cell-dcmtag-value">Tag Value</div>
+                        <div class="cell-dcmtag-name">Tag Name</div>
+                    </div>
+                    <div class="cell-vertical-separator"></div>
+                    <div class="right-row">
+                        <div class="cell-dcmtag-id">Tag ID</div>
+                        <div class="cell-dcmtag-vr">VR</div>
+                        <div class="cell-dcmtag-value">Tag Value</div>
+                        <div class="cell-dcmtag-name">Tag Name</div>
+                    </div>
+                </div>
+            </div>
         `;
+        let LeftMarginLv0 = 0;
+        let RawDCMMetadataObjectLv0 = RawDCMMetadataObject;
+        let CleanedDCMMetadataObjectLv0 = CleanedDCMMetadataObject;
 
-        metadata_table += InnerLevelBuild(metadata)
+        MetadataTable = RecursiveLevelBuild(MetadataTable, RawDCMMetadataObjectLv0, CleanedDCMMetadataObjectLv0, LeftMarginLv0);
 
-        metadata_table += '</table>';
-
-        return metadata_table;
-    }
+        return MetadataTable;
+    };
 
     const dicom_pair_fp = dicom_pair_fps[dcm_idx]
     const metadata_response = await fetch
@@ -86,8 +148,7 @@ async function UpdateDICOMDisplayAndTable(dcm_idx)
     if (metadata_response.ok)
     {
         const dicom_pair = await metadata_response.json();
-        const raw_dicom_metadata_table = MetadataTable(dicom_pair['raw_dicom_metadata']);
-        const cleaned_dicom_metadata_table = MetadataTable(dicom_pair['cleaned_dicom_metadata']);
+        const dicom_metadata_table = table_v2(dicom_pair['raw_dicom_metadata'], dicom_pair['cleaned_dicom_metadata']);
         const raw_dicom_img_fp = dicom_pair['raw_dicom_img_fp']
         const cleaned_dicom_img_fp = dicom_pair['cleaned_dicom_img_fp']
 
@@ -114,11 +175,8 @@ async function UpdateDICOMDisplayAndTable(dcm_idx)
             <div style="border: 1px solid black; padding: 10px;">
                 <img src="${cleaned_dicom_img_fp}" alt="Image 2" style="width: 100%; height: auto; object-fit: cover;">
             </div>
-            <div style="border: 1px solid black; padding: 10px;">
-                ${raw_dicom_metadata_table}
-            </div>
-            <div style="border: 1px solid black; padding: 10px;">
-                ${cleaned_dicom_metadata_table}
+            <div id="ConversionResult" class="metadata-table">
+                ${dicom_metadata_table}
             </div>
         `;
     }

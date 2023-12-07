@@ -37,12 +37,13 @@ nav a:hover
 
 main
 {
-    max-width: 800px;
-    margin: 20px auto;
+    max-width: 100vw;
+    margin: 20px 20px;
     padding: 20px;
     background-color: #fff;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    overflow: auto;
 }
 
 form
@@ -76,15 +77,18 @@ button
     cursor: pointer;
     transition: background-color 0.3s;
 }
+
 button:disabled
 {
     background-color: #ccc;
     cursor: not-allowed;
 }
+
 button:hover
 {
     background-color: #0056b3;
 }
+
 .checkbox-container
 {
     display: flex;
@@ -100,4 +104,127 @@ label.checkbox-label
 label.normal-label
 {
     font-weight: normal; /* or font-weight: inherit; */
+}
+
+
+
+.metadata-table
+{
+}
+
+.outer-row
+{
+    display: flex;
+    border: 0px;
+}
+
+.inner-row
+{
+    display: flex;
+    max-width: 100%;
+    min-width: 100%;
+    border-left: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+}
+
+.left-row
+{
+    flex-grow: 1;
+    max-width: 48%;
+    min-width: 48%;
+    border-left: 0px;
+    border-right: 0px;
+}
+
+.right-row
+{
+    flex-grow: 1;
+    max-width: 48%;
+    min-width: 48%;
+    border-left: 0px;
+    border-right: 0px;
+}
+
+.cell-expand-row
+{
+    display: table-cell;
+    border: 1px solid #ddd;
+    border-left: 2px solid #ddd;
+    border-right: 0px solid #ddd;
+    width: 14px;
+    min-width: 14px;
+    padding: 2px;
+    text-align: center;
+    line-height: 30px;
+}
+
+.cell-expand-row-margin
+{
+    display: table-cell;
+    width: 14px;
+    min-width: 14px;
+    padding: 2px;
+    text-align: center;
+    margin-left: 2px;
+    line-height: 30px;
+}
+
+.cell-dataset
+{
+    display: table-cell;
+    border: 1px;
+    width: 100%;
+    padding: 8px;
+    word-break: break-all;
+}
+
+.cell-vertical-separator
+{
+    display: table-cell;
+    border: 0px;
+    width: 14px;
+    min-width: 14px;
+    padding: 2px;
+    text-align: center;
+    line-height: 30px;
+}
+
+.cell-dcmtag-id
+{
+    display: table-cell;
+    border: 1px solid #ddd;
+    width: 110px;
+    min-width: 110px;
+    padding: 8px;
+    word-break: break-all;
+}
+
+.cell-dcmtag-vr
+{
+    display: table-cell;
+    border: 1px solid #ddd;
+    width: 40px;
+    min-width: 40px;
+    padding: 8px;
+    word-break: break-all;
+}
+
+.cell-dcmtag-value
+{
+    flex-grow: 1;
+    display: table-cell;
+    border: 1px solid #ddd;
+    width: 100%;
+    padding: 8px;
+    word-break: break-all;
+}
+
+.cell-dcmtag-name
+{
+    display: table-cell;
+    border: 1px solid #ddd;
+    width: 150px;
+    min-width: 150px;
+    padding: 8px;
+    word-break: break-all;
 }
