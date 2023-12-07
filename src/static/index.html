@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
+        <link rel="shortcut icon" href="#">
         <meta charset="utf-8">
         <meta content="width=device-width, initial-scale=1" name="viewport">
         <link rel="stylesheet" type="text/css" href="static/style.css">
@@ -37,7 +38,7 @@
             <form id="SessionForm" action="/upload_files/" enctype="application/json" method="post">
                 Load session file:
                 </br>
-                <input name="file0" type="file">
+                <input name="SessionFile" type="file">
                 </br>
             </form>
 
@@ -52,7 +53,7 @@
             <div class="user-options-container">
                 <div class="checkbox-container">
                     <label class="normal-label">Clean pixel data</label>
-                    <input type="checkbox" id="clean-image" checked>
+                    <input type="checkbox" id="clean-image">
                 </div>
                 <div class="checkbox-container">
                     <label class="normal-label">Retain safe private:</label>

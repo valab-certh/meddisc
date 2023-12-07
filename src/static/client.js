@@ -7,6 +7,7 @@ var dicom_pair_fps;
 
 async function UpdateDICOMDisplayAndTable(dcm_idx)
 {
+    // FIX IT
     function MetadataTable(metadata)
     {
         function InnerLevelBuild(OuterLevel)
@@ -17,10 +18,10 @@ async function UpdateDICOMDisplayAndTable(dcm_idx)
                 let vr = OuterLevel[key].vr;
                 let tagName = OuterLevel[key].name;
                 let tagValue = OuterLevel[key].value;
-    
+
                 if (vr === 'SQ')
                 {
-                    tableHTML +=
+                    metadata_table +=
                     `
                         <tr>\n
                             <td>+</td>\n
@@ -33,7 +34,7 @@ async function UpdateDICOMDisplayAndTable(dcm_idx)
                 }
                 else
                 {
-                    tableHTML +=
+                    metadata_table +=
                     `
                         <tr>\n
                             <td> </td>\n
@@ -45,10 +46,11 @@ async function UpdateDICOMDisplayAndTable(dcm_idx)
                     `;
                 }
             }
+
+            return metadata_table;
         }
 
-
-        let tableHTML =
+        let metadata_table =
         `
             <table>\n
                 <tr>\n
@@ -60,12 +62,11 @@ async function UpdateDICOMDisplayAndTable(dcm_idx)
                 </tr>\n
         `;
 
-        InnerLevelBuild(metadata)
+        metadata_table += InnerLevelBuild(metadata)
 
+        metadata_table += '</table>';
 
-        tableHTML += '</table>';
-
-        return tableHTML;
+        return metadata_table;
     }
 
     const dicom_pair_fp = dicom_pair_fps[dcm_idx]
@@ -143,7 +144,7 @@ document.querySelector('#UploadForm input[name="files"]').addEventListener
             formData.append('files', this.files[i]);
         }
 
-        const response = await fetch
+        const dcm_files_response = await fetch
         (
             '/upload_files/',
             {
@@ -151,11 +152,11 @@ document.querySelector('#UploadForm input[name="files"]').addEventListener
                 body: formData
             }
         );
-        const result = await response.json();
+        const dcm_files = await dcm_files_response.json();
 
-        if (response.ok && result.n_uploaded_files > 0)
+        if (dcm_files_response.ok && dcm_files.n_uploaded_files > 0)
         {
-            n_uploaded_files = result.n_uploaded_files
+            n_uploaded_files = dcm_files.n_uploaded_files
             document.getElementById('UploadStatus').innerHTML = 
             `
                 </br>\n
@@ -163,7 +164,7 @@ document.querySelector('#UploadForm input[name="files"]').addEventListener
                 </br>\n
                 Total uploaded files: ${n_uploaded_files}\n
                 </br>\n
-                Size of uploaded content: ${result.total_size} MB\n
+                Size of uploaded content: ${dcm_files.total_size} MB\n
                 </br>\n
                 </br>
             `
@@ -171,12 +172,12 @@ document.querySelector('#UploadForm input[name="files"]').addEventListener
         }
         else
         {
-            alert('Invalid directory input. Make sure it contains at least one DICOM file.')
+            alert('W: Invalid directory input. Make sure it contains at least one DICOM file')
         }
     }
 );
 
-document.querySelector('#SessionForm input[name="file0"]').addEventListener
+document.querySelector('#SessionForm input[name="SessionFile"]').addEventListener
 (
     'change',
     async function(e)

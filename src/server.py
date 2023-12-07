@@ -133,6 +133,12 @@ async def conversion_info(dicom_pair_fp: List[str] = Body(...)):
     cleaned_img_fp = './static/client_data/' + cleaned_hash + '.png'
     Image.fromarray(cleaned_img).save(cleaned_img_fp)
 
+    # with open(file = '../raw_dcm_meta.json', mode = 'w') as file:
+    #     json.dump(DCM2DictMetadata(ds = raw_dcm), fp = file)
+
+    # with open(file = '../cleaned_dcm_meta.json', mode = 'w') as file:
+    #     json.dump(DCM2DictMetadata(ds = cleaned_dcm), fp = file)
+
     return \
     {
         'raw_dicom_metadata': DCM2DictMetadata(ds = raw_dcm),
@@ -690,21 +696,21 @@ def adjust_dicom_metadata(user_input: dict, dcm: pydicom.dataset.FileDataset, ac
     days_total_offset_was_applied_at_least_once = False
     seconds_total_offset_was_applied_at_least_once = False
 
-    print('Debugging section: 0xad4a9cb412. Remove some lines directly below.')
-    print('Creating a dummy sequence with multiple recursive sequences of multiple datasets each, containing values that should be removed.')
-    for dcm_attr in dcm:
-        dcm_tag_idx = re.sub('[(,) ]', '', str(dcm_attr.tag))
-        if dcm[dcm_tag_idx].VR == 'SQ':
-            # dcm[dcm_tag_idx].value.append(dcm[dcm_tag_idx][0])
-            ds = pydicom.dataset.Dataset()
-            ds.PatientName = "CITIZEN^Joan"
-            ds.add_new(0x00100020, 'LO', '12345')
-            ds[0x0008, 0x0022] = pydicom.DataElement(0x00080022, 'DA', '20010101')
-            ds.add_new((0x0008, 0x1032), 'SQ', pydicom.sequence.Sequence())
-            ds[0x0008, 0x1032].value = [pydicom.dataset.Dataset()]
-            ds[0x0008, 0x1032][0].add_new(0x00100010, 'LO', 'CITIZEN^Joan')
-            ds[0x0008, 0x1032][0].add_new(0x00100020, 'LO', 'WTF')
-            dcm[dcm_tag_idx].value = [ds, ds]
+    # print('Debugging section: 0xad4a9cb412. Remove some lines directly below.')
+    # print('Creating a dummy sequence with multiple recursive sequences of multiple datasets each, containing values that should be removed.')
+    # for dcm_attr in dcm:
+    #     dcm_tag_idx = re.sub('[(,) ]', '', str(dcm_attr.tag))
+    #     if dcm[dcm_tag_idx].VR == 'SQ':
+    #         # dcm[dcm_tag_idx].value.append(dcm[dcm_tag_idx][0])
+    #         ds = pydicom.dataset.Dataset()
+    #         ds.PatientName = "CITIZEN^Joan"
+    #         ds.add_new(0x00100020, 'LO', '12345')
+    #         ds[0x0008, 0x0022] = pydicom.DataElement(0x00080022, 'DA', '20010101')
+    #         ds.add_new((0x0008, 0x1032), 'SQ', pydicom.sequence.Sequence())
+    #         ds[0x0008, 0x1032].value = [pydicom.dataset.Dataset()]
+    #         ds[0x0008, 0x1032][0].add_new(0x00100010, 'LO', 'CITIZEN^Joan')
+    #         ds[0x0008, 0x1032][0].add_new(0x00100020, 'LO', 'WTF')
+    #         dcm[dcm_tag_idx].value = [ds, ds]
 
     ## Cleaning primary DICOM
     ## Scans all DICOM tags until it intercepts `action_attr_tag_idx`. Then it updates that exact tag index per dataset. You can view this recursion statically, as an arbitrary directed graph.
