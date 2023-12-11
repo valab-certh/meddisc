@@ -107,9 +107,12 @@ label.normal-label
 }
 
 
-
 .metadata-table
 {
+    overflow: hidden;
+    background-color: rgba(47,47,51,255);
+    color: white;
+    border-radius: 3px;
 }
 
 .outer-row
@@ -120,27 +123,27 @@ label.normal-label
 
 .inner-row
 {
-    display: flex;
-    max-width: 100%;
-    min-width: 100%;
-    border-left: 1px solid #ddd;
-    border-right: 1px solid #ddd;
+    display: table;
+    max-width: 99.5%;
+    min-width: 99.5%;
 }
 
 .left-row
 {
-    flex-grow: 1;
-    max-width: 48%;
-    min-width: 48%;
+    display: table-cell;
+    flex: 1;
+    max-width: 49.5%;
+    min-width: 49.5%;
     border-left: 0px;
     border-right: 0px;
 }
 
 .right-row
 {
-    flex-grow: 1;
-    max-width: 48%;
-    min-width: 48%;
+    display: table-cell;
+    flex: 1;
+    max-width: 47.6%;
+    min-width: 47.6%;
     border-left: 0px;
     border-right: 0px;
 }
@@ -148,9 +151,9 @@ label.normal-label
 .cell-expand-row
 {
     display: table-cell;
-    border: 1px solid #ddd;
-    border-left: 2px solid #ddd;
-    border-right: 0px solid #ddd;
+    border: 1px solid rgba(39,39,43,255);
+    border-left: 2px solid rgba(39,39,43,255);
+    border-right: 0px solid rgba(39,39,43,255);
     width: 14px;
     min-width: 14px;
     padding: 2px;
@@ -161,18 +164,18 @@ label.normal-label
 .cell-expand-row-margin
 {
     display: table-cell;
-    width: 14px;
-    min-width: 14px;
+    background-color: rgba(50,50,55,255);
+    width: 16px;
+    min-width: 16px;
     padding: 2px;
     text-align: center;
-    margin-left: 2px;
     line-height: 30px;
 }
 
-.cell-dataset
+.cell-dataset, .empty-cleaned-row
 {
     display: table-cell;
-    border: 1px;
+    border: 1px solid rgba(39,39,43,255);
     width: 100%;
     padding: 8px;
     word-break: break-all;
@@ -182,9 +185,9 @@ label.normal-label
 {
     display: table-cell;
     border: 0px;
-    width: 14px;
-    min-width: 14px;
-    padding: 2px;
+    width: 0.5%;
+    min-width: 0.5%;
+    padding: 0px;
     text-align: center;
     line-height: 30px;
 }
@@ -192,7 +195,7 @@ label.normal-label
 .cell-dcmtag-id
 {
     display: table-cell;
-    border: 1px solid #ddd;
+    border: 1px solid rgba(39,39,43,255);
     width: 110px;
     min-width: 110px;
     padding: 8px;
@@ -202,7 +205,7 @@ label.normal-label
 .cell-dcmtag-vr
 {
     display: table-cell;
-    border: 1px solid #ddd;
+    border: 1px solid rgba(39,39,43,255);
     width: 40px;
     min-width: 40px;
     padding: 8px;
@@ -211,9 +214,9 @@ label.normal-label
 
 .cell-dcmtag-value
 {
-    flex-grow: 1;
+    flex: 1;
     display: table-cell;
-    border: 1px solid #ddd;
+    border: 1px solid rgba(39,39,43,255);
     width: 100%;
     padding: 8px;
     word-break: break-all;
@@ -222,7 +225,7 @@ label.normal-label
 .cell-dcmtag-name
 {
     display: table-cell;
-    border: 1px solid #ddd;
+    border: 1px solid rgba(39,39,43,255);
     width: 150px;
     min-width: 150px;
     padding: 8px;
