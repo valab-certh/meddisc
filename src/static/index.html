@@ -19,30 +19,32 @@
         </nav>
 
         <main>
-            <h3>Input</h3>
+            <h2>Input</h2>
             <form id="UploadForm" action="/upload_files/" enctype="multipart/form-data" method="post">
                 <div>
-                    Load directory with DICOM files:
+                    <b>
+                        Load directory with DICOM files:
+                    </b>
                 </div>
-                <input name="files" type="file" directory webkitdirectory mozdirectory>
+                <input name="files" class="UploadDICOM" type="file" directory webkitdirectory mozdirectory>
                 <div id="UploadStatus">
-                    </br>
                     </br>
                     Total uploaded files: 0
                     </br>
                     Size of uploaded content: 0 MB
                     </br>
-                    </br>
                 </div>
             </form>
             <form id="SessionForm" action="/upload_files/" enctype="application/json" method="post">
-                Load session file:
+                <b>
+                    Load session file:
+                </b>
                 </br>
-                <input name="SessionFile" type="file">
+                <input name="SessionFile"  class="UploadSession" type="file">
                 </br>
             </form>
 
-            <h3>De-identification options</h3>
+            <h2>De-identification options</h2>
 
             <i>
                 Based on
@@ -73,7 +75,7 @@
                 </div>
                 <div class="checkbox-container">
                     <label class="normal-label">Date processing:</label>
-                    <select id="date-processing-select">
+                    <select id="date-processing-select" class="DateProcessing">
                         <option value="offset">Offset</option>
                         <option value="remove">Remove</option>
                         <option value="keep">Keep</option>
@@ -83,27 +85,32 @@
                     <label class="normal-label"> Descriptors:</label>
                     <input type="checkbox" id="retain-descriptors-input-checkbox" checked>
                 </div>
+                <div class="tooltip">
+                    <span class="tooltiptext">Tooltip text</span>
+                </div>
                 <div class="checkbox-container">
                     <label class="normal-label">Pseudo Patient ID prefix:</label>
-                    <input type="text" id="patient-pseudo-id-prefix-input-text" placeholder="e.g. an organization ID">
+                    <input type="text" title="The Patient ID and Patient Name tags will start with the text given here" id="patient-pseudo-id-prefix-input-text" class="PseudoPrefix" placeholder="e.g. an organization ID">
                 </div>
             </div>
-            <button type="button" id="SubmitAnonymizationProcess" onclick="submit_dicom_processing_request()" disabled>
+            <button type="button" id="SubmitAnonymizationProcess" class="SubmitAnon" onclick="submit_dicom_processing_request()" disabled>
                 De-Identify DICOM Files
             </button>
             </br>
-            <h3>DICOM Conversion Result</h3>
+            <h2>DICOM Conversion Result</h2>
             <div id="ControlPanel">
                 <div id="DICOMSliderWrap">
-                    <input id="DICOMSlider" type="range" min="0" max="0" value="0" step="1" class="slider" id="DICOMRange" style="width: 500px;" oninput="updateValue(this.value)">
+                    <input id="DICOMSlider" type="range" min="0" max="0" value="0" step="1" class="slider" id="DICOMRange" style="width: 500px;">
                 </div>
-                <div id="DICOMIDX">
-                    Index: -
-                    </br>
-                    Raw File Path: -
-                    </br>
-                    Clean File Path: -
-                </div>
+            </div>
+            <div id="DICOMOverview">
+                Index: -
+                </br>
+                Raw File Path: -
+                </br>
+                Clean File Path: -
+                </br>
+                Patient's Original ID: -
             </div>
             </br>
             <div id="ConversionResult">

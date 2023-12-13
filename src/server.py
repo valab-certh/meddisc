@@ -123,12 +123,12 @@ async def conversion_info(dicom_pair_fp: List[str] = Body(...)):
     raw_dcm = pydicom.dcmread(dicom_pair_fp[0])
     cleaned_dcm = pydicom.dcmread(dicom_pair_fp[1])
 
-    raw_img = basic_preprocessing(raw_dcm.pixel_array, downscale = False, toint8 = True, multichannel = True)
+    raw_img = basic_preprocessing(raw_dcm.pixel_array, downscale = True, toint8 = True, multichannel = True)
     raw_hash = hashlib.sha256(raw_img.tobytes()).hexdigest()
     raw_img_fp = './static/client_data/' + raw_hash + '.png'
     Image.fromarray(raw_img).save(raw_img_fp)
 
-    cleaned_img = basic_preprocessing(cleaned_dcm.pixel_array, downscale = False, toint8 = True, multichannel = True)
+    cleaned_img = basic_preprocessing(cleaned_dcm.pixel_array, downscale = True, toint8 = True, multichannel = True)
     cleaned_hash = hashlib.sha256(cleaned_img.tobytes()).hexdigest()
     cleaned_img_fp = './static/client_data/' + cleaned_hash + '.png'
     Image.fromarray(cleaned_img).save(cleaned_img_fp)
@@ -268,7 +268,7 @@ def dicom_deidentifier(SESSION_FP: None or str = None):
             print('File already converted\nSkipping\n---\n')
             continue
 
-        print('Starting to process the raw DICOM\'s object')
+        print('Processing DICOM file')
 
         ## User input parameter validity check
         date_processing_choices = {'keep', 'offset', 'remove'}
@@ -311,6 +311,8 @@ def dicom_deidentifier(SESSION_FP: None or str = None):
         if user_input['clean_image']:
             ## Cleans burned in text in pixel data
             dcm, _, _ = keras_ocr_dicom_image_text_remover(dcm = dcm)
+
+        print('DICOM Processing Completed')
 
         ## Store DICOM file and create output directories
         rw_obj.export_processed_file(dcm = dcm)
@@ -409,7 +411,7 @@ def basic_preprocessing(img, downscale, toint8 = True, multichannel = True) -> n
         downscale_dimensionality = 1024
         new_shape = (min([downscale_dimensionality, img.shape[0]]), min([downscale_dimensionality, img.shape[1]]))
         img = cv2.resize(img, (new_shape[1], new_shape[0]))
-        print('Detection input downscaled to (%d, %d)'%(new_shape[0], new_shape[1]))
+        # print('Image downscaled to (%d, %d)'%(new_shape[0], new_shape[1]))
 
     if toint8:
         img = (255.0 * (img / np.max(img))).astype(np.uint8)
@@ -714,7 +716,7 @@ def adjust_dicom_metadata(user_input: dict, dcm: pydicom.dataset.FileDataset, ac
 
     ## Cleaning primary DICOM
     ## Scans all DICOM tags until it intercepts `action_attr_tag_idx`. Then it updates that exact tag index per dataset. You can view this recursion statically, as an arbitrary directed graph.
-    ## Each leaf node counts as one attribute update. Cumulatively this can alter multiple tags of the DICOM object.
+    ## Each leaf node counts as one attribute update. Collectively this can alter multiple tags of the DICOM object.
     for action_attr_tag_idx in action_group_df.index:
         action = action_group_df.loc[action_attr_tag_idx].iloc[1]
         dcm = clean_one_attribute_on_one_dataset_level\

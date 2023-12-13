@@ -51,17 +51,8 @@ form
     margin-bottom: 20px;
 }
 
-label
+.UploadDICOM, .UploadSession, .SubmitAnon, .PseudoPrefix, .DateProcessing
 {
-    min-width: 250px;
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-
-input, select, button
-{
-    /*width: 100%;*/
     padding: 10px;
     margin-left: 0px;
     margin-bottom: 15px;
@@ -96,14 +87,86 @@ button:hover
     margin-bottom: 10px;
 }
 
-label.checkbox-label
-{
-    margin-left: 0; 
-}
-
 label.normal-label
 {
     font-weight: normal; /* or font-weight: inherit; */
+    min-width: 250px;
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+
+.DCMImg
+{
+    display: block;
+    width: 100%;
+    object-fit: contain;
+}
+
+
+.toggleCheckbox
+{
+    display: none;
+}
+
+.toggleContainer
+{
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    width: fit-content;
+    border: 3px solid #343434;
+    border-radius: 20px;
+    background: #343434;
+    font-weight: bold;
+    color: #343434;
+    cursor: pointer;
+}
+
+.toggleContainer::before
+{
+    content: '';
+    position: absolute;
+    width: 50%;
+    height: 100%;
+    left: 0%;
+    border-radius:20px;
+    background: white;
+    transition: all 0.3s;
+}
+
+.toggleContainer div
+{
+    padding: 6px;
+    text-align: center;
+    z-index: 1;
+}
+
+.toggleCheckbox:checked + .toggleContainer::before
+{
+    left: 50%;
+}
+
+.toggleCheckbox:checked + .toggleContainer div:first-child
+{
+    color: white;
+    transition: color 0.3s;
+}
+.toggleCheckbox:checked + .toggleContainer div:last-child
+{
+    color: #343434;
+    transition: color 0.3s;
+}
+.toggleCheckbox + .toggleContainer div:first-child
+{
+    color: #343434;
+    transition: color 0.3s;
+}
+.toggleCheckbox + .toggleContainer div:last-child
+{
+    color: white;
+    transition: color 0.3s;
 }
 
 
@@ -113,6 +176,8 @@ label.normal-label
     background-color: rgba(47,47,51,255);
     color: white;
     border-radius: 3px;
+    padding-left: 7px;
+    padding-bottom: 7px;
 }
 
 .outer-row
@@ -161,10 +226,23 @@ label.normal-label
     line-height: 30px;
 }
 
+.image-row-left-label
+{
+    display: table-cell;
+    width: 21px;
+    min-width: 21px;
+    padding: 2px;
+    line-height: 10px;
+    writing-mode: sideways-lr;
+    transform: translate(0%, 3%);
+    text-align: center;
+    font-size: 13px;
+}
+
 .cell-expand-row-margin
 {
     display: table-cell;
-    background-color: rgba(50,50,55,255);
+    background-color: rgba(47,47,51,255);
     width: 16px;
     min-width: 16px;
     padding: 2px;
