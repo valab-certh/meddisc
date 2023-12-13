@@ -4,6 +4,7 @@ info.md
 *.dcmdump
 src/script.js
 dummy_data_bkp
+metadata_table.ods
 src/session_data/raw/*
 src/session_data/session.json
 src/session_data/user_options.json
@@ -14,3 +15,6 @@ src/session_data/clean/*
 !src/session_data/raw/1-1.dcm
 !src/session_data/raw/1-2.dcm
 !src/session_data/raw/SYN00001.dcm
+src/static/client_data/*
+!src/static/client_data/.gitkeep
+session_original.json
