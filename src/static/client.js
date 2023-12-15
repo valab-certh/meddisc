@@ -1,6 +1,22 @@
-var form = document.getElementById('UploadForm');
-var button = document.getElementById('SubmitAnonymizationProcess');
-var slider = document.getElementById("DICOMRange");
+var UploadForm = document.getElementById('UploadForm');
+var SubmitAnonymizationProcess = document.getElementById('SubmitAnonymizationProcess');
+var MetadataTable = document.getElementById('MetadataTable');
+var DICOMOverview = document.getElementById('DICOMOverview');
+var RawImg = document.getElementById('RawImg');
+var CleanedImg = document.getElementById('CleanedImg');
+var RawImgInner = document.getElementById('RawImgInner');
+var CleanedImgInner = document.getElementById('CleanedImgInner');
+var DICOMSlider = document.getElementById('DICOMSlider');
+var ConversionResult = document.getElementById('ConversionResult');
+var clean_image = document.getElementById('clean-image');
+var retain_safe_private_input_checkbox = document.getElementById('retain-safe-private-input-checkbox');
+var retain_uids_input_checkbox = document.getElementById('retain-uids-input-checkbox');
+var retain_device_identity_input_checkbox = document.getElementById('retain-device-identity-input-checkbox');
+var retain_patient_characteristics_input_checkbox = document.getElementById('retain-patient-characteristics-input-checkbox');
+var date_processing_select = document.getElementById('date-processing-select');
+var retain_descriptors_input_checkbox = document.getElementById('retain-descriptors-input-checkbox');
+var patient_pseudo_id_prefix_input_text = document.getElementById('patient-pseudo-id-prefix-input-text');
+var UploadStatus = document.getElementById('UploadStatus');
 var n_uploaded_files;
 var dicom_pair_fps;
 var OpenSequences = [];
@@ -8,21 +24,22 @@ var DiffEnabled = false;
 var dcm_idx_;
 var dicom_pair;
 var total_altered_dicom_tags = '-';
+var dicom_result_skip_timer_id; // in ms
 
-// Used for the UX performance during the slider's image transitions. Prevents that momentary flickering where the entire table below fills the empty space.
-let PredeterminedHeight = '37vw';
+// Used fors UX performance during the slider's image transitions. Helps prevent that momentary flickering where the entire table below fills the empty space.
+var PredeterminedHeight = '37vw';
 
 
 function ShowDiff(ToggleValue)
 {
     DiffEnabled = ToggleValue;
-    document.getElementById('MetadataTable').innerHTML = table(dicom_pair['raw_dicom_metadata'], dicom_pair['cleaned_dicom_metadata'], DiffEnabled)
+    MetadataTable.innerHTML = table(dicom_pair['raw_dicom_metadata'], dicom_pair['cleaned_dicom_metadata'], DiffEnabled);
 }
 
 function HideSequence(SequenceID)
 {
     const OpenSequencesStringified = OpenSequences.map(JSON.stringify);
-    const FirstOccurence = OpenSequencesStringified.indexOf(JSON.stringify(SequenceID))
+    const FirstOccurence = OpenSequencesStringified.indexOf(JSON.stringify(SequenceID));
     let style;
     let expand_row_symbol;
 
@@ -41,8 +58,8 @@ function HideSequence(SequenceID)
         expand_row_symbol = '+';
     }
 
-    document.getElementById(JSON.stringify(SequenceID)).style.display = style
-    document.getElementById(JSON.stringify(SequenceID) + '_expand_row').innerHTML = expand_row_symbol
+    document.getElementById(JSON.stringify(SequenceID)).style.display = style;
+    document.getElementById(JSON.stringify(SequenceID) + '_expand_row').innerHTML = expand_row_symbol;
 }
 
 function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
@@ -53,7 +70,7 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
         const indentation_block_unit = `<div class="cell-expand-row-margin"></div>`;
         let indentation_block;
 
-        CurrentNodeIdx.push(-1)
+        CurrentNodeIdx.push(-1);
 
         for (let tagID in RawDCMMetadataObjectLvN)
         {
@@ -68,6 +85,7 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
             let right_row_contents;
             let left_col_style;
             let right_col_style;
+
 
             CurrentNodeIdx[CurrentNodeIdx.length - 1] += 1;
 
@@ -94,13 +112,13 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
             {
                 if (JSON.stringify(cleaned_value) !== JSON.stringify(raw_value))
                 {
-                    total_altered_dicom_tags += 1
+                    total_altered_dicom_tags += 1;
                     left_col_style = ' style="background-color: rgba(0, 255, 255, 10%);"';
-                    right_col_style = left_col_style
+                    right_col_style = left_col_style;
                 }
                 else
                 {
-                    left_col_style = ' style="background-color: rgba(50, 50, 55, 255);"';
+                    left_col_style = ' style="background-color: rgba(100, 100, 110, 10%);"';
                     right_col_style = left_col_style;
                     if (DiffEnabled)
                     {
@@ -149,7 +167,7 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
                     <div id="${JSON.stringify(CurrentNodeIdx)}" style="display: none;">
                 `;
 
-                CurrentNodeIdx.push(-1)
+                CurrentNodeIdx.push(-1);
 
                 for (let ds_idx in raw_value)
                 {
@@ -218,14 +236,14 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
         return MetadataTable;
     };
 
-    total_altered_dicom_tags = 0
+    total_altered_dicom_tags = 0;
 
     let UppermostRowStyle = ` style="background-color: rgba(45, 45, 50, 255);"`;
 
     let MetadataTable = 
     `
         <div class="outer-row">
-            <div class="inner-row">
+            <div class="inner-row-column-names">
                 <div class="left-row">
                     <div class="cell-expand-row"></div>
                     <div class="cell-dcmtag-id"${UppermostRowStyle}><b>Tag ID</b></div>
@@ -253,6 +271,21 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
     return MetadataTable;
 };
 
+function throttleUpdateDICOMInformation(dcm_idx)
+{
+    // clearTimeout is used to cancel any previous scheduled execution of UpdateDICOMInformation, and setTimeout is used to schedule a new execution after a delay. This ensures that UpdateDICOMInformation is not called more often than necessary, reducing the load on the browser and making your slider more responsive.
+
+    clearTimeout(dicom_result_skip_timer_id);
+    dicom_result_skip_timer_id = setTimeout
+    (
+        function()
+        {
+            UpdateDICOMInformation(dcm_idx);
+        },
+        33
+    );
+}
+
 async function UpdateDICOMInformation(dcm_idx)
 {
     dcm_idx_ = dcm_idx
@@ -276,14 +309,22 @@ async function UpdateDICOMInformation(dcm_idx)
         const dicom_metadata_table = table(dicom_pair['raw_dicom_metadata'], dicom_pair['cleaned_dicom_metadata'], DiffEnabled);
         const raw_dicom_img_fp = dicom_pair['raw_dicom_img_fp'];
         const cleaned_dicom_img_fp = dicom_pair['cleaned_dicom_img_fp'];
-        let ImgPlaceholder = document.getElementById('RawImgInner');
 
-        if (ImgPlaceholder && ImgPlaceholder.height !== 0)
+        if (RawImgInner.height !== 0)
         {
-            PredeterminedHeight = String(ImgPlaceholder.height) + 'px';
+            PredeterminedHeight = String(RawImgInner.height) + 'px';
         }
 
-        document.getElementById('DICOMOverview').innerHTML =
+        try
+        {
+            modality = dicom_pair['raw_dicom_metadata']['00080060'].value;
+        }
+        catch (error)
+        {
+            modality = '-';
+        }
+
+        DICOMOverview.innerHTML =
         `
             Index: ${dcm_idx_}
             </br>
@@ -293,69 +334,21 @@ async function UpdateDICOMInformation(dcm_idx)
             </br>
             Patient's Original ID: ${dicom_pair['raw_dicom_metadata']['00100020'].value}
             </br>
+            Modality: ${modality}
+            </br>
             Total number of altered tags (excluding the pixel data): ${total_altered_dicom_tags}
         `;
 
-        document.getElementById('ConversionResult').innerHTML = 
-        `
-            </br>
-            <center>
-                <div style="padding: 5px;">
-                    Tags Display Mode
-                </div>
-                <input type="checkbox" id="ToggleDiff" class="toggleCheckbox" oninput="ShowDiff(this.checked)">
-                <label for="ToggleDiff" class="toggleContainer" title="All: Shows all tags\nOnly Altered: Shows only altered tags" >
-                    <div>All</div>
-                    <div>Only Altered</div> 
-                </label>
-            </center>
-            </br>
-            <div style="background-color: rgba(50, 50, 55, 255); display: flex; border-radius: 3px; color: white;">
-                <div class="image-row-left-label">
-                    <b>IMAGES [DOWNSCALED]</b>
-                </div>
-                <div style="display: flex; flex-direction: column; flex: 1;">
-                    <center>
-                        <div style="font-weight: bold; padding: 5px; align-items: center;">RAW</div>
-                    </center>
-                    <div id="RawImg" style="flex: 1; border: 1px solid black; padding: 10px; background-color: rgba(50, 50, 55, 255); border-radius: 3px; min-height: ${PredeterminedHeight};">
-                        <img id="RawImgInner" alt="Image 1" class="DCMImg">
-                    </div>
-                </div>
-                <div class="cell-vertical-separator"></div>
-                <div style="display: flex; flex-direction: column; flex: 1;">
-                    <center>
-                        <div style="font-weight: bold; padding: 5px; align-items: center;">DE-IDENTIFIED</div>
-                    </center>
-                    <div id="CleanedImg" style="flex: 1; border: 1px solid black; padding: 10px; background-color: rgba(50, 50, 55, 255); border-radius: 3px; min-height: ${PredeterminedHeight};">
-                    </div>
-                </div>
-            </div>
-            <div id="MetadataTable" class="metadata-table">
-                ${dicom_metadata_table}
-            </div>
-        `;
+        MetadataTable.innerHTML = dicom_metadata_table;
 
-        document.getElementById('RawImg').innerHTML =
-        `
-            <img id="RawImgInner" src="${raw_dicom_img_fp}" alt="Image 1" class="DCMImg">
-        `;
-
-        document.getElementById('CleanedImg').innerHTML =
-        `
-            <img id="CleanedImgInner" src="${cleaned_dicom_img_fp}" alt="Image 2" class="DCMImg">
-        `;
+        RawImg.style.minHeight = PredeterminedHeight;
+        CleanedImg.style.minHeight = PredeterminedHeight;
+        RawImgInner.src = raw_dicom_img_fp;
+        CleanedImgInner.src = cleaned_dicom_img_fp;
+        RawImg.style.minHeight = 0;
+        CleanedImg.style.minHeight = 0;
     }
 }
-
-form.addEventListener
-(
-    'submit',
-    function(event)
-    {
-        button.disabled = false;
-    }
-);
 
 document.querySelector('#UploadForm input[name="files"]').addEventListener
 (
@@ -378,10 +371,12 @@ document.querySelector('#UploadForm input[name="files"]').addEventListener
         );
         const dcm_files = await dcm_files_response.json();
 
+        ConversionResult.style.display = 'none';
+
         if (dcm_files_response.ok && dcm_files.n_uploaded_files > 0)
         {
-            n_uploaded_files = dcm_files.n_uploaded_files
-            document.getElementById('UploadStatus').innerHTML = 
+            n_uploaded_files = dcm_files.n_uploaded_files;
+            UploadStatus.innerHTML = 
             `
                 </br>\n
                 Files Uploaded Successfully\n
@@ -391,8 +386,8 @@ document.querySelector('#UploadForm input[name="files"]').addEventListener
                 Size of uploaded content: ${dcm_files.total_size} MB\n
                 </br>\n
                 </br>
-            `
-            document.getElementById('SubmitAnonymizationProcess').disabled = false
+            `;
+            SubmitAnonymizationProcess.disabled = false;
         }
         else
         {
@@ -435,16 +430,7 @@ document.querySelector('#SessionForm input[name="SessionFile"]').addEventListene
 
 async function submit_dicom_processing_request()
 {
-    document.getElementById('SubmitAnonymizationProcess').disabled = true
-
-    const clean_image = document.getElementById('clean-image');
-    const retain_safe_private_input_checkbox = document.getElementById('retain-safe-private-input-checkbox');
-    const retain_uids_input_checkbox = document.getElementById('retain-uids-input-checkbox');
-    const retain_device_identity_input_checkbox = document.getElementById('retain-device-identity-input-checkbox');
-    const retain_patient_characteristics_input_checkbox = document.getElementById('retain-patient-characteristics-input-checkbox');
-    const date_processing_select = document.getElementById('date-processing-select');
-    const retain_descriptors_input_checkbox = document.getElementById('retain-descriptors-input-checkbox');
-    const patient_pseudo_id_prefix_input_text = document.getElementById('patient-pseudo-id-prefix-input-text');
+    SubmitAnonymizationProcess.disabled = true
 
     const data =
     {
@@ -474,10 +460,9 @@ async function submit_dicom_processing_request()
     dicom_pair_fps = await dicom_pair_fps_response.json();
 
     // Builds slider based on number of converted input DICOM files
-    document.getElementById('DICOMSliderWrap').innerHTML = 
-    `
-        <input id="DICOMSlider" type="range" min="0" max="${n_uploaded_files-1}" value="0" step="1" class="slider" id="DICOMRange" style="width: 500px;" oninput="UpdateDICOMInformation(this.value)">
-    `;
+    DICOMSlider.max = n_uploaded_files-1;
+    DICOMSlider.value = 0;
+    throttleUpdateDICOMInformation(0);
 
-    UpdateDICOMInformation(0)
+    ConversionResult.style.display = 'inline';
 }

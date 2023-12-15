@@ -13,7 +13,6 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Any
-import math
 import random
 import numpy as np
 import pandas as pd
@@ -77,7 +76,12 @@ def clean_dirs():
         if fp != '.gitkeep':
             os.remove(dp + '/' + fp)
 
-def DCM2DictMetadata(ds: pydicom.dataset.Dataset) -> pydicom.dataset.Dataset:
+def DCM2DictMetadata\
+(
+    ds: pydicom.dataset.Dataset
+) \
+-> \
+pydicom.dataset.Dataset:
 
     ds_metadata_dict = {}
     for ds_attr in ds:
@@ -118,7 +122,12 @@ async def get_root():
     return FileResponse('./static/index.html')
 
 @app.post('/conversion_info')
-async def conversion_info(dicom_pair_fp: List[str] = Body(...)):
+async def conversion_info\
+(
+    dicom_pair_fp: List[str] = Body(...)
+) \
+-> \
+dict:
 
     raw_dcm = pydicom.dcmread(dicom_pair_fp[0])
     cleaned_dcm = pydicom.dcmread(dicom_pair_fp[1])
@@ -152,7 +161,9 @@ async def get_files\
 (
     myCheckbox: bool = Form(False),
     files: List[UploadFile] = File(...)
-):
+) \
+-> \
+dict:
 
     ## Resetting directories
     clean_dirs()
@@ -180,7 +191,10 @@ async def get_files\
     return {'n_uploaded_files': len(proper_dicom_paths), 'total_size': total_uploaded_file_megabytes}
 
 @app.post('/session')
-async def handle_session_button_click(session_dict: Dict[str, Any]):
+async def handle_session_button_click\
+(
+    session_dict: Dict[str, Any]
+):
     with open(file = './session_data/session.json', mode = 'w') as file:
         json.dump(session_dict, file)
 
@@ -213,10 +227,19 @@ async def handle_submit_button_click(user_options: user_options_class):
 
     return dicom_pair_fps
 
-def dicom_deidentifier(SESSION_FP: None or str = None):
+def dicom_deidentifier\
+(
+    SESSION_FP: None or str = None
+) \
+-> \
+tuple[dict, list[tuple[str]]]:
     '''
         Args:
-            SESSION_FP. File path for the session.json file. A session must have the same exact `user_input.json` file independently of interruptions. If None then a new session file will be created at the parent directory.
+            SESSION_FP. File path for the session.json file. A session must have the same exact `user_input.json` file independently of interruptions. If `SESSION_FP` is set to None then a new session file will be created at the parent directory.
+
+        Returns:
+            session. This dictionary contains the session file's content.
+            path_pairs. Contains raw-cleaned DICOM pairs corresponding to the input.
     '''
 
     ## Initial parameters
@@ -258,7 +281,6 @@ def dicom_deidentifier(SESSION_FP: None or str = None):
         max_pseudo_patient_id = max(pseudo_patient_ids)
 
     ## Get one input DICOM
-    global rw_obj
     rw_obj = rwdcm(in_dp = user_input['input_dcm_dp'], out_dp = user_input['output_dcm_dp'])
 
     while next(rw_obj):

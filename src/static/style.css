@@ -17,7 +17,7 @@ header, nav
 
 nav
 {
-    background-color: #333;
+    background-color: rgba(47, 47, 51, 255);
 }
 
 nav a
@@ -32,7 +32,7 @@ nav a
 
 nav a:hover
 {
-    background-color: #555;
+    background-color: rgba(100, 100, 110, 255);
 }
 
 main
@@ -173,7 +173,7 @@ label.normal-label
 .metadata-table
 {
     overflow: hidden;
-    background-color: rgba(47,47,51,255);
+    background-color: rgba(47, 47, 51, 255);
     color: white;
     border-radius: 3px;
     padding-left: 7px;
@@ -186,11 +186,17 @@ label.normal-label
     border: 0px;
 }
 
-.inner-row
+.inner-row, .inner-row-column-names
 {
     display: table;
     max-width: 99.5%;
     min-width: 99.5%;
+}
+
+.inner-row:hover
+{
+    background-color: rgba(60, 60, 70, 255);
+    transition: background-color 0.3s;
 }
 
 .left-row
@@ -216,9 +222,9 @@ label.normal-label
 .cell-expand-row
 {
     display: table-cell;
-    border: 1px solid rgba(39,39,43,255);
-    border-left: 2px solid rgba(39,39,43,255);
-    border-right: 0px solid rgba(39,39,43,255);
+    border: 1px solid rgba(39, 39, 43, 255);
+    border-left: 2px solid rgba(39, 39, 43, 255);
+    border-right: 0px solid rgba(39, 39, 43, 255);
     width: 14px;
     min-width: 14px;
     padding: 2px;
@@ -232,7 +238,7 @@ label.normal-label
     width: 21px;
     min-width: 21px;
     padding: 2px;
-    line-height: 10px;
+    line-height: 18px;
     writing-mode: sideways-lr;
     transform: translate(0%, 3%);
     text-align: center;
@@ -242,7 +248,7 @@ label.normal-label
 .cell-expand-row-margin
 {
     display: table-cell;
-    background-color: rgba(47,47,51,255);
+    background-color: rgba(47, 47, 51, 255);
     width: 16px;
     min-width: 16px;
     padding: 2px;
@@ -253,7 +259,7 @@ label.normal-label
 .cell-dataset, .empty-cleaned-row
 {
     display: table-cell;
-    border: 1px solid rgba(39,39,43,255);
+    border: 1px solid rgba(39, 39, 43, 255);
     width: 100%;
     padding: 8px;
     word-break: break-all;
@@ -268,6 +274,7 @@ label.normal-label
     padding: 0px;
     text-align: center;
     line-height: 30px;
+    background-color: rgba(47, 47, 51, 255);
 }
 
 .cell-dcmtag-id

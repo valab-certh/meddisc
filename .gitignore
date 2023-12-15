@@ -1,4 +1,5 @@
 .~*
+.$*
 __*
 info.md
 *.dcmdump
@@ -18,3 +19,4 @@ src/session_data/clean/*
 src/static/client_data/*
 !src/static/client_data/.gitkeep
 session_original.json
+front_end_idea.drawio

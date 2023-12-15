@@ -85,35 +85,66 @@
                     <label class="normal-label"> Descriptors:</label>
                     <input type="checkbox" id="retain-descriptors-input-checkbox" checked>
                 </div>
-                <div class="tooltip">
-                    <span class="tooltiptext">Tooltip text</span>
-                </div>
                 <div class="checkbox-container">
                     <label class="normal-label">Pseudo Patient ID prefix:</label>
-                    <input type="text" title="The Patient ID and Patient Name tags will start with the text given here" id="patient-pseudo-id-prefix-input-text" class="PseudoPrefix" placeholder="e.g. an organization ID">
+                    <input type="text" title="Will be concatenated with randomly generated pseudo-ID" id="patient-pseudo-id-prefix-input-text" class="PseudoPrefix" placeholder="e.g. an organization ID">
                 </div>
             </div>
             <button type="button" id="SubmitAnonymizationProcess" class="SubmitAnon" onclick="submit_dicom_processing_request()" disabled>
                 De-Identify DICOM Files
             </button>
-            </br>
-            <h2>DICOM Conversion Result</h2>
-            <div id="ControlPanel">
-                <div id="DICOMSliderWrap">
-                    <input id="DICOMSlider" type="range" min="0" max="0" value="0" step="1" class="slider" id="DICOMRange" style="width: 500px;">
+            <div id="ConversionResult" style="display: none;">
+                </br>
+                <h2>DICOM Conversion Result</h2>
+                <div id="ControlPanel">
+                    <input id="DICOMSlider" type="range" min="0" max="${n_uploaded_files-1}" value="0" step="1" class="slider" id="DICOMRange" style="width: 500px;" oninput="throttleUpdateDICOMInformation(this.value)">
                 </div>
-            </div>
-            <div id="DICOMOverview">
-                Index: -
+                <div id="DICOMOverview">
+                    Index: -
+                    </br>
+                    Raw File Path: -
+                    </br>
+                    Clean File Path: -
+                    </br>
+                    Patient's Original ID: -
+                </div>
                 </br>
-                Raw File Path: -
                 </br>
-                Clean File Path: -
+                <center>
+                    <div style="padding: 5px;">
+                        Tags Display Mode
+                    </div>
+                    <input type="checkbox" id="ToggleDiff" class="toggleCheckbox" oninput="ShowDiff(this.checked)">
+                    <label for="ToggleDiff" class="toggleContainer" title="All: Shows all tags; Only Altered: Shows only altered tags" >
+                        <div>All</div>
+                        <div>Only Altered</div> 
+                    </label>
+                </center>
                 </br>
-                Patient's Original ID: -
-            </div>
-            </br>
-            <div id="ConversionResult">
+                <div style="background-color: rgba(50, 50, 55, 255); display: flex; border-radius: 3px; color: white;">
+                    <div class="image-row-left-label">
+                        <b>IMAGES [DOWNSCALED]</b>
+                    </div>
+                    <div style="display: flex; flex-direction: column; flex: 1;">
+                        <center>
+                            <div style="font-weight: bold; padding: 5px; align-items: center;">RAW</div>
+                        </center>
+                        <div id="RawImg" style="flex: 1; border: 1px solid black; padding: 10px; background-color: rgba(50, 50, 55, 255); border-radius: 3px;">
+                            <img id="RawImgInner" class="DCMImg">
+                        </div>
+                    </div>
+                    <div class="cell-vertical-separator"></div>
+                    <div style="display: flex; flex-direction: column; flex: 1;">
+                        <center>
+                            <div style="font-weight: bold; padding: 5px; align-items: center;">DE-IDENTIFIED</div>
+                        </center>
+                        <div id="CleanedImg" style="flex: 1; border: 1px solid black; padding: 10px; background-color: rgba(50, 50, 55, 255); border-radius: 3px;">
+                            <img id="CleanedImgInner" class="DCMImg">
+                        </div>
+                    </div>
+                </div>
+                <div id="MetadataTable" class="metadata-table">
+                </div>
             </div>
         </main>
         <script src="/static/client.js"></script>
