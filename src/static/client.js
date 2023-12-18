@@ -24,9 +24,13 @@ var DiffEnabled = false;
 var dcm_idx_;
 var dicom_pair;
 var total_altered_dicom_tags = '-';
-var dicom_result_skip_timer_id; // in ms
 
-// Used fors UX performance during the slider's image transitions. Helps prevent that momentary flickering where the entire table below fills the empty space.
+// Loading state (1/3)
+// Description
+//     Clean solution to the issue of delayed slider responses. The advantage of this method compared to methods like throttling is that it continues execution as soon as the content is loaded into the HTML.
+var LoadingState = false;
+
+// Used for UX performance during the slider's image transitions. Helps (but is not sufficient by itself) for the prevention of that momentary flickering where during that time interval, the entire table below fills the empty space.
 var PredeterminedHeight = '37vw';
 
 
@@ -271,23 +275,20 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
     return MetadataTable;
 };
 
-function throttleUpdateDICOMInformation(dcm_idx)
-{
-    // clearTimeout is used to cancel any previous scheduled execution of UpdateDICOMInformation, and setTimeout is used to schedule a new execution after a delay. This ensures that UpdateDICOMInformation is not called more often than necessary, reducing the load on the browser and making your slider more responsive.
-
-    clearTimeout(dicom_result_skip_timer_id);
-    dicom_result_skip_timer_id = setTimeout
-    (
-        function()
-        {
-            UpdateDICOMInformation(dcm_idx);
-        },
-        33
-    );
-}
-
 async function UpdateDICOMInformation(dcm_idx)
 {
+
+    // ! Loading state (2/3): Begin
+
+    if (LoadingState)
+    {
+        return;
+    }
+
+    LoadingState = true;
+
+    // ! Loading state (2/3): End
+
     dcm_idx_ = dcm_idx
     const dicom_pair_fp = await dicom_pair_fps[dcm_idx_]
     const conversion_info_response = await fetch
@@ -348,6 +349,9 @@ async function UpdateDICOMInformation(dcm_idx)
         RawImg.style.minHeight = 0;
         CleanedImg.style.minHeight = 0;
     }
+
+    // Loading state (3/3)
+    LoadingState = false;
 }
 
 document.querySelector('#UploadForm input[name="files"]').addEventListener
@@ -462,7 +466,7 @@ async function submit_dicom_processing_request()
     // Builds slider based on number of converted input DICOM files
     DICOMSlider.max = n_uploaded_files-1;
     DICOMSlider.value = 0;
-    throttleUpdateDICOMInformation(0);
+    await UpdateDICOMInformation(0);
 
     ConversionResult.style.display = 'inline';
 }

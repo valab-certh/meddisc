@@ -131,13 +131,16 @@ dict:
 
     raw_dcm = pydicom.dcmread(dicom_pair_fp[0])
     cleaned_dcm = pydicom.dcmread(dicom_pair_fp[1])
+    downscale_dimensionality = 1024
 
-    raw_img = basic_preprocessing(raw_dcm.pixel_array, downscale = True, toint8 = True, multichannel = True)
+    print('Downscaling requested raw and clean images from shape (%d, %d) to (%d, %d)'%(raw_dcm.pixel_array.shape[0], raw_dcm.pixel_array.shape[1], downscale_dimensionality, downscale_dimensionality))
+
+    raw_img = basic_preprocessing(raw_dcm.pixel_array, downscale_dimensionality = downscale_dimensionality, toint8 = True, multichannel = True)
     raw_hash = hashlib.sha256(raw_img.tobytes()).hexdigest()
     raw_img_fp = './static/client_data/' + raw_hash + '.png'
     Image.fromarray(raw_img).save(raw_img_fp)
 
-    cleaned_img = basic_preprocessing(cleaned_dcm.pixel_array, downscale = True, toint8 = True, multichannel = True)
+    cleaned_img = basic_preprocessing(cleaned_dcm.pixel_array, downscale_dimensionality = downscale_dimensionality, toint8 = True, multichannel = True)
     cleaned_hash = hashlib.sha256(cleaned_img.tobytes()).hexdigest()
     cleaned_img_fp = './static/client_data/' + cleaned_hash + '.png'
     Image.fromarray(cleaned_img).save(cleaned_img_fp)
@@ -234,16 +237,39 @@ def dicom_deidentifier\
 -> \
 tuple[dict, list[tuple[str]]]:
     '''
+        Description:
+            Applies de-identification to a set of DICOM files based on the configuration file `user_options.json`. Additionally it can consider a session file, namely `session.json` in case a session was interrupted.
+
+            Warning:
+                Session files are not supposed to be modified between interruptions, neither their corresponding DICOM files.
+
         Args:
-            SESSION_FP. File path for the session.json file. A session must have the same exact `user_input.json` file independently of interruptions. If `SESSION_FP` is set to None then a new session file will be created at the parent directory.
+            SESSION_FP. File path for the session.json file. If `SESSION_FP` is set to None then a new session file will be created at the parent directory.
 
         Returns:
             session. This dictionary contains the session file's content.
+                {
+                    `Patient_ID0`:
+                    {
+                        'patientPseudoId': '000000',
+                        'daysOffset': 7172,
+                        'secondsOffset': 34283,
+                        ...
+                    }
+                    `Patient_ID1`:
+                    {
+                        'patientPseudoId': '000001',
+                        'daysOffset': 2230,
+                        'secondsOffset': 14928,
+                        ...
+                    }
+                    ...
+                }
             path_pairs. Contains raw-cleaned DICOM pairs corresponding to the input.
     '''
 
-    ## Initial parameters
-    GPU = True ## Set to True if you want to invoke NVIDIA GPU
+    ## Set to True if you want to invoke NVIDIA GPU
+    GPU = True
 
     if (not GPU):
         tf.config.set_visible_devices([], 'GPU')
@@ -315,7 +341,6 @@ tuple[dict, list[tuple[str]]]:
         ## Adjusts DICOM metadata based on user parameterization
         dcm, tag_value_replacements = adjust_dicom_metadata\
         (
-            user_input = user_input,
             dcm = dcm,
             action_group_fp = './session_data/requested_action_group_dcm.csv',
             patient_pseudo_id = session[real_patient_id]['patientPseudoId'],
@@ -332,7 +357,7 @@ tuple[dict, list[tuple[str]]]:
 
         if user_input['clean_image']:
             ## Cleans burned in text in pixel data
-            dcm, _, _ = keras_ocr_dicom_image_text_remover(dcm = dcm)
+            dcm, _, _ = keras_ocr_dicom_image_bbox_area_distorter(dcm = dcm)
 
         print('DICOM Processing Completed')
 
@@ -346,17 +371,23 @@ tuple[dict, list[tuple[str]]]:
 
     return session, rw_obj.dicom_pair_fps
 
-def deidentification_attributes(user_input: dict, dcm: pydicom.dataset.FileDataset) -> pydicom.dataset.FileDataset:
+def deidentification_attributes\
+(
+    user_input: dict,
+    dcm: pydicom.dataset.FileDataset
+) \
+-> \
+pydicom.dataset.FileDataset:
     '''
         Description:
-            Appends additional DICOM attributes that specify the anonymization process as per Table CID 7050 from https://dicom.nema.org/medical/dicom/2019a/output/chtml/part16/sect_CID_7050.html. Additional relevant information can be found at https://dicom.nema.org/medical/dicom/current/output/chtml/part15/sect_E.3.html.
+            Appends additional DICOM attributes that specify the anonymization process as per Table CID 7050 from https://dicom.nema.org/medical/dicom/2019a/output/chtml/part16/sect_CID_7050.html. Some of these additional attributes are specified at https://dicom.nema.org/medical/dicom/current/output/chtml/part15/sect_E.3.html.
 
         Args:
-            user_input.
-            dcm.
+            user_input. Identical to the content of `user_options.json`.
+            dcm. Raw DICOM input.
 
-        Returns
-            dcm_. Contains more tags that specifies the anonymization procedure.
+        Returns:
+            dcm_. DICOM object where de-identification tags were added.
     '''
 
     user_input_lookup_table = \
@@ -416,24 +447,32 @@ def deidentification_attributes(user_input: dict, dcm: pydicom.dataset.FileDatas
 def ndarray_size(arr: np.ndarray) -> int:
     return arr.itemsize*arr.size
 
-def basic_preprocessing(img, downscale, toint8 = True, multichannel = True) -> np.ndarray:
+def basic_preprocessing\
+(
+    img: np.ndarray,
+    downscale_dimensionality: int,
+    toint8: bool = True,
+    multichannel: bool = True
+) \
+-> \
+np.ndarray:
     '''
         Description:
-            Main preprocessing. It is imperative that the image is converted to (1) uint8 and in (2) RGB in order for keras_ocr's detector to properly function.
+            Image preprocessing pipeline. It is imperative that the image is converted to (1) uint8 and in (2) RGB in order for keras_ocr's detector to properly function.
 
         Args:
-            downscale. Bool.
+            img. Shape (H, W). Monochrome input image.
+            downscale_dimensionality. Downscale H and W of output image. If set to 0, False or None it does not apply downscaleing in the input image.
+            toint8. If set to True then it converts the `img` object's data type to 8 bit integer.
+            multichannel. If set to True then appends an additional dimension and sets it as the color channel.
 
         Returns:
-            out_image. Its shape is (H, W) if `multichannel` is set to `False`, otherwise its shape is (H, W, 3).
+            out_image. Preprocessed image. Its shape is (H, W) if `multichannel` is set to False, otherwise its shape is (H, W, 3).
     '''
 
-    if downscale:
-        ## Downscale
-        downscale_dimensionality = 1024
+    if downscale_dimensionality:
         new_shape = (min([downscale_dimensionality, img.shape[0]]), min([downscale_dimensionality, img.shape[1]]))
         img = cv2.resize(img, (new_shape[1], new_shape[0]))
-        # print('Image downscaled to (%d, %d)'%(new_shape[0], new_shape[1]))
 
     if toint8:
         img = (255.0 * (img / np.max(img))).astype(np.uint8)
@@ -443,14 +482,31 @@ def basic_preprocessing(img, downscale, toint8 = True, multichannel = True) -> n
 
     return img
 
-def text_remover(img, bboxes: np.ndarray, initial_array_shape, downscaled_array_shape):
+def bbox_area_distorter\
+(
+    img,
+    bboxes: np.ndarray,
+    initial_array_shape: tuple[int],
+    downscaled_array_shape: tuple[int]
+) \
+-> \
+np.ndarray:
     '''
+        Description:
+            Corrupts image area corresponding to bounding boxes. Applied for the de-identification of burned-in text in images.
+
         Args:
-            bboxes. Shape (n_bboxes, 4, 2), where 4 is the number of vertices for each box and 2 are the plane coordinates. The vertices inside the bboxes array should be sorted in a way that corresponds to a geometrically counter-clockwise order. For example given a non-rotated (0 degree) bounding box with index 0, the following rule applies
+            img. Shape (H, W). Input image.
+            bboxes. Shape (n_bboxes, 4, 2). Includes all the estimated bounding boxes from `img`. The 4 in the shape is the number of vertices for each box and 2 are the plane coordinates. The vertices inside the bboxes array should be sorted in a way that corresponds to a geometrically counter-clockwise order. For example given a non-rotated (0 degree) bounding box with index 0, the following rule applies
                 bboxes[0, 0, :] -> upper left vertex
                 bboxes[0, 1, :] -> lower left vertex
                 bboxes[0, 2, :] -> lower right vertex
                 bboxes[0, 3, :] -> upper right vertex
+            initial_array_shape. The shape of the raw input image. Under normal circumstances, this shape is equal to `img.shape`.
+            downscaled_array_shape. The shape of the downscaled input image.
+
+        Returns:
+            img_. Input image where all its corresponding bounding box areas were corrupted.
     '''
 
     reducted_region_color = np.mean(img).astype(np.uint16)
@@ -476,7 +532,7 @@ def text_remover(img, bboxes: np.ndarray, initial_array_shape, downscaled_array_
                     [x3, y3]
                 ]
             ],
-            dtype = np.int32 ## Must remain this way. Otherwise, cv2.fillPoly will throw an error.
+            dtype = np.int32 ## Must remain this way, otherwise cv2.fillPoly will throw an error
         )
 
         ## Filled rectangle
@@ -493,11 +549,14 @@ def text_remover(img, bboxes: np.ndarray, initial_array_shape, downscaled_array_
 
     return img_
 
-def keras_ocr_dicom_image_text_remover(dcm):
+def keras_ocr_dicom_image_bbox_area_distorter(dcm):
 
     def prep_det_keras_ocr(img):
 
-        img_prep = basic_preprocessing(img = img, downscale = True)
+        downscale_dimensionality = 1024
+
+        print('Downscaling image from shape (%d, %d) to (%d, %d)'%(img.shape[0], img.shape[1], downscale_dimensionality, downscale_dimensionality))
+        img_prep = basic_preprocessing(img = img, downscale_dimensionality = downscale_dimensionality)
         bboxes = det_keras_ocr(img_prep)
 
         return img_prep, bboxes
@@ -533,7 +592,7 @@ def keras_ocr_dicom_image_text_remover(dcm):
 
     if np.size(bboxes) != 0:
 
-        cleaned_img = text_remover\
+        cleaned_img = bbox_area_distorter\
         (
             img = raw_img_uint16_grayscale,
             bboxes = bboxes,
@@ -552,10 +611,16 @@ def keras_ocr_dicom_image_text_remover(dcm):
 
     return dcm, removal_period, total_period
 
-def get_action_group(user_input: dict, action_groups_df: pd.DataFrame) -> pd.DataFrame:
+def get_action_group\
+(
+    user_input: dict,
+    action_groups_df: pd.DataFrame
+) \
+-> \
+pd.DataFrame:
     '''
         Description:
-            Depending on the user's choice, and an action group lookup table, based on Nema's action principles as per tables Table E.1-1a and Table E.1-1 of https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html, an action group is generated. That action group is in the form of a column from Table E.1-1 acting as a configuration basis for the anonymization of a DICOM file.
+            Depending on the user's choice, and an action group lookup table, based on Nema's action principles as per Table E.1-1a and Table E.1-1 of https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html, an action group is generated. That action group is in the form of a column from Table E.1-1 acting as a configuration basis for the anonymization of a DICOM file.
 
         Args:
             user_input. The user's anonymization process. Sufficient property:
@@ -631,17 +696,27 @@ def get_action_group(user_input: dict, action_groups_df: pd.DataFrame) -> pd.Dat
 
     return requested_action_group_df
 
-def adjust_dicom_metadata(user_input: dict, dcm: pydicom.dataset.FileDataset, action_group_fp: str, patient_pseudo_id: str, days_total_offset, seconds_total_offset) -> (pydicom.dataset.FileDataset, dict):
+def adjust_dicom_metadata\
+(
+    dcm: pydicom.dataset.FileDataset,
+    action_group_fp: str,
+    patient_pseudo_id: str,
+    days_total_offset,
+    seconds_total_offset
+) \
+-> \
+(pydicom.dataset.FileDataset, dict):
     '''
         Description:
-            Applies an action group on a DICOM file's metadata.
+            Peforms metadata de-identification on a DICOM file based on a configuration file.
 
         Args:
-            user_input. The user's anonymization process.
-            dcm. DICOM object.
-            action_group_fp. Path for .csv file that contains the an action group. The file's content is saved in action_group_df.
+            dcm. Input DICOM object.
+            action_group_fp. Path for .csv configuration file that contains the an action group. The file's content is saved in action_group_df.
                 action_group_df. Specifies how exactly the DICOM's metadata will be modified according to its attribute actions.
             patient_pseudo_id.
+            days_total_offset.
+            seconds_total_offset.
 
         Returns:
             updated_dcm. DICOM object adjusted according to configuration.
@@ -666,13 +741,13 @@ def adjust_dicom_metadata(user_input: dict, dcm: pydicom.dataset.FileDataset, ac
 
         return output_time_str
 
-    def clean_one_attribute_on_one_dataset_level(ds: pydicom.dataset.Dataset, action: str, action_attr_tag_idx: str) -> pydicom.dataset.Dataset:
+    def recursive_SQ_cleaner(ds: pydicom.dataset.Dataset, action: str, action_attr_tag_idx: str) -> pydicom.dataset.Dataset:
 
         for ds_attr in ds:
             ds_tag_idx = re.sub('[(,) ]', '', str(ds_attr.tag))
             if ds[ds_tag_idx].VR == 'SQ':
                 for inner_ds_idx in range(ds[ds_tag_idx].VM):
-                    ds[ds_tag_idx].value[inner_ds_idx] = clean_one_attribute_on_one_dataset_level\
+                    ds[ds_tag_idx].value[inner_ds_idx] = recursive_SQ_cleaner\
                     (
                         ds = ds[ds_tag_idx][inner_ds_idx],
                         action = action,
@@ -717,9 +792,6 @@ def adjust_dicom_metadata(user_input: dict, dcm: pydicom.dataset.FileDataset, ac
     tag_value_replacements['days_total_offset'] = 0
     tag_value_replacements['seconds_total_offset'] = 0
 
-    days_total_offset_was_applied_at_least_once = False
-    seconds_total_offset_was_applied_at_least_once = False
-
     # print('Debugging section: 0xad4a9cb412. Remove some lines directly below.')
     # print('Creating a dummy sequence with multiple recursive sequences of multiple datasets each, containing values that should be removed.')
     # for dcm_attr in dcm:
@@ -741,7 +813,7 @@ def adjust_dicom_metadata(user_input: dict, dcm: pydicom.dataset.FileDataset, ac
     ## Each leaf node counts as one attribute update. Collectively this can alter multiple tags of the DICOM object.
     for action_attr_tag_idx in action_group_df.index:
         action = action_group_df.loc[action_attr_tag_idx].iloc[1]
-        dcm = clean_one_attribute_on_one_dataset_level\
+        dcm = recursive_SQ_cleaner\
         (
             ds = dcm,
             action = action,

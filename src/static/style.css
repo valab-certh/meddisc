@@ -153,16 +153,19 @@ label.normal-label
     color: white;
     transition: color 0.3s;
 }
+
 .toggleCheckbox:checked + .toggleContainer div:last-child
 {
     color: #343434;
     transition: color 0.3s;
 }
+
 .toggleCheckbox + .toggleContainer div:first-child
 {
     color: #343434;
     transition: color 0.3s;
 }
+
 .toggleCheckbox + .toggleContainer div:last-child
 {
     color: white;
