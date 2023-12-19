@@ -115,7 +115,7 @@ def main() -> None:
 
     assert set_ <= acceptable_actions, 'E: Unacceptable values found in action table'
 
-    dicom_tag_to_nema_action_df.to_csv('../action_groups_dcm.csv')
+    dicom_tag_to_nema_action_df.to_csv('./action_groups_dcm.csv')
 
 
 if __name__ == "__main__":

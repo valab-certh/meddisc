@@ -432,6 +432,44 @@ document.querySelector('#SessionForm input[name="SessionFile"]').addEventListene
     }
 );
 
+window.onload = function()
+{
+    document.querySelector('.UploadConfig').addEventListener
+    (
+        'change',
+        function(e)
+        {
+            e.preventDefault();
+            if (this.value) {
+                const form = this.form;
+                const formData = new FormData(form);
+                fetch
+                (
+                    form.action,
+                    {
+                        method: form.method,
+                        body: formData
+                    }
+                )
+
+                retain_safe_private_input_checkbox.checked = false;
+                retain_uids_input_checkbox.checked = false;
+                retain_device_identity_input_checkbox.checked = false;
+                retain_patient_characteristics_input_checkbox.checked = false;
+                date_processing_select.value = 'offset';
+                retain_descriptors_input_checkbox.checked = false;
+
+                retain_safe_private_input_checkbox.disabled = true;
+                retain_uids_input_checkbox.disabled = true;
+                retain_device_identity_input_checkbox.disabled = true;
+                retain_patient_characteristics_input_checkbox.disabled = true;
+                date_processing_select.disabled = true;
+                retain_descriptors_input_checkbox.disabled = true;
+            }
+        }
+    );
+};
+
 async function submit_dicom_processing_request()
 {
     SubmitAnonymizationProcess.disabled = true

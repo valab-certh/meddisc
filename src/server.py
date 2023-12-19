@@ -52,10 +52,12 @@ class session_class(BaseModel):
     patients: dict[str, session_patient_instance_class]
 
 
-def clean_dirs():
+def clean_all():
 
-    if os.path.exists('./session_data/clean/de-identified-files'):
-        shutil.rmtree('./session_data/clean/de-identified-files')
+    clean_config_session()
+    clean_imgs()
+
+def clean_config_session():
 
     if os.path.isfile('./session_data/user_input.json'):
         os.remove('./session_data/user_input.json')
@@ -66,12 +68,20 @@ def clean_dirs():
     if os.path.isfile('./session_data/requested_action_group_dcm.csv'):
         os.remove('./session_data/requested_action_group_dcm.csv')
 
-    dp, _, fps = list(os.walk('./static/client_data'))[0]
+    if os.path.isfile('./session_data/custom_config.csv'):
+        os.remove('./session_data/custom_config.csv')
+
+def clean_imgs():
+
+    dp, _, fps = list(os.walk('./session_data/raw'))[0]
     for fp in fps:
         if fp != '.gitkeep':
             os.remove(dp + '/' + fp)
 
-    dp, _, fps = list(os.walk('./session_data/raw'))[0]
+    if os.path.exists('./session_data/clean/de-identified-files'):
+        shutil.rmtree('./session_data/clean/de-identified-files')
+
+    dp, _, fps = list(os.walk('./static/client_data'))[0]
     for fp in fps:
         if fp != '.gitkeep':
             os.remove(dp + '/' + fp)
@@ -119,6 +129,10 @@ app.mount\
 
 @app.get('/')
 async def get_root():
+
+    ## Resets directories
+    clean_all()
+
     return FileResponse('./static/index.html')
 
 @app.post('/conversion_info')
@@ -162,14 +176,12 @@ dict:
 @app.post('/upload_files/')
 async def get_files\
 (
-    myCheckbox: bool = Form(False),
     files: List[UploadFile] = File(...)
 ) \
 -> \
 dict:
 
-    ## Resetting directories
-    clean_dirs()
+    clean_imgs()
 
     proper_dicom_paths = []
     total_uploaded_file_bytes = 0
@@ -200,6 +212,15 @@ async def handle_session_button_click\
 ):
     with open(file = './session_data/session.json', mode = 'w') as file:
         json.dump(session_dict, file)
+
+@app.post("/custom_config/")
+async def get_files\
+(
+    ConfigFile: UploadFile = File(...)
+):
+    contents = await ConfigFile.read()
+    with open(file = './session_data/custom_config.csv', mode = 'wb') as file:
+        file.write(contents)
 
 @app.post('/submit_button')
 async def handle_submit_button_click(user_options: user_options_class):
@@ -280,7 +301,16 @@ tuple[dict, list[tuple[str]]]:
     elif tf.config.list_physical_devices('GPU')[0][1] == 'GPU':
         print('[ENABLED] PARALLEL COMPUTATION\n\n---')
 
-    ## Parse all possible DICOM metadata configurations
+    ## Get the custom options from user
+    if os.path.isfile('./session_data/custom_config.csv'):
+        custom_config_df = pd.read_csv(filepath_or_buffer = './session_data/custom_config.csv', index_col = 0)
+
+        # Strip single quotes from Tag IDs in the Custom table
+        custom_config_df.index = custom_config_df.index.str.strip("'")
+    else:
+        custom_config_df = None
+
+    ## Parse all predefined DICOM metadata configurations
     action_groups_df = pd.read_csv(filepath_or_buffer = './action_groups/action_groups_dcm.csv', index_col = 0)
 
     if SESSION_FP == None or not os.path.isfile(SESSION_FP):
@@ -306,7 +336,13 @@ tuple[dict, list[tuple[str]]]:
     else:
         max_pseudo_patient_id = max(pseudo_patient_ids)
 
-    ## Get one input DICOM
+    ## Define metadata action group based on user input
+    requested_action_group_df = get_action_group(user_input = user_input, action_groups_df = action_groups_df, custom_config_df = custom_config_df)
+
+    ## Store the user's action group
+    requested_action_group_df.to_csv('./session_data/requested_action_group_dcm.csv')
+
+    ## Get iterator for input DICOM files
     rw_obj = rwdcm(in_dp = user_input['input_dcm_dp'], out_dp = user_input['output_dcm_dp'])
 
     while next(rw_obj):
@@ -332,11 +368,6 @@ tuple[dict, list[tuple[str]]]:
         else:
             days_total_offset = session[real_patient_id]['daysOffset']
             seconds_total_offset = session[real_patient_id]['secondsOffset']
-
-        ## Define metadata action group based on user input
-        requested_action_group_df = get_action_group(user_input = user_input, action_groups_df = action_groups_df)
-
-        requested_action_group_df.to_csv('./session_data/requested_action_group_dcm.csv')
 
         ## Adjusts DICOM metadata based on user parameterization
         dcm, tag_value_replacements = adjust_dicom_metadata\
@@ -493,7 +524,7 @@ def bbox_area_distorter\
 np.ndarray:
     '''
         Description:
-            Corrupts image area corresponding to bounding boxes. Applied for the de-identification of burned-in text in images.
+            Redacts image area corresponding to bounding boxes. Applied for the de-identification of burned-in text in images.
 
         Args:
             img. Shape (H, W). Input image.
@@ -506,7 +537,7 @@ np.ndarray:
             downscaled_array_shape. The shape of the downscaled input image.
 
         Returns:
-            img_. Input image where all its corresponding bounding box areas were corrupted.
+            img_. Input image where all its corresponding bounding box areas were redacted.
     '''
 
     reducted_region_color = np.mean(img).astype(np.uint16)
@@ -614,10 +645,11 @@ def keras_ocr_dicom_image_bbox_area_distorter(dcm):
 def get_action_group\
 (
     user_input: dict,
-    action_groups_df: pd.DataFrame
+    action_groups_df: pd.core.frame.DataFrame,
+    custom_config_df: pd.core.frame.DataFrame or None
 ) \
 -> \
-pd.DataFrame:
+pd.core.frame.DataFrame:
     '''
         Description:
             Depending on the user's choice, and an action group lookup table, based on Nema's action principles as per Table E.1-1a and Table E.1-1 of https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html, an action group is generated. That action group is in the form of a column from Table E.1-1 acting as a configuration basis for the anonymization of a DICOM file.
@@ -633,20 +665,60 @@ pd.DataFrame:
                 'date_processing': Value type str
                 'retain_descriptors': Value type bool
             action_groups_df. Lookup table for action groups. A modified version of Table E.1-1.
+            custom_config_df. Contains two columns, namely "Tag ID" and "Action". The actions will be absorbed by the requested action group.
 
         Returns:
             requested_action_group_df. Requested action group, defined by the user's choice. Each row corresponds to an attribute. The index column contains tag codes. Column 0 contains the tag names. Column 2 contains the action code.
     '''
 
-    def merge_action(primary_df, Action2BeMerged_df):
+    def merge_action\
+    (
+        primary_srs: pd.core.series.Series,
+        Action2BeAssigned_srs: pd.core.series.Series
+    ) \
+    -> \
+    pd.core.series.Series:
+        '''
+            Description:
+                Overwrites tag actions that already exist in rows of Action2BeAssigned_srs. The rows that do not include an action (the latter ones are set to NaN in `Action2BeAssigned_srs`) are omitted.
 
-        return primary_df.where\
+            Args:
+                primary_srs. Contains tag actions from a predefined range of de-identification actions.
+                Action2BeAssigned_srs. All tag values that are intented to be replaced in the corresponding rows of `primary_srs`.
+
+            Returns:
+                primary_srs_. `primary_srs` where each row value was substituted with a (non-NaN) value from `Action2BeAssigned_srs` from its corresponding tag position.
+        '''
+
+        return primary_srs.where\
         (
-            cond = Action2BeMerged_df.isna(),
-            other = Action2BeMerged_df,
+            cond = Action2BeAssigned_srs.isna(),
+            other = Action2BeAssigned_srs,
             axis = 0,
             inplace = False,
         )
+
+    def merge_with_custom_user_config_file(requested_action_group_df, custom_config_df):
+
+        ## Check if 'Action' values are valid
+        valid_actions = {'X', 'K', 'C'}
+        if not set(custom_config_df['Action']).issubset(valid_actions):
+            print('E: "Action" values in the Custom table must be either "X", "K", or "C". Please correct the data.')
+            exit()
+
+        # for requested_action_group_df_idx in requested_action_group_df.index:
+        #     for custom_config_df_idx in custom_config_df.index:
+        #         if requested_action_group_df_idx == custom_config_df_idx:
+        #             requested_action_group_df.loc[requested_action_group_df_idx, 'Requested Action Group'] = custom_config_df.loc[custom_config_df_idx, 'Action']
+
+        requested_action_group_df = requested_action_group_df.merge(custom_config_df[['Action']], left_index=True, right_index=True, how='left')
+        requested_action_group_df.loc[requested_action_group_df['Action'].isin(['X', 'K', 'C']), 'Requested Action Group'] = requested_action_group_df['Action']
+        requested_action_group_df.drop(columns=['Action'], inplace=True)
+
+        requested_action_group_df.to_csv('/home/fl0wxr/Desktop/test.csv')
+
+        return requested_action_group_df
+
 
     requested_action_group_df = pd.DataFrame\
     (
@@ -664,35 +736,38 @@ pd.DataFrame:
 
     if user_input['retain_safe_private']:
 
-        requested_action_group_df['Requested Action Group'] = merge_action(primary_df = requested_action_group_df['Requested Action Group'], Action2BeMerged_df = action_groups_df['Rtn. Safe Priv. Opt.'])
+        requested_action_group_df['Requested Action Group'] = merge_action(primary_srs = requested_action_group_df['Requested Action Group'], Action2BeAssigned_srs = action_groups_df['Rtn. Safe Priv. Opt.'])
 
     if user_input['retain_uids']:
 
-        requested_action_group_df['Requested Action Group'] = merge_action(primary_df = requested_action_group_df['Requested Action Group'], Action2BeMerged_df = action_groups_df['Rtn. UIDs Opt.'])
+        requested_action_group_df['Requested Action Group'] = merge_action(primary_srs = requested_action_group_df['Requested Action Group'], Action2BeAssigned_srs = action_groups_df['Rtn. UIDs Opt.'])
 
     if user_input['retain_device_identity']:
 
-        requested_action_group_df['Requested Action Group'] = merge_action(primary_df = requested_action_group_df['Requested Action Group'], Action2BeMerged_df = action_groups_df['Rtn. Dev. Id. Opt.'])
+        requested_action_group_df['Requested Action Group'] = merge_action(primary_srs = requested_action_group_df['Requested Action Group'], Action2BeAssigned_srs = action_groups_df['Rtn. Dev. Id. Opt.'])
 
     if user_input['retain_patient_characteristics']:
 
-        requested_action_group_df['Requested Action Group'] = merge_action(primary_df = requested_action_group_df['Requested Action Group'], Action2BeMerged_df = action_groups_df['Rtn. Pat. Chars. Opt.'])
+        requested_action_group_df['Requested Action Group'] = merge_action(primary_srs = requested_action_group_df['Requested Action Group'], Action2BeAssigned_srs = action_groups_df['Rtn. Pat. Chars. Opt.'])
 
     if user_input['date_processing'] == 'keep':
 
-        requested_action_group_df['Requested Action Group'] = merge_action(primary_df = requested_action_group_df['Requested Action Group'], Action2BeMerged_df = action_groups_df['Rtn. Long. Modif. Dates Opt.'])
+        requested_action_group_df['Requested Action Group'] = merge_action(primary_srs = requested_action_group_df['Requested Action Group'], Action2BeAssigned_srs = action_groups_df['Rtn. Long. Modif. Dates Opt.'])
 
     elif user_input['date_processing'] == 'offset':
 
-        requested_action_group_df['Requested Action Group'] = merge_action(primary_df = requested_action_group_df['Requested Action Group'], Action2BeMerged_df = action_groups_df['Offset Long. Modif. Dates Opt.'])
+        requested_action_group_df['Requested Action Group'] = merge_action(primary_srs = requested_action_group_df['Requested Action Group'], Action2BeAssigned_srs = action_groups_df['Offset Long. Modif. Dates Opt.'])
 
     elif user_input['date_processing'] == 'remove':
 
-        requested_action_group_df['Requested Action Group'] = merge_action(primary_df = requested_action_group_df['Requested Action Group'], Action2BeMerged_df = action_groups_df['Remove Long. Modif. Dates Opt.'])
+        requested_action_group_df['Requested Action Group'] = merge_action(primary_srs = requested_action_group_df['Requested Action Group'], Action2BeAssigned_srs = action_groups_df['Remove Long. Modif. Dates Opt.'])
 
     if user_input['retain_descriptors']:
 
-        requested_action_group_df['Requested Action Group'] = merge_action(primary_df = requested_action_group_df['Requested Action Group'], Action2BeMerged_df = action_groups_df['Rtn. Desc. Opt.'])
+        requested_action_group_df['Requested Action Group'] = merge_action(primary_srs = requested_action_group_df['Requested Action Group'], Action2BeAssigned_srs = action_groups_df['Rtn. Desc. Opt.'])
+
+    if type(custom_config_df) == pd.core.frame.DataFrame:
+        requested_action_group_df = merge_with_custom_user_config_file(requested_action_group_df, custom_config_df)
 
     return requested_action_group_df
 
@@ -701,21 +776,21 @@ def adjust_dicom_metadata\
     dcm: pydicom.dataset.FileDataset,
     action_group_fp: str,
     patient_pseudo_id: str,
-    days_total_offset,
-    seconds_total_offset
+    days_total_offset: int,
+    seconds_total_offset: int
 ) \
 -> \
 (pydicom.dataset.FileDataset, dict):
     '''
         Description:
-            Peforms metadata de-identification on a DICOM file based on a configuration file.
+            Peforms metadata de-identification on a DICOM object based on a configuration file.
 
         Args:
             dcm. Input DICOM object.
             action_group_fp. Path for .csv configuration file that contains the an action group. The file's content is saved in action_group_df.
                 action_group_df. Specifies how exactly the DICOM's metadata will be modified according to its attribute actions.
-            patient_pseudo_id.
-            days_total_offset.
+            patient_pseudo_id. The patient's ID and name will be replaced by this value.
+            days_total_offset. If the date values are set to clean (C action) then they will be replaced by the sum of their already existing ones, with this offset. The offset is a value sampled from the uniform distribution.
             seconds_total_offset.
 
         Returns:
@@ -723,7 +798,18 @@ def adjust_dicom_metadata\
             tag_value_replacements. Contains things like patient pseudo ID and date offset.
     '''
 
-    def get_pseudo_date(input_date_str, days_total_offset):
+    def add_date_offset(input_date_str: str, days_total_offset: str) -> str:
+        '''
+            Description:
+                Adds a pseudo date offset to input date value.
+
+            Args:
+                input_date_str. Input date in YYYYMMDD format.
+                days_total_offset. Date offset in days.
+
+            Returns:
+                output_date_str. Resulting date in YYYYMMDD format.
+        '''
 
         input_date = datetime.datetime.strptime(input_date_str, '%Y%m%d')
         output_date = input_date + datetime.timedelta(days = days_total_offset)
@@ -731,7 +817,17 @@ def adjust_dicom_metadata\
 
         return output_date_str
 
-    def get_pseudo_day_time(seconds_total_offset):
+    def seconds2daytime(seconds_total_offset: int) -> str:
+        '''
+            Description:
+                Converts day time seconds to day time in a proper format.
+
+            Args:
+                seconds_total_offset. Day time in seconds.
+
+            Returns:
+                output_time_str. Day time in hhmmss format.
+        '''
 
         output_hours = seconds_total_offset // 3600
         output_minutes = (seconds_total_offset % 3600) // 60
@@ -741,7 +837,24 @@ def adjust_dicom_metadata\
 
         return output_time_str
 
-    def recursive_SQ_cleaner(ds: pydicom.dataset.Dataset, action: str, action_attr_tag_idx: str) -> pydicom.dataset.Dataset:
+    def recursive_SQ_cleaner\
+    (
+        ds: pydicom.dataset.Dataset or pydicom.dataset.FileDataset,
+        action: str,
+        action_attr_tag_idx: str
+    ) \
+    -> \
+    pydicom.dataset.Dataset or pydicom.dataset.FileDataset:
+        '''
+            Description:
+                Cleans DICOM file's metadata based on one de-identification action and it does so recursively with respect to sequence depth.
+
+            Args:
+                ds. For a given DICOM sequence, this contains all dataset tags that will be cleaned. If a SQ type VR exists among the tags, then it is handled by a loop where for each of its containing dataset the same function is applied.
+
+            Returns:
+                ds_. A dataset object's that was cleaned.
+        '''
 
         for ds_attr in ds:
             ds_tag_idx = re.sub('[(,) ]', '', str(ds_attr.tag))
@@ -769,18 +882,19 @@ def adjust_dicom_metadata\
 
                 elif action == 'C':
 
-                    if ds[ds_tag_idx].VR == 'DA':
+                    if ds[ds_tag_idx].value != '' and ds[ds_tag_idx].VR == 'DA':
 
                         tag_value_replacements['days_total_offset'] = days_total_offset
 
-                        ds[ds_tag_idx].value = get_pseudo_date(input_date_str = ds[ds_tag_idx].value, days_total_offset = days_total_offset)
+                        ## The offset is constant among DICOM files corresponding to the same patient
+                        ds[ds_tag_idx].value = add_date_offset(input_date_str = ds[ds_tag_idx].value, days_total_offset = days_total_offset)
 
-                    ## W: Significant temporal information is wasted as it is not implemented using an offset that is added to the corresponding timestamp value; it instead substitutes a common random value; this was implemented like this to avoid potential 24-hour overflows, which would potentially lead to an increase of some datetime day by 1, but from which DA tag?
+                    ## (!) The current implementation of TM VR pseudonymization replaces the timestamp with a common random value, rather than using an offset. This approach is simpler and avoids potential issues with 24-hour overflows, which could inadvertently increment the date by one day.
                     elif ds[ds_tag_idx].VR == 'TM':
 
                         tag_value_replacements['seconds_total_offset'] = seconds_total_offset
 
-                        ds[ds_tag_idx].value = get_pseudo_day_time(seconds_total_offset = tag_value_replacements['seconds_total_offset'])
+                        ds[ds_tag_idx].value = seconds2daytime(seconds_total_offset = tag_value_replacements['seconds_total_offset'])
 
         return ds
 
@@ -792,23 +906,7 @@ def adjust_dicom_metadata\
     tag_value_replacements['days_total_offset'] = 0
     tag_value_replacements['seconds_total_offset'] = 0
 
-    # print('Debugging section: 0xad4a9cb412. Remove some lines directly below.')
-    # print('Creating a dummy sequence with multiple recursive sequences of multiple datasets each, containing values that should be removed.')
-    # for dcm_attr in dcm:
-    #     dcm_tag_idx = re.sub('[(,) ]', '', str(dcm_attr.tag))
-    #     if dcm[dcm_tag_idx].VR == 'SQ':
-    #         # dcm[dcm_tag_idx].value.append(dcm[dcm_tag_idx][0])
-    #         ds = pydicom.dataset.Dataset()
-    #         ds.PatientName = "CITIZEN^Joan"
-    #         ds.add_new(0x00100020, 'LO', '12345')
-    #         ds[0x0008, 0x0022] = pydicom.DataElement(0x00080022, 'DA', '20010101')
-    #         ds.add_new((0x0008, 0x1032), 'SQ', pydicom.sequence.Sequence())
-    #         ds[0x0008, 0x1032].value = [pydicom.dataset.Dataset()]
-    #         ds[0x0008, 0x1032][0].add_new(0x00100010, 'LO', 'CITIZEN^Joan')
-    #         ds[0x0008, 0x1032][0].add_new(0x00100020, 'LO', 'WTF')
-    #         dcm[dcm_tag_idx].value = [ds, ds]
-
-    ## Cleaning primary DICOM
+    ## Cleaning primary DICOM object
     ## Scans all DICOM tags until it intercepts `action_attr_tag_idx`. Then it updates that exact tag index per dataset. You can view this recursion statically, as an arbitrary directed graph.
     ## Each leaf node counts as one attribute update. Collectively this can alter multiple tags of the DICOM object.
     for action_attr_tag_idx in action_group_df.index:
@@ -829,6 +927,11 @@ class rwdcm:
     '''
 
     def __init__(self, in_dp: str, out_dp: str):
+        '''
+            Args:
+                in_dp. Source directory path of raw DICOM files.
+                out_dp. Target directory path where the cleaned DICOM files will be exported at.
+        '''
 
         self.SAFETY_SWITCH = True
         if not self.SAFETY_SWITCH:
@@ -850,7 +953,7 @@ class rwdcm:
 
         self.DICOM_IDX = -1
 
-    def __next__(self):
+    def __next__(self) -> bool:
 
         self.DICOM_IDX += 1
         if self.DICOM_IDX <= self.n_dicom_files - 1:
@@ -861,7 +964,17 @@ class rwdcm:
         else:
             return False
 
-    def get_dicom_paths(self, data_dp):
+    def get_dicom_paths(self, data_dp: str) -> list:
+        '''
+            Description:
+                Gets file path list of all DICOM files inside a given directory, independently of file extension.
+
+            Args:
+                data_dp. Directory path containing DICOM files.
+
+            Returns:
+                proper_dicom_paths. Contains all file subsequent DICOM file paths of `data_dp`.
+        '''
 
         dicom_paths = \
         (
@@ -882,7 +995,14 @@ class rwdcm:
 
         return proper_dicom_paths
 
-    def parse_file(self):
+    def parse_file(self) -> pydicom.dataset.FileDataset or False:
+        '''
+            Description:
+                Reads a DICOM file only if it was not converted by the current session. The comparison is made based on the raw files' hashes.
+
+            Returns:
+                dcm. The parsed file's DICOM object or if the same file was already converted, it returns False.
+        '''
 
         self.input_dicom_hash = hashlib.sha256(self.raw_dicom_path.encode('UTF-8')).hexdigest()
 
@@ -893,7 +1013,14 @@ class rwdcm:
             print('Parsed\n%s'%(self.raw_dicom_path))
             return dcm
 
-    def export_processed_file(self, dcm):
+    def export_processed_file(self, dcm: pydicom.dataset.FileDataset):
+        '''
+            Description:
+                Exports processed DICOM object to a DICOM file with its filename set as its corresponding input file's hash, with "dcm" file extension.
+
+            Args:
+                dcm. Processed DICOM object intended for exportation.
+        '''
 
         self.clean_dicom_dp = self.clean_data_dp + str(dcm[0x0010, 0x0020].value) + '/' + str(dcm[0x0008, 0x0060].value) + '/' + str(dcm[0x0020, 0x0011].value)
         if not os.path.exists(self.clean_dicom_dp):
@@ -907,7 +1034,14 @@ class rwdcm:
 
         self.dicom_pair_fps.append((self.raw_dicom_path, clean_dicom_fp))
 
-    def export_session(self, session):
+    def export_session(self, session: dict):
+        '''
+            Description:
+                Exports session object on a predetermined file path.
+
+            Args:
+                session. The session object.
+        '''
 
         with open(self.clean_data_dp + '/session.json', 'w') as file:
             json.dump(session, file)

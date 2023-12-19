@@ -51,7 +51,7 @@ form
     margin-bottom: 20px;
 }
 
-.UploadDICOM, .UploadSession, .SubmitAnon, .PseudoPrefix, .DateProcessing
+.UploadDICOM, .UploadSession, .UploadConfig, .SubmitAnon, .PseudoPrefix, .DateProcessing
 {
     padding: 10px;
     margin-left: 0px;

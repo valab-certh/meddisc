@@ -37,10 +37,18 @@
             </form>
             <form id="SessionForm" action="/upload_files/" enctype="application/json" method="post">
                 <b>
-                    Load session file:
+                    Load session file (.json):
                 </b>
                 </br>
                 <input name="SessionFile"  class="UploadSession" type="file">
+                </br>
+            </form>
+            <form id="CustomDeidentificationConfig" action="/custom_config/" enctype="multipart/form-data" method="post">
+                <b>
+                    Load configuration file (.csv):
+                </b>
+                </br>
+                <input name="ConfigFile" title="Determines the de-identification process through the user's custom configuration in .csv.&#013;&#013;Allowed columns (in order):&#013;Tag ID&#013;Action&#013;&#013;Tag IDs must be in the format:&#013;'hhhhhhhh&#013;where h is a digit.&#013;&#013;Allowed actions are K, X and C, where C is only allowed on DA and TM tag VRs.&#013;&#013;Wrong tag IDs will not be considered."  class="UploadConfig" type="file">
                 </br>
             </form>
 
@@ -82,7 +90,7 @@
                     </select>
                 </div>
                 <div class="checkbox-container">
-                    <label class="normal-label"> Descriptors:</label>
+                    <label class="normal-label"> Retain descriptors:</label>
                     <input type="checkbox" id="retain-descriptors-input-checkbox" checked>
                 </div>
                 <div class="checkbox-container">
