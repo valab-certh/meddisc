@@ -715,8 +715,6 @@ pd.core.frame.DataFrame:
         requested_action_group_df.loc[requested_action_group_df['Action'].isin(['X', 'K', 'C']), 'Requested Action Group'] = requested_action_group_df['Action']
         requested_action_group_df.drop(columns=['Action'], inplace=True)
 
-        requested_action_group_df.to_csv('/home/fl0wxr/Desktop/test.csv')
-
         return requested_action_group_df
 
 
