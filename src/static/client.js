@@ -507,4 +507,11 @@ async function submit_dicom_processing_request()
     await UpdateDICOMInformation(0);
 
     ConversionResult.style.display = 'inline';
+
+    retain_safe_private_input_checkbox.disabled = false;
+    retain_uids_input_checkbox.disabled = false;
+    retain_device_identity_input_checkbox.disabled = false;
+    retain_patient_characteristics_input_checkbox.disabled = false;
+    date_processing_select.disabled = false;
+    retain_descriptors_input_checkbox.disabled = false;
 }
