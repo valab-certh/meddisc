@@ -127,7 +127,7 @@ It is recommended to execute `generate_action_groups.py` in order to capture pot
 
 ### Pixel Data Burned-in Text
 
-A DICOM's image is de-identified based on Keras OCR's pretrained CRAFT model, a versatile rotation invariant text-image detector based our following pipeline
+A DICOM's image is de-identified based on Keras OCR's pretrained CRAFT model, a versatile rotation invariant text-image detector based on our following pipeline
 
 ![](./readme_content/fig_keras_ocr.png)
 
