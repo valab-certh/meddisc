@@ -51,6 +51,9 @@ class session_patient_instance_class(BaseModel):
 class session_class(BaseModel):
     patients: dict[str, session_patient_instance_class]
 
+class ResponseModel(BaseModel):
+    message: str
+
 
 def clean_all():
 
@@ -559,8 +562,6 @@ def image_deintentifier(dcm: pydicom.dataset.FileDataset) -> pydicom.dataset.Fil
     ## Scalar data type -> uint16
     dcm.decompress()
     raw_img_uint16_grayscale = dcm.pixel_array
-
-    breakpoint()
 
     if min(raw_img_uint16_grayscale.shape) < min_dim:
 
