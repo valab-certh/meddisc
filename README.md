@@ -47,7 +47,7 @@ For simpler options the user may select the de-identification process through th
 
 To clarify the following descriptions, we define a new term called *action group*.
 
-- An **action group** is a function or corresponce between multiple `Tag ID`s and `Actions`.
+- An **action group** is a function or correspondence between multiple `Tag ID`s and `Actions`.
 
 One such action group is simply one of the columns in the Nema's de-identification table. We use a simplified version of the table's **Basic Prof.** column as a default reference point on and all additional user options will be merged on that action group.
 
