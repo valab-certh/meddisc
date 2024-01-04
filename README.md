@@ -1,6 +1,6 @@
 # DICOM De-Identifier
 
-The scripts provided in this repository serve as a tool for the removal of a patient's personal identifiable information (PII) from their associated DICOM files, based on a predefined set of user options. This implementation adheres to the standards specified in Nema's Attribute Confidentiality Profiles which can be accessed at [[link](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html)]. Additionally has the capability to reduct burned-in text from the DICOM's pixel data. Primarily developed as a component of the INCISIVE project, the tool's main objective is to ensure patient anonymization.
+The scripts provided in this repository serve as a tool for the removal of a patient's personal identifiable information (PII) from their associated DICOM files, based on a predefined set of user options. This implementation adheres to the standards specified in NEMA's Attribute Confidentiality Profiles which can be accessed at [[link](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html)]. Additionally has the capability to reduct burned-in text from the DICOM's pixel data. Primarily developed as a component of the INCISIVE project, the tool's main objective is to ensure patient anonymization.
 
 The DICOM De-Identifier provides a user-friendly interface, ensuring a smooth User Experience (UX). The UX design allows users to easily navigate through the tool and perform the necessary operations for patient data de-identification.
 
@@ -49,13 +49,13 @@ To clarify the following descriptions, we define a new term called *action group
 
 - An **action group** is a function or correspondence between multiple `Tag ID`s and `Actions`.
 
-One such action group is simply one of the columns in the Nema's de-identification table. We use a simplified version of the table's **Basic Prof.** column as a default reference point on and all additional user options will be merged on that action group.
+One such action group is simply one of the columns in the NEMA's de-identification table. We use a simplified version of the table's **Basic Prof.** column as a default reference point on and all additional user options will be merged on that action group.
 
 Also it is imperative that the user is familiar with [ Table E.1-1. Application Level Confidentiality Profile Attributes](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html) for proper usage.
 
 ![](./readme_content/fig2.png)
 
-Regarding the user's selected metadata de-identification process, it should be clarified that all the predefined options (e.g. tick boxes in options section) are in the form of action groups which have been adopted from the columns of Nema's Table, by copying some of its columns and limiting the possible actions to `K`, `X`, `C` and `Z`. Therefore the final result simply applies a merge over multiple action groups where the basis is the mentioned action group captured from the Basic Profile column of Nema's table.
+Regarding the user's selected metadata de-identification process, it should be clarified that all the predefined options (e.g. tick boxes in options section) are in the form of action groups which have been adopted from the columns of NEMA's Table, by copying some of its columns and limiting the possible actions to `K`, `X`, `C` and `Z`. Therefore the final result simply applies a merge over multiple action groups where the basis is the mentioned action group captured from the Basic Profile column of NEMA's table.
 
 - **Clean pixel data**. If ticked, then the image data is processed by the image de-identifier, effectively removing any potential burned-in text to the image pixel data that may or may not contain patient PII.
 - **Retain safe private**. If ticked then for all non-empty actions of **Rtn. Safe Priv. Opt.**, the de-identification algorithm overrides the corresponding actions from the default action group.
@@ -121,9 +121,9 @@ The backend may serve one client at the time and in case the user seeks to conti
 
 ##### Information of `requested_action_group_dcm.csv`
 
-This file contains the action group based on which the resulting metadata was de-identified. It is a result of the `user_input.json` and in accordance with Nema's action groups. If this is corrupted or deleted and you want to rebuild it, execute `generate_action_groups.py` with an Internet connection.
+This file contains the action group based on which the resulting metadata was de-identified. It is a result of the `user_input.json` and in accordance with NEMA's action groups. If this is corrupted or deleted and you want to rebuild it, execute `generate_action_groups.py` with an Internet connection.
 
-It is recommended to execute `generate_action_groups.py` in order to capture potential updates to the Nema's de-identification table.
+It is recommended to execute `generate_action_groups.py` in order to capture potential updates to the NEMA's de-identification table.
 
 ### Pixel Data Burned-in Text
 
@@ -133,7 +133,7 @@ A DICOM's image is de-identified based on Keras OCR's pretrained CRAFT model, a 
 
 Visit repo [DICOMImageDeIdentifier](https://github.com/fl0wxr/DICOMImageDeIdentifier) for more details.
 
-### Metadata Nema Actions
+### Metadata NEMA Actions
 
 Below is a list of the currently implemented **actions** for the de-identifier.
 
