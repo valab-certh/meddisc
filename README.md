@@ -31,7 +31,7 @@ In the **Input** section, the user may upload a directory containing DICOM files
 
 ![](./readme_content/fig1.png)
 
-In case the user wants to configure a custom de-identification process, they can do so by uploading their own .csv file where these options are specified. The file must contain two columns. One with title `Tag ID` and the other with title `Action`. Each cell below `Tag ID` must hold a DICOM tag ID in the format `'hhhhhhhh` and must correspond to one of the actions `K`, `X` and `C` (their functionality is specified in Technical Description). One such example is
+In case the end-user wants to tailor their own de-identification process, they can do so by uploading their own `.csv` file which has to contain two columns. One with title `Tag ID` and the other with title `Action`. Each cell below `Tag ID` must hold a DICOM tag ID with a preceeding apostrophe in the format `'hhhhhhhh` and must correspond to one of the actions `K`, `X` and `C` (their functionality is specified in the Technical Description section). One such example is
 
 | Tag ID    | Action |
 |-----------|--------|
@@ -41,7 +41,7 @@ In case the user wants to configure a custom de-identification process, they can
 | '00101010 | C      |
 | '00100040 | C      |
 
-For simpler options the user may select the de-identification process through the **De-identification options** section.
+To select any of the pre-defined options (otherwise called \textit{action groups}), the user may select the de-identification process through the **De-identification options** section.
 
 ### Options
 
