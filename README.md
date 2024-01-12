@@ -41,17 +41,17 @@ In case the end-user wants to tailor their own de-identification process, they c
 | '00101010 | C      |
 | '00100040 | C      |
 
-To select any of the pre-defined options (otherwise called \textit{action groups}), the user may select the de-identification process through the **De-identification options** section.
+To select any of the pre-defined de-identification profiles (otherwise called \textit{action groups}), the user may select the de-identification process through the **De-identification options** section.
 
 ### Options
 
 To clarify the following descriptions, we define a new term called *action group*.
 
-- An **action group** is a function or correspondence between multiple `Tag ID`s and `Actions`.
+- An **action group** is a function or correspondence between multiple `Tag ID`s and `Actions`. It is a way to specify how a set of DICOM tags will be handled. We may refer to an action group as a de-identification profile as well.
 
 One such action group is simply one of the columns in the NEMA's de-identification table. We use a simplified version of the table's **Basic Prof.** column as a default reference point on and all additional user options will be merged on that action group.
 
-Also it is imperative that the user is familiar with [ Table E.1-1. Application Level Confidentiality Profile Attributes](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html) for proper usage.
+Also it is imperative that the user is familiar with [Table E.1-1. Application Level Confidentiality Profile Attributes](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html) for proper usage.
 
 ![](./readme_content/fig2.png)
 
