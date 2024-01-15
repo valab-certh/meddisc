@@ -385,9 +385,9 @@ document.querySelector('#UploadForm input[name="files"]').addEventListener
                 </br>\n
                 Files Uploaded Successfully\n
                 </br>\n
-                Total uploaded files: ${n_uploaded_files}\n
+                Total DICOM files: ${n_uploaded_files}\n
                 </br>\n
-                Size of uploaded content: ${dcm_files.total_size} MB\n
+                Total size of DICOM content: ${dcm_files.total_size} MB\n
                 </br>\n
                 </br>
             `;
