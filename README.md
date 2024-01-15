@@ -4,6 +4,12 @@ The scripts provided in this repository serve as a tool for the removal of a pat
 
 The DICOM De-Identifier provides a user-friendly interface, ensuring a smooth User Experience (UX). The UI design allows users to easily navigate through the tool and perform the necessary operations for patient data de-identification.
 
+<p align="center" style="font-size: 80%;">
+    <img src='./readme_content/fig0.png' width='70%' align='center'>
+    </br>
+    Figure 1. Upper section of the frontend's interface.
+</p>
+
 ## Setup
 
 The backend relies on uvicorn which can be configured through Python's FastAPI library, so these must be installed on the server's machine.
@@ -21,21 +27,15 @@ then navigate inside `src` and run the backend
 ```
 uvicorn server:app --reload --port 8000
 ```
-Now open a browser, type and enter `localhost:8000` on the browser's search bar. Normally you will encounter the following interface
-
-<p align="center">
-    <img src='./readme_content/fig0.png' width='70%' align='center'>
-</p>
+Now open a browser, type and enter `localhost:8000` on the browser's search bar. When the end-user opens the interface for the first time it will look like that of Figure 1.
 
 ## Utilities
 
 In the **Input** section, the user may upload a directory containing DICOM files for patient de-identification. Additionally if the user seeks to continue the de-identification's session (e.g. because of an interruption) they can upload the corresponding session file provided as one of the server's output files.
 
-<p align="center">
-    <img src='./readme_content/fig1.png' width='35%' align='center'>
-</p>
-
 In case the end-user wants to tailor their own de-identification process, they can do so by uploading their own `.csv` file which has to contain two columns. One with title `Tag ID` and the other with title `Action`. Each cell below `Tag ID` must hold a DICOM tag ID with a preceeding apostrophe in the format `'hhhhhhhh` and must correspond to one of the actions `K`, `X` and `C` (their functionality is specified in the Technical Description section). One such example is
+
+<p align="center">
 
 | Tag ID    | Action |
 |-----------|--------|
@@ -44,6 +44,8 @@ In case the end-user wants to tailor their own de-identification process, they c
 | '00400555 | C      |
 | '00101010 | C      |
 | '00100040 | C      |
+
+</p>
 
 To select any of the pre-defined de-identification profiles (otherwise called *action groups*), the user may select the de-identification process through the **De-identification options** section.
 
@@ -57,11 +59,13 @@ One such action group is simply one of the columns in the NEMA's de-identificati
 
 Also it is imperative that the user is familiar with [Table E.1-1. Application Level Confidentiality Profile Attributes](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html) for proper usage.
 
-<p align="center">
+<p align="center" style="font-size: 80%;">
     <img src='./readme_content/fig2.png' width='50%' align='center'>
+    </br>
+    Figure 2. Pre-defined de-identification options.
 </p>
 
-Regarding the user's selected metadata de-identification process, it should be clarified that all the predefined options (e.g. tick boxes in options section) are in the form of action groups which have been adopted from the columns of NEMA's Table, by copying some of its columns and limiting the possible actions to `K`, `X`, `C` and `Z`. Therefore the final result simply applies a merge over multiple action groups where the basis is the mentioned action group captured from the Basic Profile column of NEMA's table.
+Regarding the user's selected metadata de-identification process, it should be clarified that all the predefined options (see Figure 2) are in the form of action groups which have been adopted from the columns of NEMA's Table, by copying some of its columns and limiting the possible actions to `K`, `X`, `C` and `Z`. Therefore the final result simply applies a merge over multiple action groups where the basis is the mentioned action group captured from the Basic Profile column of NEMA's table.
 
 - **Clean pixel data**. If ticked, then the image data is processed by the image de-identifier, effectively removing any potential burned-in text to the image pixel data that may or may not contain patient PII.
 - **Retain safe private**. If ticked then for all non-empty actions of **Rtn. Safe Priv. Opt.**, the de-identification algorithm overrides the corresponding actions from the default action group.
@@ -109,15 +113,27 @@ Pseudo ID, pseudo date offsets and pseudo time offsets are set to be the same fo
 }
 ```
 
-As soon as the user submits their options and input directory, the slider activates and a new section appears below it, showing the corresponding de-identification results. The slider can be used to change the DICOM file (among all the input files) projected below.
+As soon as the user submits their options and input directory, the slider activates and a new section appears below it, showing the corresponding de-identification results. The slider can be used to change the DICOM file display among all the input files (see Figures 3-5).
 
-![](./readme_content/fig3.png)
+<p align="center" style="font-size: 80%;">
+    <img src='./readme_content/fig3.png' width='100%' align='center'>
+    </br>
+    Figure 3. Slider and DICOM file information.
+</p>
 
-![](./readme_content/fig4.png)
+<p align="center" style="font-size: 80%;">
+    <img src='./readme_content/fig4.png' width='100%' align='center'>
+    </br>
+    Figure 4. Image de-identification comparison.
+</p>
 
 In the table below, each row corresponds to a tag field existing in both the raw and the cleaned (de-identified) DICOM files. All altered tag fields are highlighted with cyan color. The raw file's tag values corresponding to an empty rightmost cell, implies that these tags have been completely removed from the cleaned DICOM file (e.g. see tag with ID `(0040,0275)`). Additionally the de-identifier is able to recursively consider tags with `SQ` value representation.
 
-![](./readme_content/fig5.png)
+<p align="center" style="font-size: 80%;">
+    <img src='./readme_content/fig5.png' width='100%' align='center'>
+    </br>
+    Figure 5. Header de-identification comparison. On the left side is the header of the raw DICOM file, and on the right side the header of the cleaned or de-identified DICOM file.
+</p>
 
 ## In-Depth Technical Description
 
@@ -133,9 +149,13 @@ It is recommended to execute `generate_action_groups.py` in order to capture pot
 
 ### Pixel Data Burned-in Text
 
-A DICOM's image is de-identified based on Keras OCR's pretrained CRAFT model, a versatile rotation invariant text-image detector based on our following pipeline
+A DICOM's image is de-identified based on Keras OCR's pretrained CRAFT model, a versatile rotation invariant text-image detector based on our carefully designed pipeline (Figure 6)
 
-![](./readme_content/fig_keras_ocr.png)
+<p align="center" style="font-size: 80%;">
+    <img src='./readme_content/fig_keras_ocr.png' width='100%' align='center'>
+    </br>
+    Figure 6. Image de-identification pipeline.
+</p>
 
 Visit repo [DICOMImageDeIdentifier](https://github.com/fl0wxr/DICOMImageDeIdentifier) for more details.
 
