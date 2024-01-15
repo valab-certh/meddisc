@@ -23,13 +23,17 @@ uvicorn server:app --reload --port 8000
 ```
 Now open a browser, type and enter `localhost:8000` on the browser's search bar. Normally you will encounter the following interface
 
-![](./readme_content/fig0.png)
+<p align="center">
+    <img src='./readme_content/fig0.png' width='70%' align='center'>
+</p>
 
 ## Utilities
 
 In the **Input** section, the user may upload a directory containing DICOM files for patient de-identification. Additionally if the user seeks to continue the de-identification's session (e.g. because of an interruption) they can upload the corresponding session file provided as one of the server's output files.
 
-![](./readme_content/fig1.png)
+<p align="center">
+    <img src='./readme_content/fig1.png' width='35%' align='center'>
+</p>
 
 In case the end-user wants to tailor their own de-identification process, they can do so by uploading their own `.csv` file which has to contain two columns. One with title `Tag ID` and the other with title `Action`. Each cell below `Tag ID` must hold a DICOM tag ID with a preceeding apostrophe in the format `'hhhhhhhh` and must correspond to one of the actions `K`, `X` and `C` (their functionality is specified in the Technical Description section). One such example is
 
@@ -41,7 +45,7 @@ In case the end-user wants to tailor their own de-identification process, they c
 | '00101010 | C      |
 | '00100040 | C      |
 
-To select any of the pre-defined de-identification profiles (otherwise called \textit{action groups}), the user may select the de-identification process through the **De-identification options** section.
+To select any of the pre-defined de-identification profiles (otherwise called *action groups*), the user may select the de-identification process through the **De-identification options** section.
 
 ### Options
 
@@ -53,7 +57,9 @@ One such action group is simply one of the columns in the NEMA's de-identificati
 
 Also it is imperative that the user is familiar with [Table E.1-1. Application Level Confidentiality Profile Attributes](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html) for proper usage.
 
-![](./readme_content/fig2.png)
+<p align="center">
+    <img src='./readme_content/fig2.png' width='50%' align='center'>
+</p>
 
 Regarding the user's selected metadata de-identification process, it should be clarified that all the predefined options (e.g. tick boxes in options section) are in the form of action groups which have been adopted from the columns of NEMA's Table, by copying some of its columns and limiting the possible actions to `K`, `X`, `C` and `Z`. Therefore the final result simply applies a merge over multiple action groups where the basis is the mentioned action group captured from the Basic Profile column of NEMA's table.
 
