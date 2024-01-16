@@ -79,6 +79,8 @@ Pre-defined action groups
     - **Remove**. Applies the **Remove Long. Modif. Dates Opt.** column.
     - **Keep**. Applies the **Rtn. Long. Modif. Dates Opt.** column.
 - **Retain descriptors**. Applies the **Rtn. Desc. Opt.** column.
+
+Another option is
 - **Pseudo patient ID prefix**. Depending on the user's text input, the text concatenates with the generated patient ID as a prefix.
 
 When the user has finished setting up their options, they may press the **De-Identify DICOM Files** button below the options. This will return the desired result in the form of a compressed directory. The directories structure may look like this
