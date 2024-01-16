@@ -67,6 +67,8 @@ Also it is imperative that the user is familiar with [Table E.1-1. Application L
 
 Regarding the user's selected metadata de-identification process, it should be clarified that all the predefined options (see Figure 2) are in the form of action groups which have been adopted from the columns of NEMA's Table, by copying some of its columns and limiting the possible actions to `K`, `X`, `C` and `Z`. Therefore the final result simply applies a merge over multiple action groups where the basis is the mentioned action group captured from the Basic Profile column of NEMA's table.
 
+Pre-defined action groups
+
 - **Clean pixel data**. If ticked, then the image data is processed by the image de-identifier, effectively removing any potential burned-in text to the image pixel data that may or may not contain patient PII.
 - **Retain safe private**. If ticked then for all non-empty actions of **Rtn. Safe Priv. Opt.**, the de-identification algorithm overrides the corresponding actions from the default action group.
 - **Retain UIDs**. If ticked, it overrides the **Rtn. UIDs Opt.** column.
@@ -199,4 +201,4 @@ Replaces tag value with a dummy one. Implemented only for patient ID with tag in
 
 ## Citation
 
-- Paschalis Bizopoulos: [dicom-de-identification-and-curation-tool](https://github.com/pbizopoulos/dicom-de-identification-and-curation-tool)
+- Paschalis Bizopoulos. [dicom-de-identification-and-curation-tool](https://github.com/pbizopoulos/dicom-de-identification-and-curation-tool)
