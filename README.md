@@ -10,6 +10,8 @@ The DICOM De-Identifier provides a user-friendly interface, ensuring a smooth Us
     Figure 1. Upper section of the frontend's interface.
 </p>
 
+The currect system has been tested specifically on a machine equipped with an Ubuntu OS.
+
 ## Setup
 
 The backend relies on uvicorn which can be configured through Python's FastAPI library, so these must be installed on the server's machine.
@@ -28,6 +30,17 @@ then navigate inside `src` and run the backend
 uvicorn server:app --reload --port 8000
 ```
 Now open a browser, type and enter `localhost:8000` on the browser's search bar. When the end-user opens the interface for the first time it will look like that of Figure 1.
+
+### GPU Support
+
+It should be noted that for the parallelization of pixel data de-identification, an NVIDIA GPU would contribute a lot. To install the necessary packages, the machine needs to have the corresponding NVIDIA drivers installed, along with the [CUDA toolkit](https://docs.nvidia.com/cuda/). Finally, apply the following on your python environment
+```
+python3 -m pip install tensorflow[and-cuda]
+```
+
+##### Advice
+
+For cases where you want to run this code using venv and the pip package manager, uninstall the `uvicorn` package from the global pip enviroment, and have it installed only the corresponding virtual environment of venv. That is because if uvicorn is installed globally, when you have any active venv environment, the global one is found and prioritized intead, and it overrides all global libraries. To fix this, simply uninstall the global uvicorn, and install it in the venv environment (`requirements.txt` includes it).
 
 ## Utilities
 
