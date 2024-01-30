@@ -9,6 +9,15 @@ var CleanedImgInner = document.getElementById('CleanedImgInner');
 var DICOMSlider = document.getElementById('DICOMSlider');
 var ConversionResult = document.getElementById('ConversionResult');
 var clean_image = document.getElementById('clean-image');
+var OverlayCanvas = document.getElementById('OverlayCanvas')
+var ctx = OverlayCanvas.getContext('2d');
+var ToggleEdit = document.getElementById('ToggleEdit');
+var BrushSizeSlider = document.getElementById('BrushSizeSlider');
+var BrushSelect = document.getElementById('BrushSelect');
+var LoadDICOM = document.getElementById('LoadDICOM');
+var ModifyDICOM = document.getElementById('ModifyDICOM');
+var Undo = document.getElementById('Undo');
+var Redo = document.getElementById('Redo');
 var retain_safe_private_input_checkbox = document.getElementById('retain-safe-private-input-checkbox');
 var retain_uids_input_checkbox = document.getElementById('retain-uids-input-checkbox');
 var retain_device_identity_input_checkbox = document.getElementById('retain-device-identity-input-checkbox');
@@ -22,6 +31,19 @@ var dicom_pair_fps;
 var OpenSequences = [];
 var DiffEnabled = false;
 var dcm_idx_;
+
+// GUI variables initialization 
+var isEditing = false;
+var currentBrush = 'eraser';
+var brushSize = 25;
+var isDrawing = false;
+var lastX = 0;
+var lastY = 0;
+var undoStack = [];
+var redoStack = [];
+
+ctx.lineJoin = 'round';
+ctx.lineCap = 'round';
 
 // ! Loading state (1/4): Begin
 
@@ -333,6 +355,8 @@ async function UpdateDICOMInformation(dcm_idx)
         const dicom_metadata_table = table(dicom_pair['raw_dicom_metadata'], dicom_pair['cleaned_dicom_metadata'], DiffEnabled);
         const raw_dicom_img_fp = dicom_pair['raw_dicom_img_fp'];
         const cleaned_dicom_img_fp = dicom_pair['cleaned_dicom_img_fp'];
+        const segmentation_data = dicom_pair['segmentation_data'];
+        const dimensions = dicom_pair['dimensions']
 
         if (RawImgInner.height !== 0)
         {
@@ -369,12 +393,39 @@ async function UpdateDICOMInformation(dcm_idx)
         CleanedImg.style.minHeight = PredeterminedHeight;
         RawImgInner.src = raw_dicom_img_fp;
         CleanedImgInner.src = cleaned_dicom_img_fp;
+        // fill canvas with segmentation mask
+        OverlayCanvas.width = dimensions[0];
+        OverlayCanvas.height = dimensions[1];
+        const imageData = new ImageData(base64torgba(segmentation_data), dimensions[0], dimensions[1]);
+        ctx.putImageData(imageData, 0, 0);
         RawImg.style.minHeight = 0;
         CleanedImg.style.minHeight = 0;
     }
 
     // Loading state (4/4)
     LoadingState = false;
+}
+
+function base64torgba(encodedData) {
+    // decode base64
+    const binaryString = window.atob(encodedData);
+    const len = binaryString.length;
+    const bytes = new Uint8ClampedArray(len * 4); // *4 for RGBA
+
+    for (let i = 0, j = 0; i < len; i++, j += 4) {
+        let pixelValue = binaryString.charCodeAt(i);
+        if (pixelValue === 0) {
+            // transparent
+            bytes.set([0, 0, 0, 0], j);
+        } else if (pixelValue === 1) {
+            // red
+            bytes.set([255, 0, 0, 255], j);
+        } else if (pixelValue === 2) {
+            // blue
+            bytes.set([0, 0, 255, 255], j);
+        }
+    }
+    return bytes
 }
 
 document.querySelector('#UploadForm input[name="files"]').addEventListener
@@ -556,3 +607,101 @@ async function submit_dicom_processing_request()
     date_processing_select.disabled = false;
     retain_descriptors_input_checkbox.disabled = false;
 }
+
+// GUI functions and listeners
+// brush selection
+BrushSelect.addEventListener('change', (event) => {
+    currentBrush = event.target.value;
+});
+
+// brush radius selection
+BrushSizeSlider.addEventListener('input', (event) => {
+    brushSize = event.target.value;
+});
+
+// toggle edit
+ToggleEdit.addEventListener('click', () => {
+    isEditing = !isEditing;
+    ToggleEdit.textContent = isEditing ? 'Edit Mode' : 'View Mode';
+    OverlayCanvas.style.pointerEvents = isEditing ? 'auto' : 'none';
+});
+
+// draw function
+function draw(e) {
+    if (!isEditing) return;
+
+    ctx.lineWidth = brushSize;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    if (currentBrush === 'eraser') {
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.strokeStyle = 'rgba(0,0,0,1)';
+    } else {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = currentBrush === 'class1' ? 'rgba(255,0,0,1)' : 'rgba(0,0,255,1)';
+    }
+
+    if (!isDrawing) return;
+
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(e.offsetX, e.offsetY);
+    ctx.stroke();
+
+    lastX = e.offsetX;
+    lastY = e.offsetY;
+}
+
+// save state function
+function saveState() {
+    undoStack.push(ctx.getImageData(0, 0, OverlayCanvas.width, OverlayCanvas.height));
+    redoStack = [];
+}
+
+// undo function
+function undoLastAction() {
+    if (undoStack.length > 0) {
+        redoStack.push(undoStack.pop());
+        if (undoStack.length > 0) {
+            const previousState = undoStack[undoStack.length - 1];
+            ctx.putImageData(previousState, 0, 0);
+        } else {
+            ctx.clearRect(0, 0, OverlayCanvas.width, OverlayCanvas.height);
+        }
+    }
+}
+
+// redo function
+function redoLastAction() {
+    if (redoStack.length > 0) {
+        const nextState = redoStack.pop();
+        undoStack.push(nextState);
+        ctx.putImageData(nextState, 0, 0);
+    }
+}
+
+// event listeners for undo and redo
+document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault();
+        undoLastAction();
+    }
+    if ((e.ctrlKey && e.key === 'y') || (e.metaKey && e.shiftKey && e.key === 'Z')) {
+        e.preventDefault();
+        redoLastAction();
+    }
+});
+Undo.addEventListener('click', undoLastAction);
+Redo.addEventListener('click', redoLastAction);
+
+OverlayCanvas.addEventListener('mousedown', (e) => {
+    isDrawing = true;
+    [lastX, lastY] = [e.offsetX, e.offsetY];
+});
+OverlayCanvas.addEventListener('mousemove', draw);
+OverlayCanvas.addEventListener('mouseup', () => {
+    saveState(); // save state after every stroke
+    isDrawing = false;
+});
+OverlayCanvas.addEventListener('mouseout', () => isDrawing = false);

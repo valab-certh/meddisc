@@ -128,6 +128,19 @@
                     </label>
                 </center>
                 </br>
+                <div class="button-container">
+                    <select id="BrushSelect" class="DateProcessing">
+                        <option value="eraser">Eraser</option>
+                        <option value="class1" selected="selected">Class1</option>
+                        <option value="class2">Class2</option>  
+                    </select>
+                    <input type="range" id="BrushSizeSlider" min="1" max="50" value="25">
+                    <button class="SubmitAnon" id="Undo">↩</button>
+                    <button class="SubmitAnon" id="Redo">↪</button>
+                    <button class="SubmitAnon" id="ToggleEdit">View Mode</button>
+                    <button class="SubmitAnon" id="ResetDICOM">Reset</button>
+                    <button class="SubmitAnon" id="ModifyDICOM">Modify</button>
+                </div>
                 <div style="background-color: rgba(50, 50, 55, 255); display: flex; border-radius: 3px; color: white;">
                     <div class="image-row-left-label">
                         <b>IMAGES [DOWNSCALED]</b>
@@ -147,6 +160,7 @@
                         </center>
                         <div id="CleanedImg" style="flex: 1; border: 1px solid black; padding: 10px; background-color: rgba(50, 50, 55, 255); border-radius: 3px;">
                             <img id="CleanedImgInner" class="DCMImg">
+                            <canvas id="OverlayCanvas"></canvas>
                         </div>
                     </div>
                 </div>
