@@ -30,7 +30,7 @@ import datetime
 import time
 import re
 import hashlib
-
+import base64
 
 class user_options_class(BaseModel):
     ## These have to match exactly with javascript's "dictionary" keys, both the keys and the data types
@@ -162,7 +162,9 @@ async def conversion_info(dicom_pair_fp: List[str] = Body(...)):
         'raw_dicom_metadata': DCM2DictMetadata(ds = raw_dcm),
         'raw_dicom_img_fp': raw_img_fp,
         'cleaned_dicom_metadata': DCM2DictMetadata(ds = cleaned_dcm),
-        'cleaned_dicom_img_fp': cleaned_img_fp
+        'cleaned_dicom_img_fp': cleaned_img_fp,
+        'segmentation_data': base64.b64encode(cleaned_dcm.SegmentSequence[0].PixelData).decode('utf-8'),
+        'dimensions': [cleaned_dcm.Rows, cleaned_dcm.Columns]
     }
 
 @app.post('/upload_files/')
