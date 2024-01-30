@@ -8,6 +8,7 @@ import tensorflow as tf
 ## Warning supression
 tf.get_logger().setLevel(logging.ERROR)
 
+from tensorflow.keras.models import load_model
 from fastapi import FastAPI, File, UploadFile, Form, Body
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -182,14 +183,62 @@ async def get_files(files: List[UploadFile] = File(...)):
         try:
             pydicom.dcmread(fp)
             proper_dicom_paths.append(fp)
+            total_uploaded_file_bytes += len(contents)
         except InvalidDicomError:
             print('W: The following path does not correspond to a DICOM file\n%s'%(fp))
             os.remove(fp)
             print('Irrelevant file deleted')
-        total_uploaded_file_bytes += len(contents)
+
     total_uploaded_file_megabytes = '%.1f'%(total_uploaded_file_bytes / (10**3)**2)
 
     return {'n_uploaded_files': len(proper_dicom_paths), 'total_size': total_uploaded_file_megabytes}
+
+@app.post('/correct_segmentation_sequence')
+async def correct_segmentation_sequence():
+
+    with open(file = './session_data/user_options.json', mode = 'r') as file:
+        user_input = json.load(file)
+
+    fps = glob(os.path.join(user_input['input_dcm_dp'], '*'))
+
+    for fp in fps:
+
+        classes_idx2name = ['lesion', 'lung']
+
+        dcm = pydicom.dcmread(fp)
+
+        ## Improvement 0x8fee8c92e9 -> This should be replaced by our own IOD
+        if (0x0062, 0x0002) in dcm and dcm.SegmentSequence[0].SegmentDescription == ';'.join(classes_idx2name):
+            continue
+        else:
+            img_shape = dcm.pixel_array.shape
+            mask = np.zeros(shape = img_shape, dtype = np.uint8)
+            dcm = attach_segm_data(dcm = dcm, seg_mask = mask, class_names = classes_idx2name)
+
+        dcm.save_as(fp)
+
+@app.post('/get_masks')
+async def get_masks():
+
+    with open(file = './session_data/user_options.json', mode = 'r') as file:
+        user_input = json.load(file)
+
+    fps = glob(os.path.join(user_input['output_dcm_dp'], '**/*.dcm'), recursive = True)
+    masks = []
+
+    for fp in fps:
+
+        dcm = pydicom.dcmread(fp)
+
+        segm_ds = dcm.SegmentSequence[0]
+
+        mask = segm_ds.PixelData
+        mask = np.frombuffer(mask, dtype = np.uint8)
+        mask = mask.reshape(segm_ds.Rows, segm_ds.Columns)
+        masks.append(mask)
+
+    breakpoint()
+    # return ???
 
 @app.post('/session')
 async def handle_session_button_click(session_dict: Dict[str, Any]):
@@ -386,6 +435,94 @@ def dicom_deidentifier(SESSION_FP: None or str = None) -> tuple[dict, list[tuple
     print('Operation completed')
 
     return session, rw_obj.dicom_pair_fps
+
+def seg_est_covid19(dcm: pydicom.dataset.FileDataset) -> tuple[np.ndarray, list[str]]:
+    '''
+        Description:
+            Responsible for estimating the segmentation mask for the (1) lesions caused by the Covid-19 virus along with (2) lung areas. In the current version it takes into account exactly 1 example per run.
+
+        Args:
+            dcm. DICOM file to be predicted.
+
+        Returns:
+            mask. Shape (H, W). Segmentation mask. Each pointed element takes 8 bits.
+            class_names. Contains an ordered set of classes.
+    '''
+
+    img = dcm.pixel_array
+    H, W = img.shape
+
+    model = load_model('./pretrained_segmenters/covid19')
+
+    ## ! Preprocess: Begin
+
+    ## Normalize
+    # img = ( (img - np.min(img)) / (np.max(img)  - np.min(img)) )
+    ## Necessary
+    img = img.astype(np.float32) / 4095
+
+    ## Resize
+    img = cv2.resize(src = img, dsize = (256, 256)).astype(np.float32)
+
+    ## Add batch axis
+    img = np.expand_dims(img, axis=0)
+
+    ## Add channel axis
+    img = np.expand_dims(img, axis=-1)
+
+    ## ! Preprocess: End
+
+    seg_probs = model.predict(img)[0, ...]
+
+    ## Postprocess
+    mask = cv2.resize(np.argmax(seg_probs, axis = -1), dsize = (W, H), interpolation = cv2.INTER_NEAREST).astype(np.uint8)
+
+    return mask, ['lesion', 'lung']
+
+def attach_segm_data(dcm: pydicom.dataset.FileDataset, seg_mask: np.array, class_names: list[str]) -> pydicom.dataset.FileDataset:
+    '''
+        Description:
+            Attaches necessary segmentation data in the header's DICOM structure.
+
+        Args:
+            dcm. Input DICOM file's content.
+            seg_mask. Shape (H, W). Segmentation mask. Each pointed element holds unsigned integers with size 8 bits.
+            class_names. Contains all the classes names in order, excluding the background class.
+
+        Returns:
+            dcm_. Contains the segmentation sequence attribute, structured as follows
+
+            (0062,0002) SQ SegmentSequence = <sequence of 1 item>
+            #0
+                (0008,0016) UI SOPClassUID = 1.2.840.10008.5.1.4.1.1.66.4
+                (0028,0010) US Rows = N_ROWS
+                (0028,0011) US Columns = N_COLS
+                (0028,0100) US BitsAllocated = 8
+                (0062,0006) ST SegmentDescription = CLASS_1_NAME;...CLASS_N_NAME
+                (7FE0,0010) OB PixelData = <binary data of length: 786432>
+
+            where N_ROWS and N_COLS are the image's number of rows and columns respectively. Also CLASS_1_NAME;...CLASS_N_NAME is the correctly ordered sequence of foreground class names.
+
+            The internal PixelData must hold a serialization of a numpy array with shape (H, W) which is a segmentation mask.
+    '''
+
+    assert type(seg_mask[0, 0]) == np.uint8, 'E: Incompatible element-wise data type'
+
+    seg_dataset = pydicom.dataset.Dataset()
+
+    img = dcm.pixel_array
+
+    assert len(img.shape) == 2, 'E: Incompatible image shape'
+
+    seg_dataset.Rows, seg_dataset.Columns = img.shape
+    seg_dataset.SOPClassUID = '1.2.840.10008.5.1.4.1.1.66.4'
+    seg_dataset.BitsAllocated = 8
+    seg_dataset.SegmentDescription = ';'.join(class_names)
+    seg_dataset.PixelData = seg_mask.tobytes()
+
+    dcm.SegmentSequence = pydicom.sequence.Sequence([seg_dataset])
+
+    return dcm
 
 def deidentification_attributes(user_input: dict, dcm: pydicom.dataset.FileDataset) -> pydicom.dataset.FileDataset:
     '''

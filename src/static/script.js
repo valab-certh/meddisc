@@ -22,16 +22,24 @@ var dicom_pair_fps;
 var OpenSequences = [];
 var DiffEnabled = false;
 var dcm_idx_;
+
+// ! Loading state (1/4): Begin
+
+var slider_pending_update = false;
+var pending_dcm_idx = 0;
 var dicom_pair;
 var total_altered_dicom_tags = '-';
 
-// Loading state (1/3)
 // Description
 //     Clean solution to the issue of delayed slider responses. The advantage of this method compared to methods like throttling is that it continues execution as soon as the content is loaded into the HTML.
 var LoadingState = false;
 
+// ! Loading state (1/4): End
+
 // Used for UX performance during the slider's image transitions. Helps (but is not sufficient by itself) for the prevention of that momentary flickering where during that time interval, the entire table below fills the empty space.
 var PredeterminedHeight = '37vw';
+
+var masks = '';
 
 
 function ShowDiff(ToggleValue)
@@ -275,19 +283,34 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
     return MetadataTable;
 };
 
+// Loading state (2/4)
+function CheckForChanges()
+{
+    if (slider_pending_update)
+    {
+        UpdateDICOMInformation(pending_dcm_idx)
+    }
+
+    setTimeout(CheckForChanges, 50);
+};
+
 async function UpdateDICOMInformation(dcm_idx)
 {
+    // ! Loading state (3/4): Begin
 
-    // ! Loading state (2/3): Begin
+    slider_pending_update = true;
+    pending_dcm_idx = dcm_idx;
 
     if (LoadingState)
     {
         return;
     }
 
+    slider_pending_update = false;
+
     LoadingState = true;
 
-    // ! Loading state (2/3): End
+    // ! Loading state (3/4): End
 
     dcm_idx_ = dcm_idx
     const dicom_pair_fp = await dicom_pair_fps[dcm_idx_]
@@ -350,7 +373,7 @@ async function UpdateDICOMInformation(dcm_idx)
         CleanedImg.style.minHeight = 0;
     }
 
-    // Loading state (3/3)
+    // Loading state (4/4)
     LoadingState = false;
 }
 
@@ -472,7 +495,15 @@ window.onload = function()
 
 async function submit_dicom_processing_request()
 {
-    SubmitAnonymizationProcess.disabled = true
+    SubmitAnonymizationProcess.disabled = true;
+
+    await fetch
+    (
+        '/correct_segmentation_sequence/',
+        {
+            method: 'POST'
+        }
+    );
 
     const data =
     {
@@ -501,10 +532,20 @@ async function submit_dicom_processing_request()
 
     dicom_pair_fps = await dicom_pair_fps_response.json();
 
+    // Get segmentation masks array with indexing (B, H, W)
+    masks = await fetch
+    (
+        '/get_masks/',
+        {
+            method: 'POST'
+        }
+    );
+
     // Builds slider based on number of converted input DICOM files
     DICOMSlider.max = n_uploaded_files-1;
     DICOMSlider.value = 0;
     await UpdateDICOMInformation(0);
+    CheckForChanges();
 
     ConversionResult.style.display = 'inline';
 

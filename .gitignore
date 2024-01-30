@@ -18,3 +18,4 @@ src/static/client_data/*
 session_original.json
 front_end_idea.drawio
 custom_config.csv
+src/pretrained_segmenters

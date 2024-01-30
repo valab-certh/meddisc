@@ -21,11 +21,11 @@ Install all prerequisites by applying
 python3 -m pip install -r requirements.txt
 ```
 
-First download this repository
+First download and extract the latest release
 ```
 git clone https://github.com/fl0wxr/DICOMDeIdentifier
 ```
-then navigate inside `src` and run the backend
+For releases past `v1.3.8`, an additional step is to extract `pretrained_segmenters.tar.gz` inside `src`. From inside `src` start the server through
 ```
 uvicorn server:app --reload --port 8000
 ```
