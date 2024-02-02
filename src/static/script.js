@@ -18,6 +18,9 @@ var LoadDICOM = document.getElementById('LoadDICOM');
 var ModifyDICOM = document.getElementById('ModifyDICOM');
 var Undo = document.getElementById('Undo');
 var Redo = document.getElementById('Redo');
+var notificationMessage = document.getElementById("notification-message");
+var notificationIcon = document.getElementById("notification-icon");
+var notificationText = document.getElementById("notification-text");
 var retain_safe_private_input_checkbox = document.getElementById('retain-safe-private-input-checkbox');
 var retain_uids_input_checkbox = document.getElementById('retain-uids-input-checkbox');
 var retain_device_identity_input_checkbox = document.getElementById('retain-device-identity-input-checkbox');
@@ -41,6 +44,7 @@ var lastX = 0;
 var lastY = 0;
 var undoStack = [];
 var redoStack = [];
+var notificationTimeout;
 
 ctx.lineJoin = 'round';
 ctx.lineCap = 'round';
@@ -609,7 +613,7 @@ async function reset_mask() {
             },
             body: JSON.stringify(dicom_pair_fps[dcm_idx_][1])
         });
-    
+    showNotification("success", "Loaded mask from DICOM ", 3000);
     if (reset_response.ok) {
         const response_data = await reset_response.json();
         const PixelData = response_data['PixelData'];
@@ -635,6 +639,7 @@ async function modify_dicom() {
             },
             body: JSON.stringify(requestBody)
         });
+    showNotification("success", "Modified " + dicom_pair_fps[dcm_idx_][1], 3000);
     if (modify_response.ok) {
         
     }
@@ -673,6 +678,7 @@ function canvastobase64() {
 // brush selection
 BrushSelect.addEventListener('change', (event) => {
     currentBrush = event.target.value;
+    showNotification("info", "Switched to " + currentBrush, 1000);
 });
 
 // brush radius selection
@@ -685,6 +691,7 @@ ToggleEdit.addEventListener('click', () => {
     isEditing = !isEditing;
     ToggleEdit.textContent = isEditing ? 'Edit Mode' : 'View Mode';
     OverlayCanvas.style.pointerEvents = isEditing ? 'auto' : 'none';
+    showNotification("info", ToggleEdit.textContent, 1000);
 });
 
 // mouse position function for scaling
@@ -747,6 +754,7 @@ function undoLastAction() {
             ctx.clearRect(0, 0, OverlayCanvas.width, OverlayCanvas.height);
         }
     }
+    showNotification("info", "Undo", 1000);
 }
 
 // redo function
@@ -756,6 +764,7 @@ function redoLastAction() {
         undoStack.push(nextState);
         ctx.putImageData(nextState, 0, 0);
     }
+    showNotification("info", "Redo", 1000);
 }
 
 // event listeners for undo and redo
@@ -783,3 +792,40 @@ OverlayCanvas.addEventListener('mouseup', () => {
     isDrawing = false;
 });
 OverlayCanvas.addEventListener('mouseout', () => isDrawing = false);
+
+function showNotification(type, text, duration) {
+    // clear existing timeout
+    clearTimeout(notificationTimeout);
+
+    notificationText.textContent = text;
+
+    switch (type) {
+        case "success":
+            notificationIcon.textContent = "✔️"; 
+            notificationMessage.style.backgroundColor = "green";
+            notificationMessage.style.color = "white";
+            break;
+        case "info":
+            notificationIcon.textContent = "ℹ️"; 
+            notificationMessage.style.backgroundColor = "lightblue";
+            notificationMessage.style.color = "black";
+            break;
+        case "failure":
+            notificationIcon.textContent = "❌"; 
+            notificationMessage.style.backgroundColor = "red";
+            notificationMessage.style.color = "white";
+            break;
+        default:
+            notificationIcon.textContent = "";
+            notificationMessage.style.backgroundColor = "grey";
+            notificationMessage.style.color = "black";
+            break;
+    }
+
+    notificationMessage.style.display = "flex";
+
+    // hide after duration ms
+    notificationTimeout = setTimeout(function() {
+        notificationMessage.style.display = "none";
+    }, duration);
+}
