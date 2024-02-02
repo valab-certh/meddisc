@@ -11,6 +11,7 @@ tf.get_logger().setLevel(logging.ERROR)
 from tensorflow.keras.models import load_model
 from fastapi import FastAPI, File, UploadFile, Form, Body
 from fastapi.responses import FileResponse
+from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Any
@@ -239,7 +240,6 @@ async def get_masks():
         mask = mask.reshape(segm_ds.Rows, segm_ds.Columns)
         masks.append(mask)
 
-    breakpoint()
     # return ???
 
 @app.post('/session')
