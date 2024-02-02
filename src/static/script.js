@@ -626,9 +626,25 @@ ToggleEdit.addEventListener('click', () => {
     OverlayCanvas.style.pointerEvents = isEditing ? 'auto' : 'none';
 });
 
+// mouse position function for scaling
+function getMousePos(canvas, evt) {
+    var rect = canvas.getBoundingClientRect();
+    // calculate scaling factor
+    var scaleX = canvas.width / rect.width;
+    var scaleY = canvas.height / rect.height;
+
+    // adjust coordinates
+    return {
+        x: (evt.clientX - rect.left) * scaleX, // Adjusting X coordinate
+        y: (evt.clientY - rect.top) * scaleY  // Adjusting Y coordinate
+    };
+}
+
 // draw function
 function draw(e) {
     if (!isEditing) return;
+
+    var mousePos = getMousePos(OverlayCanvas, e);
 
     ctx.lineWidth = brushSize;
     ctx.lineCap = 'round';
@@ -646,11 +662,11 @@ function draw(e) {
 
     ctx.beginPath();
     ctx.moveTo(lastX, lastY);
-    ctx.lineTo(e.offsetX, e.offsetY);
+    ctx.lineTo(mousePos.x, mousePos.y);
     ctx.stroke();
 
-    lastX = e.offsetX;
-    lastY = e.offsetY;
+    lastX = mousePos.x;
+    lastY = mousePos.y;
 }
 
 // save state function
@@ -696,8 +712,9 @@ Undo.addEventListener('click', undoLastAction);
 Redo.addEventListener('click', redoLastAction);
 
 OverlayCanvas.addEventListener('mousedown', (e) => {
+    var mousePos = getMousePos(OverlayCanvas, e);
     isDrawing = true;
-    [lastX, lastY] = [e.offsetX, e.offsetY];
+    [lastX, lastY] = [mousePos.x, mousePos.y];
 });
 OverlayCanvas.addEventListener('mousemove', draw);
 OverlayCanvas.addEventListener('mouseup', () => {
