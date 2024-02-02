@@ -56,6 +56,9 @@ class session_class(BaseModel):
 class ResponseModel(BaseModel):
     message: str
 
+class DicomData(BaseModel):
+    pixelData: str  
+    filepath: str   
 
 def clean_all():
 
@@ -168,6 +171,27 @@ async def conversion_info(dicom_pair_fp: List[str] = Body(...)):
         'dimensions': [cleaned_dcm.Rows, cleaned_dcm.Columns]
     }
 
+@app.post('/reset_mask/')
+async def reset_mask(current_dcm_fp: str = Body(...)):
+    current_dcm = pydicom.dcmread(current_dcm_fp)
+    return \
+    {
+        'PixelData': base64.b64encode(current_dcm.SegmentSequence[0].PixelData).decode('utf-8'),
+        'dimensions': [current_dcm.Rows, current_dcm.Columns]
+    }
+
+@app.post('/modify_dicom/')
+async def modify_dicom(data: DicomData):
+    pixelData = base64.b64decode(data.pixelData)
+    filepath = data.filepath
+    modified_dcm = pydicom.dcmread(filepath)
+    modified_dcm.SegmentSequence[0].PixelData = pixelData
+    modified_dcm.save_as(filepath)
+    return \
+    {
+        'success': True
+    }
+
 @app.post('/upload_files/')
 async def get_files(files: List[UploadFile] = File(...)):
 
@@ -219,28 +243,6 @@ async def correct_segmentation_sequence():
             dcm = attach_segm_data(dcm = dcm, seg_mask = mask, class_names = classes_idx2name)
 
         dcm.save_as(fp)
-
-@app.post('/get_masks')
-async def get_masks():
-
-    with open(file = './session_data/user_options.json', mode = 'r') as file:
-        user_input = json.load(file)
-
-    fps = glob(os.path.join(user_input['output_dcm_dp'], '**/*.dcm'), recursive = True)
-    masks = []
-
-    for fp in fps:
-
-        dcm = pydicom.dcmread(fp)
-
-        segm_ds = dcm.SegmentSequence[0]
-
-        mask = segm_ds.PixelData
-        mask = np.frombuffer(mask, dtype = np.uint8)
-        mask = mask.reshape(segm_ds.Rows, segm_ds.Columns)
-        masks.append(mask)
-
-    # return ???
 
 @app.post('/session')
 async def handle_session_button_click(session_dict: Dict[str, Any]):
