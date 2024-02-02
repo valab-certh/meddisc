@@ -583,15 +583,6 @@ async function submit_dicom_processing_request()
 
     dicom_pair_fps = await dicom_pair_fps_response.json();
 
-    // Get segmentation masks array with indexing (B, H, W)
-    masks = await fetch
-    (
-        '/get_masks/',
-        {
-            method: 'POST'
-        }
-    );
-
     // Builds slider based on number of converted input DICOM files
     DICOMSlider.max = n_uploaded_files-1;
     DICOMSlider.value = 0;
@@ -606,6 +597,76 @@ async function submit_dicom_processing_request()
     retain_patient_characteristics_input_checkbox.disabled = false;
     date_processing_select.disabled = false;
     retain_descriptors_input_checkbox.disabled = false;
+}
+
+async function reset_mask() {
+    const reset_response = await fetch(
+        '/reset_mask/',
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(dicom_pair_fps[dcm_idx_][1])
+        });
+    
+    if (reset_response.ok) {
+        const response_data = await reset_response.json();
+        const PixelData = response_data['PixelData'];
+        const reset_dimensions = response_data['dimensions']
+        OverlayCanvas.width = reset_dimensions[0];
+        OverlayCanvas.height = reset_dimensions[1];
+        const resetData = new ImageData(base64torgba(PixelData), reset_dimensions[0], reset_dimensions[1]);
+        ctx.putImageData(resetData, 0, 0);
+    }
+}
+
+async function modify_dicom() {   
+    const requestBody = {
+        pixelData: canvastobase64(),
+        filepath: dicom_pair_fps[dcm_idx_][1]
+    }; 
+    const modify_response = await fetch(
+        '/modify_dicom/',
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
+    if (modify_response.ok) {
+        
+    }
+}
+
+
+function canvastobase64() {
+    const canvasData = ctx.getImageData(0, 0, OverlayCanvas.width, OverlayCanvas.height);
+    const data = canvasData.data; // RGBA data
+    let binaryString = '';
+
+    for (let i = 0; i < data.length; i += 4) {
+        let r = data[i];
+        let g = data[i + 1];
+        let b = data[i + 2];
+        let a = data[i + 3];
+
+        if (a === 0) {
+            // transparent
+            binaryString += String.fromCharCode(0);
+        } else if (r === 255 && g === 0 && b === 0 && a === 255) {
+            // red
+            binaryString += String.fromCharCode(1);
+        } else if (r === 0 && g === 0 && b === 255 && a === 255) {
+            // blue
+            binaryString += String.fromCharCode(2);
+        } else {
+            // default
+            binaryString += String.fromCharCode(0); 
+        }
+    }
+    return window.btoa(binaryString);
 }
 
 // GUI functions and listeners
