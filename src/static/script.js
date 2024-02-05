@@ -597,14 +597,36 @@ async function submit_dicom_processing_request()
     await UpdateDICOMInformation(0);
     CheckForChanges();
 
+    
     ConversionResult.style.display = 'inline';
-
+    
     retain_safe_private_input_checkbox.disabled = false;
     retain_uids_input_checkbox.disabled = false;
     retain_device_identity_input_checkbox.disabled = false;
     retain_patient_characteristics_input_checkbox.disabled = false;
     date_processing_select.disabled = false;
     retain_descriptors_input_checkbox.disabled = false;
+    
+    medsam_estimation()
+}
+
+async function medsam_estimation()
+{
+    let bboxes = {
+        "x0": 0.5,
+        "y0": 0.5,
+        "x1": 0.7,
+        "y1": 0.7,
+        "class": 1,
+    }
+
+    const seg_mask = await fetch
+    (
+        'medsam_estimation',
+        {
+            method: 'POST'
+        }
+    )
 }
 
 async function reset_mask() {

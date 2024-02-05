@@ -32,6 +32,11 @@ import time
 import re
 import hashlib
 import base64
+from segment_anything import sam_model_registry
+import torch.nn.functional as F
+
+## SegSAM Dependencies
+import torch
 
 class user_options_class(BaseModel):
     ## These have to match exactly with javascript's "dictionary" keys, both the keys and the data types
@@ -167,13 +172,18 @@ async def conversion_info(dicom_pair_fp: List[str] = Body(...)):
     # with open(file = '../cleaned_dcm_meta.json', mode = 'w') as file:
     #     json.dump(DCM2DictMetadata(ds = cleaned_dcm), fp = file)
 
+    try:
+        mask = cleaned_dcm.SegmentSequence[0].PixelData
+    except:
+        mask = np.zeros(shape = (cleaned_dcm.Rows, cleaned_dcm.Columns), dtype = np.uint8)
+
     return \
     {
         'raw_dicom_metadata': DCM2DictMetadata(ds = raw_dcm),
         'raw_dicom_img_fp': raw_img_fp,
         'cleaned_dicom_metadata': DCM2DictMetadata(ds = cleaned_dcm),
         'cleaned_dicom_img_fp': cleaned_img_fp,
-        'segmentation_data': base64.b64encode(cleaned_dcm.SegmentSequence[0].PixelData).decode('utf-8'),
+        'segmentation_data': base64.b64encode(mask).decode('utf-8'),
         'dimensions': [cleaned_dcm.Rows, cleaned_dcm.Columns]
     }
 
@@ -273,6 +283,47 @@ async def get_files(ConfigFile: UploadFile = File(...)):
     contents = await ConfigFile.read()
     with open(file = './session_data/custom_config.csv', mode = 'wb') as file:
         file.write(contents)
+
+@app.post('/medsam_estimation')
+async def medsam_estimation():
+
+    ## Currently works for exactly 1 bounding box
+
+    class_ = 1
+    bbox = np.array([0.5, 0.5, 0.75, 0.75])
+    fp = './session_data/raw/1-1.dcm'
+
+    dcm = pydicom.dcmread(fp = fp)
+    img = dcm.pixel_array
+
+    medsam_model = sam_model_registry["vit_b"](checkpoint = './pretrained_segmenters/MedSAM/medsam_vit_b.pth')
+    medsam_model = medsam_model
+
+    ## Input Preprocessing
+    if len(img.shape) == 2:
+        img_3c = np.repeat(img[:, :, None], 3, axis=-1)
+    else:
+        img_3c = img
+    H, W, _ = img_3c.shape
+
+    # image preprocessing
+    img_1024 = cv2.resize(src = img_3c, dsize = (1024, 1024)).astype(np.float32)
+    img_1024 = (img_1024 - img_1024.min()) / np.clip(
+        img_1024.max() - img_1024.min(), a_min=1e-8, a_max=None
+    )  # normalize to [0, 1], (H, W, 3)
+    # convert the shape to (3, H, W)
+    img_1024_tensor = (
+        torch.tensor(img_1024).float().permute(2, 0, 1).unsqueeze(0)#.to(device)
+    )
+
+    # transfer box_np t0 1024x1024 scale
+    box_1024 = bbox[None, :] * 1024
+    with torch.no_grad():
+        image_embedding = medsam_model.image_encoder(img_1024_tensor)  # (1, 256, 64, 64)
+
+    medsam_seg = medsam_inference(medsam_model, image_embedding, box_1024, H, W)
+
+    return base64.b64encode(medsam_seg).decode('utf-8')
 
 @app.post('/submit_button')
 async def handle_submit_button_click(user_options: user_options_class):
@@ -458,6 +509,37 @@ def dicom_deidentifier(SESSION_FP: None or str = None) -> tuple[dict, list[tuple
     print('Operation completed')
 
     return session, rw_obj.dicom_pair_fps
+
+@torch.no_grad()
+def medsam_inference(medsam_model, img_embed, box_1024, H, W):
+    box_torch = torch.as_tensor(box_1024, dtype=torch.float, device=img_embed.device)
+    if len(box_torch.shape) == 2:
+        box_torch = box_torch[:, None, :]  # (B, 1, 4)
+
+    sparse_embeddings, dense_embeddings = medsam_model.prompt_encoder(
+        points=None,
+        boxes=box_torch,
+        masks=None,
+    )
+    low_res_logits, _ = medsam_model.mask_decoder(
+        image_embeddings=img_embed,  # (B, 256, 64, 64)
+        image_pe=medsam_model.prompt_encoder.get_dense_pe(),  # (1, 256, 64, 64)
+        sparse_prompt_embeddings=sparse_embeddings,  # (B, 2, 256)
+        dense_prompt_embeddings=dense_embeddings,  # (B, 256, 64, 64)
+        multimask_output=False,
+    )
+
+    low_res_pred = torch.sigmoid(low_res_logits)  # (1, 1, 256, 256)
+
+    low_res_pred = F.interpolate(
+        low_res_pred,
+        size=(H, W),
+        mode="bilinear",
+        align_corners=False,
+    )  # (1, 1, gt.shape)
+    low_res_pred = low_res_pred.squeeze().cpu().numpy()  # (256, 256)
+    medsam_seg = (low_res_pred > 0.5).astype(np.uint8)
+    return medsam_seg
 
 def seg_est_covid19(dcm: pydicom.dataset.FileDataset) -> tuple[np.ndarray, list[str]]:
     '''
