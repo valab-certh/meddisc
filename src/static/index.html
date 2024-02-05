@@ -129,6 +129,7 @@
                 </center>
                 </br>
                 <div class="button-container">
+                    <button class="SubmitAnon" id="Mode">Brush</button>
                     <select id="BrushSelect" class="DateProcessing">
                         <option value="eraser" selected="selected">Eraser</option>
                         <option value="class1">Class1</option>
@@ -137,6 +138,7 @@
                     <input type="range" id="BrushSizeSlider" min="1" max="50" value="25">
                     <button class="SubmitAnon" id="Undo">↩</button>
                     <button class="SubmitAnon" id="Redo">↪</button>
+
                     <button class="SubmitAnon" id="ToggleEdit">View Mode</button>
                     <button class="SubmitAnon" id="ResetDICOM" onclick="reset_mask()">Reset</button>
                     <button class="SubmitAnon" id="ModifyDICOM" onclick="modify_dicom()">Modify</button>
@@ -161,6 +163,7 @@
                         <div id="CleanedImg" style="flex: 1; border: 1px solid black; padding: 10px; background-color: rgba(50, 50, 55, 255); border-radius: 3px;">
                             <img id="CleanedImgInner" class="DCMImg">
                             <canvas id="OverlayCanvas"></canvas>
+                            <canvas id="BoxCanvas"></canvas>
                         </div>
                     </div>
                 </div>
