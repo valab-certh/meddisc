@@ -324,7 +324,7 @@ label.normal-label
     position: relative;
 }
 
-#CleanedImgInner, #OverlayCanvas {
+#CleanedImgInner, #OverlayCanvas, #BoxCanvas {
     position: absolute;
     top: 10px;       
     left: 10px;      
@@ -338,6 +338,11 @@ label.normal-label
     pointer-events: none; 
     cursor: crosshair;
     opacity: 0.3;
+}
+
+#BoxCanvas {
+    pointer-events: none; 
+    cursor: crosshair;
 }
 
 .button-container {

@@ -60,6 +60,12 @@ class DicomData(BaseModel):
     pixelData: str  
     filepath: str   
 
+class BoxData(BaseModel):
+    normalizedStart: Dict
+    normalizedEnd: Dict
+    segClass: str
+    filepath: str
+
 def clean_all():
 
     clean_config_session()
@@ -190,6 +196,19 @@ async def modify_dicom(data: DicomData):
     return \
     {
         'success': True
+    }
+
+@app.post('/medsam_estimation/')
+async def medsam_estimation(boxdata: BoxData):
+    start = boxdata.normalizedStart
+    end = boxdata.normalizedEnd
+    segClass = boxdata.segClass
+    filepath = boxdata.filepath
+    # process data here
+
+    return \
+    {
+        # send data here
     }
 
 @app.post('/upload_files/')

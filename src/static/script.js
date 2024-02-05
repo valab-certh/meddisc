@@ -18,6 +18,9 @@ var LoadDICOM = document.getElementById('LoadDICOM');
 var ModifyDICOM = document.getElementById('ModifyDICOM');
 var Undo = document.getElementById('Undo');
 var Redo = document.getElementById('Redo');
+var Mode = document.getElementById('Mode');
+var BoxCanvas = document.getElementById('BoxCanvas');
+var bctx = BoxCanvas.getContext('2d');
 var retain_safe_private_input_checkbox = document.getElementById('retain-safe-private-input-checkbox');
 var retain_uids_input_checkbox = document.getElementById('retain-uids-input-checkbox');
 var retain_device_identity_input_checkbox = document.getElementById('retain-device-identity-input-checkbox');
@@ -41,6 +44,9 @@ var lastX = 0;
 var lastY = 0;
 var undoStack = [];
 var redoStack = [];
+var editMode = 'brush';
+var BoxStart = null;
+var BoxEnd = null;
 
 ctx.lineJoin = 'round';
 ctx.lineCap = 'round';
@@ -396,6 +402,8 @@ async function UpdateDICOMInformation(dcm_idx)
         // fill canvas with segmentation mask
         OverlayCanvas.width = dimensions[0];
         OverlayCanvas.height = dimensions[1];
+        BoxCanvas.width = dimensions[0];
+        BoxCanvas.height = dimensions[1];
         const imageData = new ImageData(base64torgba(segmentation_data), dimensions[0], dimensions[1]);
         ctx.putImageData(imageData, 0, 0);
         RawImg.style.minHeight = 0;
@@ -616,6 +624,8 @@ async function reset_mask() {
         const reset_dimensions = response_data['dimensions']
         OverlayCanvas.width = reset_dimensions[0];
         OverlayCanvas.height = reset_dimensions[1];
+        BoxCanvas.width = reset_dimensions[0];
+        BoxCanvas.height = reset_dimensions[1];
         const resetData = new ImageData(base64torgba(PixelData), reset_dimensions[0], reset_dimensions[1]);
         ctx.putImageData(resetData, 0, 0);
     }
@@ -685,6 +695,7 @@ ToggleEdit.addEventListener('click', () => {
     isEditing = !isEditing;
     ToggleEdit.textContent = isEditing ? 'Edit Mode' : 'View Mode';
     OverlayCanvas.style.pointerEvents = isEditing ? 'auto' : 'none';
+    BoxCanvas.style.pointerEvents = (isEditing && editMode === 'boundingBox') ? 'auto' : 'none';
 });
 
 // mouse position function for scaling
@@ -783,3 +794,86 @@ OverlayCanvas.addEventListener('mouseup', () => {
     isDrawing = false;
 });
 OverlayCanvas.addEventListener('mouseout', () => isDrawing = false);
+
+function clearBoundingBox() {
+    bctx.clearRect(0, 0, BoxCanvas.width, BoxCanvas.height);
+}
+
+async function medsam_estimation(normalizedStart,normalizedEnd) {
+    if (editMode !== 'boundingBox' || !BoxStart || !BoxEnd) return;
+    const boxRequest = {
+        normalizedStart: normalizedStart,
+        normalizedEnd: normalizedEnd,
+        segClass: BrushSelect.value,
+        filepath: dicom_pair_fps[dcm_idx_][1]
+    };
+    const box_response = await fetch(
+        '/medsam_estimation/',
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(boxRequest)
+        });
+    if (box_response.ok) {
+        // draw on canvas here
+    }
+}
+
+Mode.addEventListener('click', function () {
+    if (editMode === 'brush') {
+        editMode = 'boundingBox';
+        Mode.textContent = 'Box';
+        BoxCanvas.style.pointerEvents = isEditing ? 'auto' : 'none';
+        document.querySelector('#BrushSelect option[value="eraser"]').disabled = true;
+        BrushSelect.value = 'class1';
+        BrushSelect.dispatchEvent(new Event('change'));
+    } else {
+        editMode = 'brush';
+        Mode.textContent = 'Brush';
+        BoxCanvas.style.pointerEvents = 'none';
+        document.querySelector('#BrushSelect option[value="eraser"]').disabled = false;
+    }
+});
+
+BoxCanvas.addEventListener('mousedown', (e) => {
+    if (editMode !== 'boundingBox') return;
+    var mousePos = getMousePos(BoxCanvas, e);
+    BoxStart = mousePos;
+    BoxEnd = null;
+});
+
+BoxCanvas.addEventListener('mousemove', (e) => {
+    if (editMode !== 'boundingBox' || !BoxStart) return;
+    var mousePos = getMousePos(BoxCanvas, e);
+    BoxEnd = mousePos;
+    clearBoundingBox();
+
+    bctx.beginPath();
+    bctx.rect(BoxStart.x, BoxStart.y, BoxEnd.x - BoxStart.x, BoxEnd.y - BoxStart.y);
+    bctx.strokeStyle = currentBrush === 'class1' ? 'rgba(255,0,0,1)' : 'rgba(0,0,255,1)';
+    bctx.stroke();
+});
+
+BoxCanvas.addEventListener('mouseup', () => {
+    if (editMode !== 'boundingBox' || !BoxStart || !BoxEnd) return;
+    const normalizedStart = {
+        x: BoxStart.x / BoxCanvas.width,
+        y: BoxStart.y / BoxCanvas.height
+    };
+    const normalizedEnd = {
+        x: BoxEnd.x / BoxCanvas.width,
+        y: BoxEnd.y / BoxCanvas.height
+    };  
+    // send request on mouseup
+    medsam_estimation(normalizedStart,normalizedEnd);
+    clearBoundingBox();
+    BoxStart = null;
+});
+
+
+BoxCanvas.addEventListener('mouseout', () => {
+    if (editMode === 'boundingBox') clearBoundingBox();
+    BoxStart = null;
+});
