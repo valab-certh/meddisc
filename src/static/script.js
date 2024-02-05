@@ -45,8 +45,8 @@ var lastY = 0;
 var undoStack = [];
 var redoStack = [];
 var editMode = 'brush';
-let BoxStart = null;
-let BoxEnd = null;
+var BoxStart = null;
+var BoxEnd = null;
 
 ctx.lineJoin = 'round';
 ctx.lineCap = 'round';
@@ -807,7 +807,6 @@ async function medsam_estimation(normalizedStart,normalizedEnd) {
         segClass: BrushSelect.value,
         filepath: dicom_pair_fps[dcm_idx_][1]
     };
-    console.log(boxRequest);
     const box_response = await fetch(
         '/medsam_estimation/',
         {
