@@ -208,19 +208,6 @@ async def modify_dicom(data: DicomData):
         'success': True
     }
 
-@app.post('/medsam_estimation/')
-async def medsam_estimation(boxdata: BoxData):
-    start = boxdata.normalizedStart
-    end = boxdata.normalizedEnd
-    segClass = boxdata.segClass
-    filepath = boxdata.filepath
-    # process data here
-
-    return \
-    {
-        # send data here
-    }
-
 @app.post('/upload_files/')
 async def get_files(files: List[UploadFile] = File(...)):
 
@@ -284,14 +271,17 @@ async def get_files(ConfigFile: UploadFile = File(...)):
     with open(file = './session_data/custom_config.csv', mode = 'wb') as file:
         file.write(contents)
 
-@app.post('/medsam_estimation')
-async def medsam_estimation():
-
+@app.post("/medsam_estimation/")
+async def medsam_estimation(boxdata: BoxData):
     ## Currently works for exactly 1 bounding box
 
-    class_ = 1
-    bbox = np.array([0.5, 0.5, 0.75, 0.75])
-    fp = './session_data/raw/1-1.dcm'
+    start = boxdata.normalizedStart
+    end = boxdata.normalizedEnd
+    segClass = boxdata.segClass
+    fp = boxdata.filepath
+    # process data here
+
+    bbox = np.array([start['x'], start['y'], end['x'], end['y']])
 
     dcm = pydicom.dcmread(fp = fp)
     img = dcm.pixel_array
@@ -321,9 +311,12 @@ async def medsam_estimation():
     with torch.no_grad():
         image_embedding = medsam_model.image_encoder(img_1024_tensor)  # (1, 256, 64, 64)
 
+    print('Starting segmentation')
+    t0 = time.time()
     medsam_seg = medsam_inference(medsam_model, image_embedding, box_1024, H, W)
+    print('Segmentation completed in %.2f seconds'%(time.time()-t0))
 
-    return base64.b64encode(medsam_seg).decode('utf-8')
+    return {'mask': base64.b64encode(medsam_seg).decode('utf-8')}
 
 @app.post('/submit_button')
 async def handle_submit_button_click(user_options: user_options_class):
