@@ -805,7 +805,7 @@ async function medsam_estimation(normalizedStart,normalizedEnd) {
         normalizedStart: normalizedStart,
         normalizedEnd: normalizedEnd,
         segClass: BrushSelect.value,
-        filepath: dicom_pair_fps[dcm_idx_][1]
+        inpIdx: dcm_idx_
     };
     const box_response = await fetch(
         '/medsam_estimation/',

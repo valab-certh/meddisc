@@ -68,7 +68,7 @@ class BoxData(BaseModel):
     normalizedStart: Dict
     normalizedEnd: Dict
     segClass: str
-    filepath: str
+    inpIdx: int
 
 def clean_all():
 
@@ -277,41 +277,17 @@ async def medsam_estimation(boxdata: BoxData):
     start = boxdata.normalizedStart
     end = boxdata.normalizedEnd
     segClass = boxdata.segClass
-    fp = boxdata.filepath
+    inpIdx = boxdata.inpIdx
     # process data here
 
     bbox = np.array([start['x'], start['y'], end['x'], end['y']])
 
-    dcm = pydicom.dcmread(fp = fp)
-    img = dcm.pixel_array
-
-    medsam_model = sam_model_registry["vit_b"](checkpoint = './pretrained_segmenters/MedSAM/medsam_vit_b.pth')
-
-    ## Input Preprocessing
-    if len(img.shape) == 2:
-        img_3c = np.repeat(img[:, :, None], 3, axis=-1)
-    else:
-        img_3c = img
-    H, W, _ = img_3c.shape
-
-    # image preprocessing
-    img_1024 = cv2.resize(src = img_3c, dsize = (1024, 1024)).astype(np.float32)
-    img_1024 = (img_1024 - img_1024.min()) / np.clip(
-        img_1024.max() - img_1024.min(), a_min=1e-8, a_max=None
-    )  # normalize to [0, 1], (H, W, 3)
-    # convert the shape to (3, H, W)
-    img_1024_tensor = (
-        torch.tensor(img_1024).float().permute(2, 0, 1).unsqueeze(0)#.to(device)
-    )
-
     # transfer box_np t0 1024x1024 scale
     box_1024 = bbox[None, :] * 1024
-    with torch.no_grad():
-        image_embedding = medsam_model.image_encoder(img_1024_tensor)  # (1, 256, 64, 64)
 
     print('Starting segmentation')
     t0 = time.time()
-    medsam_seg = medsam_inference(medsam_model, image_embedding, box_1024, H, W)
+    medsam_seg = medsam_inference(medsam_model, embeddings[inpIdx], box_1024, Hs[inpIdx], Ws[inpIdx])
     print('Segmentation completed in %.2f seconds'%(time.time()-t0))
 
     return {'mask': base64.b64encode(medsam_seg).decode('utf-8')}
@@ -353,7 +329,59 @@ async def handle_submit_button_click(user_options: user_options_class):
     with open(file = './session_data/session.json', mode = 'w') as file:
         json.dump(session, file)
 
+    ## MedSAM initialization - Global variables
+    prepare_medsam()
+
     return dicom_pair_fps
+
+def prepare_medsam():
+    '''
+        Description:
+            For each of the raw DICOM images, this function is responsible for deserializing a MedSAM checkpoint. It also applies a computationally intensive transformation of input images that converts raw input to their corresponding embeddings (their MedSAM encodings).
+    '''
+
+    global embeddings
+    embeddings = []
+
+    global Hs, Ws
+    Hs, Ws = [], []
+
+    global medsam_model
+    medsam_model = sam_model_registry["vit_b"](checkpoint = './pretrained_segmenters/MedSAM/medsam_vit_b.pth')
+    print('MedSAM model deserialization completed')
+
+    dcm_fps = glob('./session_data/raw/*')
+
+    t0 = time.time()
+    print('Initializing MedSAM embeddings')
+
+    for dcm_fp in dcm_fps:
+
+        img = pydicom.dcmread(dcm_fp).pixel_array
+
+        ## Input Preprocessing
+        if len(img.shape) == 2:
+            img_3c = np.repeat(img[:, :, None], 3, axis=-1)
+        else:
+            img_3c = img
+        H, W, _ = img_3c.shape
+        Hs.append(H)
+        Ws.append(W)
+
+        # image preprocessing
+        img_1024 = cv2.resize(src = img_3c, dsize = (1024, 1024)).astype(np.float32)
+        img_1024 = (img_1024 - img_1024.min()) / np.clip(
+            img_1024.max() - img_1024.min(), a_min=1e-8, a_max=None
+        )  # normalize to [0, 1], (H, W, 3)
+        # convert the shape to (3, H, W)
+        img_1024_tensor = (
+            torch.tensor(img_1024).float().permute(2, 0, 1).unsqueeze(0)#.to(device)
+        )
+
+        with torch.no_grad():
+            embeddings.append(medsam_model.image_encoder(img_1024_tensor))  # (1, 256, 64, 64)
+    
+    print('Initialization completed - %.1f'%(time.time()-t0))
 
 def dicom_deidentifier(SESSION_FP: None or str = None) -> tuple[dict, list[tuple[str]]]:
     '''
