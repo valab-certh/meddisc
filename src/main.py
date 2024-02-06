@@ -290,7 +290,11 @@ async def medsam_estimation(boxdata: BoxData):
     medsam_seg = medsam_inference(medsam_model, embeddings[inpIdx], box_1024, Hs[inpIdx], Ws[inpIdx])
     print('Segmentation completed in %.2f seconds'%(time.time()-t0))
 
-    return {'mask': base64.b64encode(medsam_seg).decode('utf-8')}
+    return \
+    {
+        'mask': base64.b64encode(medsam_seg).decode('utf-8'),
+        'dimensions': [Ws[inpIdx], Hs[inpIdx]]
+    }
 
 @app.post('/submit_button')
 async def handle_submit_button_click(user_options: user_options_class):
