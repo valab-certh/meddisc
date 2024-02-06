@@ -44,7 +44,6 @@ class user_options_class(BaseModel):
     retain_safe_private: bool
     retain_uids: bool
     retain_device_identity: bool
-    retain_device_identity: bool
     retain_patient_characteristics: bool
     date_processing: str
     retain_descriptors: bool
@@ -62,8 +61,8 @@ class ResponseModel(BaseModel):
     message: str
 
 class DicomData(BaseModel):
-    pixelData: str  
-    filepath: str   
+    pixelData: str
+    filepath: str
 
 class BoxData(BaseModel):
     normalizedStart: Dict
@@ -287,7 +286,6 @@ async def medsam_estimation(boxdata: BoxData):
     img = dcm.pixel_array
 
     medsam_model = sam_model_registry["vit_b"](checkpoint = './pretrained_segmenters/MedSAM/medsam_vit_b.pth')
-    medsam_model = medsam_model
 
     ## Input Preprocessing
     if len(img.shape) == 2:

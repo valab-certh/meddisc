@@ -214,4 +214,5 @@ Replaces tag value with a dummy one. Implemented only for patient ID with tag in
 
 ## Citation
 
+- [MedSAM](https://github.com/bowang-lab/MedSAM)
 - Paschalis Bizopoulos. [dicom-de-identification-and-curation-tool](https://github.com/pbizopoulos/dicom-de-identification-and-curation-tool)
