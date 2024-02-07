@@ -280,7 +280,7 @@ async def medsam_estimation(boxdata: BoxData):
     inpIdx = boxdata.inpIdx
     # process data here
 
-    bbox = np.array([start['x'], start['y'], end['x'], end['y']])
+    bbox = np.array([min(start['x'],end['x']), min(start['y'],end['y']), max(end['x'],start['x']), max(end['y'], start['y'])])
 
     # transfer box_np t0 1024x1024 scale
     box_1024 = bbox[None, :] * 1024
