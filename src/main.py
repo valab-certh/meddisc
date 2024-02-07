@@ -280,7 +280,7 @@ async def medsam_estimation(boxdata: BoxData):
     inpIdx = boxdata.inpIdx
     # process data here
 
-    bbox = np.array([start['x'], start['y'], end['x'], end['y']])
+    bbox = np.array([min(start['x'],end['x']), min(start['y'],end['y']), max(end['x'],start['x']), max(end['y'], start['y'])])
 
     # transfer box_np t0 1024x1024 scale
     box_1024 = bbox[None, :] * 1024
@@ -290,7 +290,11 @@ async def medsam_estimation(boxdata: BoxData):
     medsam_seg = medsam_inference(medsam_model, embeddings[inpIdx], box_1024, Hs[inpIdx], Ws[inpIdx])
     print('Segmentation completed in %.2f seconds'%(time.time()-t0))
 
-    return {'mask': base64.b64encode(medsam_seg).decode('utf-8')}
+    return \
+    {
+        'mask': base64.b64encode(medsam_seg).decode('utf-8'),
+        'dimensions': [Ws[inpIdx], Hs[inpIdx]]
+    }
 
 @app.post('/submit_button')
 async def handle_submit_button_click(user_options: user_options_class):

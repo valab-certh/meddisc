@@ -399,13 +399,7 @@ async function UpdateDICOMInformation(dcm_idx)
         CleanedImg.style.minHeight = PredeterminedHeight;
         RawImgInner.src = raw_dicom_img_fp;
         CleanedImgInner.src = cleaned_dicom_img_fp;
-        // fill canvas with segmentation mask
-        OverlayCanvas.width = dimensions[0];
-        OverlayCanvas.height = dimensions[1];
-        BoxCanvas.width = dimensions[0];
-        BoxCanvas.height = dimensions[1];
-        const imageData = new ImageData(base64torgba(segmentation_data), dimensions[0], dimensions[1]);
-        ctx.putImageData(imageData, 0, 0);
+        fillCanvas(segmentation_data, dimensions);
         RawImg.style.minHeight = 0;
         CleanedImg.style.minHeight = 0;
     }
@@ -620,14 +614,7 @@ async function reset_mask() {
     
     if (reset_response.ok) {
         const response_data = await reset_response.json();
-        const PixelData = response_data['PixelData'];
-        const reset_dimensions = response_data['dimensions']
-        OverlayCanvas.width = reset_dimensions[0];
-        OverlayCanvas.height = reset_dimensions[1];
-        BoxCanvas.width = reset_dimensions[0];
-        BoxCanvas.height = reset_dimensions[1];
-        const resetData = new ImageData(base64torgba(PixelData), reset_dimensions[0], reset_dimensions[1]);
-        ctx.putImageData(resetData, 0, 0);
+        fillCanvas(response_data['PixelData'], response_data['dimensions']);
     }
 }
 
@@ -817,7 +804,8 @@ async function medsam_estimation(normalizedStart,normalizedEnd) {
             body: JSON.stringify(boxRequest)
         });
     if (box_response.ok) {
-        // draw on canvas here
+        const box_data = await box_response.json();
+        fillCanvas(box_data['mask'], box_data['dimensions']);
     }
 }
 
@@ -877,3 +865,12 @@ BoxCanvas.addEventListener('mouseout', () => {
     if (editMode === 'boundingBox') clearBoundingBox();
     BoxStart = null;
 });
+
+function fillCanvas(maskData, dimensions) {
+    OverlayCanvas.width = dimensions[0];
+    OverlayCanvas.height = dimensions[1];
+    BoxCanvas.width = dimensions[0];
+    BoxCanvas.height = dimensions[1];
+    const drawData = new ImageData(base64torgba(maskData), dimensions[0], dimensions[1]);
+    ctx.putImageData(drawData, 0, 0);
+}
