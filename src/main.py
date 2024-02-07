@@ -155,12 +155,12 @@ async def conversion_info(dicom_pair_fp: List[str] = Body(...)):
     cleaned_dcm = pydicom.dcmread(dicom_pair_fp[1])
     downscale_dimensionality = 1024
 
-    raw_img = basic_preprocessing(raw_dcm.pixel_array, downscale_dimensionality = downscale_dimensionality, multichannel = True)
+    raw_img = keras_ocr_preprocessing(raw_dcm.pixel_array, downscale_dimensionality = downscale_dimensionality, multichannel = True)
     raw_hash = hashlib.sha256(raw_img.tobytes()).hexdigest()
     raw_img_fp = './static/client_data/' + raw_hash + '.png'
     Image.fromarray(raw_img).save(raw_img_fp)
 
-    cleaned_img = basic_preprocessing(cleaned_dcm.pixel_array, downscale_dimensionality = downscale_dimensionality, multichannel = True)
+    cleaned_img = keras_ocr_preprocessing(cleaned_dcm.pixel_array, downscale_dimensionality = downscale_dimensionality, multichannel = True)
     cleaned_hash = hashlib.sha256(cleaned_img.tobytes()).hexdigest()
     cleaned_img_fp = './static/client_data/' + cleaned_hash + '.png'
     Image.fromarray(cleaned_img).save(cleaned_img_fp)
@@ -584,9 +584,6 @@ def seg_est_covid19(dcm: pydicom.dataset.FileDataset) -> tuple[np.ndarray, list[
 
     ## ! Preprocess: Begin
 
-    ## Normalize
-    # img = ( (img - np.min(img)) / (np.max(img)  - np.min(img)) )
-    ## Necessary
     img = img.astype(np.float32) / 4095
 
     ## Resize
@@ -722,7 +719,7 @@ def deidentification_attributes(user_input: dict, dcm: pydicom.dataset.FileDatas
 def ndarray_size(arr: np.ndarray) -> int:
     return arr.itemsize*arr.size
 
-def basic_preprocessing(img: np.ndarray, downscale_dimensionality: int, multichannel: bool = True) -> np.ndarray:
+def keras_ocr_preprocessing(img: np.ndarray, downscale_dimensionality: int, multichannel: bool = True) -> np.ndarray:
     '''
         Description:
             Image preprocessing pipeline. It is imperative that the image is converted to (1) uint8 and in (2) RGB in order for keras_ocr's detector to properly function.
@@ -736,7 +733,7 @@ def basic_preprocessing(img: np.ndarray, downscale_dimensionality: int, multicha
             out_image. Preprocessed image where each element has `np.uint8` data type. Each pixel is normalized. Its shape is (H, W) if `multichannel` is set to False, otherwise its shape is (H, W, 3).
     '''
 
-    img = (255.0 * (img / np.max(img))).astype(np.uint8)
+    img = (255.0 * ((img - np.min(img)) / (np.max(img) - np.min(img)))).astype(np.uint8)
 
     if downscale_dimensionality:
         new_shape = (min([downscale_dimensionality, img.shape[0]]), min([downscale_dimensionality, img.shape[1]]))
@@ -840,7 +837,7 @@ def image_deintentifier(dcm: pydicom.dataset.FileDataset) -> pydicom.dataset.Fil
 
     if downscale_dimensionality < max(raw_img_uint16_grayscale.shape[0], raw_img_uint16_grayscale.shape[1]):
         print('Downscaling detection input image from shape (%d, %d) to (%d, %d)'%(raw_img_uint16_grayscale.shape[0], raw_img_uint16_grayscale.shape[1], downscale_dimensionality, downscale_dimensionality))
-    raw_img_uint8_rgb = basic_preprocessing(img = raw_img_uint16_grayscale, downscale_dimensionality = downscale_dimensionality)
+    raw_img_uint8_rgb = keras_ocr_preprocessing(img = raw_img_uint16_grayscale, downscale_dimensionality = downscale_dimensionality)
 
     pipeline = keras_ocr.detection.Detector()
 
