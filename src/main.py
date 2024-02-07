@@ -354,7 +354,7 @@ def prepare_medsam():
     medsam_model = sam_model_registry["vit_b"](checkpoint = './pretrained_segmenters/MedSAM/medsam_vit_b.pth')
     print('MedSAM model deserialization completed')
 
-    dcm_fps = glob('./session_data/raw/*')
+    dcm_fps = sorted(glob('./session_data/raw/*'))
 
     t0 = time.time()
     print('Initializing MedSAM embeddings')
@@ -384,7 +384,7 @@ def prepare_medsam():
 
         with torch.no_grad():
             embeddings.append(medsam_model.image_encoder(img_1024_tensor))  # (1, 256, 64, 64)
-    
+
     print('Initialization completed - %.1f'%(time.time()-t0))
 
 def dicom_deidentifier(SESSION_FP: None or str = None) -> tuple[dict, list[tuple[str]]]:
