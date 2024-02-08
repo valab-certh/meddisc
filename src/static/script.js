@@ -894,6 +894,76 @@ function fillCanvas(maskData, dimensions) {
     const drawData = new ImageData(base64torgba(maskData), dimensions[0], dimensions[1]);
     ctx.putImageData(drawData, 0, 0);
 }
+
+function add_class() {
+    const inputVal = ClassText.value.trim();
+    if (inputVal === '') {
+        alert('Please enter a class name.');
+        return;
+    }
+
+    if (classesMap.includes(inputVal)) {
+        alert('This class already exists.');
+        return;
+    }
+
+    if (classesMap.length >= 10) {
+        alert('Maximum of 10 classes reached.');
+        return;
+    }
+
+    classesMap.push(inputVal);
+
+    const newOption = new Option(inputVal, inputVal, false, true);
+    BrushSelect.add(newOption);
+    BrushSelect.value = inputVal;
+    ClassText.value = '';
+
+    const event = new Event('change');
+    BrushSelect.dispatchEvent(event);
+    console.log(classesMap);
+}
+
+function remove_class() {
+    const inputVal = ClassText.value.trim();
+    if (inputVal === '') {
+        alert('Please enter a class name to remove.');
+        return;
+    }
+
+    const index = classesMap.indexOf(inputVal);
+    if (index === -1) {
+        alert('Class not found.');
+        return;
+    }
+
+    classesMap.splice(index, 1);
+
+    for (let i = 0; i < BrushSelect.options.length; i++) {
+        if (BrushSelect.options[i].value === inputVal) {
+            BrushSelect.remove(i);
+            break;
+        }
+    }
+
+    ClassText.value = '';
+    console.log(classesMap);
+}
+
+function submit_classes(){
+    ToggleEdit.disabled = false;
+    Mode.disabled = false;
+    BrushSizeSlider.disabled = false;
+    Undo.disabled = false;
+    Redo.disabled = false;
+    LoadDICOM.disabled = false;
+    ModifyDICOM.disabled = false;
+    Add.disabled = true;
+    Remove.disabled = true;
+    ClassText.disabled = true;
+    SubmitClasses.disabled = true;
+}
+
 function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
     const binaryString = window.atob(base64DicomMask);
 

@@ -129,19 +129,22 @@
                 </center>
                 </br>
                 <div class="button-container">
-                    <button class="SubmitAnon" id="Mode">Brush</button>
                     <select id="BrushSelect" class="DateProcessing">
                         <option value="eraser" selected="selected">Eraser</option>
-                        <option value="class1">Class1</option>
-                        <option value="class2">Class2</option>  
                     </select>
-                    <input type="range" id="BrushSizeSlider" min="1" max="50" value="25">
-                    <button class="SubmitAnon" id="Undo">↩</button>
-                    <button class="SubmitAnon" id="Redo">↪</button>
-
-                    <button class="SubmitAnon" id="ToggleEdit">View Mode</button>
-                    <button class="SubmitAnon" id="ResetDICOM" onclick="reset_mask()">Reset</button>
-                    <button class="SubmitAnon" id="ModifyDICOM" onclick="modify_dicom()">Modify</button>
+                    <input type="text" id="ClassText" class="PseudoPrefix" placeholder="class_name">
+                    <button class="SubmitAnon" id="Add" onclick="add_class()">+</button>
+                    <button class="SubmitAnon" id="Remove" onclick="remove_class()">-</button>
+                    <button class="SubmitAnon" id="SubmitClasses" onclick="submit_classes()">Submit Classes</button>
+                </div>
+                <div class="button-container">
+                    <button class="SubmitAnon" id="ToggleEdit" disabled>View Mode</button>
+                    <button class="SubmitAnon" id="Mode" disabled>Brush</button>
+                    <input type="range" id="BrushSizeSlider" min="1" max="50" value="25" disabled>
+                    <button class="SubmitAnon" id="Undo" disabled>↩</button>
+                    <button class="SubmitAnon" id="Redo" disabled>↪</button>
+                    <button class="SubmitAnon" id="ResetDICOM" onclick="reset_mask()" disabled>Reset</button>
+                    <button class="SubmitAnon" id="ModifyDICOM" onclick="modify_dicom()" disabled>Modify</button>
                 </div>
                 <div style="background-color: rgba(50, 50, 55, 255); display: flex; border-radius: 3px; color: white;">
                     <div class="image-row-left-label">
