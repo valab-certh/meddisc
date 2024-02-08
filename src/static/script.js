@@ -447,15 +447,11 @@ function base64torgba(encodedData) {
 
     for (let i = 0, j = 0; i < len; i++, j += 4) {
         let pixelValue = binaryString.charCodeAt(i);
-        if (pixelValue === 0) {
-            // transparent
+        const color = colorMap[pixelValue];
+        if (color) {
+            bytes.set(color, j);
+        } else {
             bytes.set([0, 0, 0, 0], j);
-        } else if (pixelValue === 1) {
-            // red
-            bytes.set([255, 0, 0, 255], j);
-        } else if (pixelValue === 2) {
-            // blue
-            bytes.set([0, 0, 255, 255], j);
         }
     }
     return bytes
@@ -675,23 +671,14 @@ function canvastobase64() {
     let binaryString = '';
 
     for (let i = 0; i < data.length; i += 4) {
-        let r = data[i];
-        let g = data[i + 1];
-        let b = data[i + 2];
-        let a = data[i + 3];
-
-        if (a === 0) {
-            // transparent
+        let rgba = `${data[i]},${data[i + 1]},${data[i + 2]},${data[i + 3]}`;
+        if (data[i + 3] === 0) {
             binaryString += String.fromCharCode(0);
-        } else if (r === 255 && g === 0 && b === 0 && a === 255) {
-            // red
-            binaryString += String.fromCharCode(1);
-        } else if (r === 0 && g === 0 && b === 255 && a === 255) {
-            // blue
-            binaryString += String.fromCharCode(2);
+        } else if (rgba in reverseColorMap) {
+            binaryString += String.fromCharCode(reverseColorMap[rgba]);
         } else {
             // default
-            binaryString += String.fromCharCode(0); 
+            binaryString += String.fromCharCode(0);
         }
     }
     return window.btoa(binaryString);
