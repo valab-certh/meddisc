@@ -835,8 +835,23 @@ Mode.addEventListener('click', function () {
         Mode.textContent = 'Box';
         BoxCanvas.style.pointerEvents = isEditing ? 'auto' : 'none';
         document.querySelector('#BrushSelect option[value="eraser"]').disabled = true;
-        BrushSelect.value = 'class1';
-        BrushSelect.dispatchEvent(new Event('change'));
+
+        // switch to first available option after eraser
+        let foundEraser = false;
+        let firstAvailableOption = null;
+        document.querySelectorAll('#BrushSelect option').forEach(option => {
+            if (foundEraser && !option.disabled) {
+                firstAvailableOption = firstAvailableOption || option;
+            }
+            if (option.value === 'eraser') {
+                foundEraser = true;
+            }
+        });
+
+        if (firstAvailableOption) {
+            BrushSelect.value = firstAvailableOption.value;
+            BrushSelect.dispatchEvent(new Event('change'));
+        }
     } else {
         editMode = 'brush';
         Mode.textContent = 'Brush';
