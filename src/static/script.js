@@ -14,7 +14,7 @@ var ctx = OverlayCanvas.getContext('2d');
 var ToggleEdit = document.getElementById('ToggleEdit');
 var BrushSizeSlider = document.getElementById('BrushSizeSlider');
 var BrushSelect = document.getElementById('BrushSelect');
-var LoadDICOM = document.getElementById('LoadDICOM');
+var LoadDICOM = document.getElementById('ResetDICOM');
 var ModifyDICOM = document.getElementById('ModifyDICOM');
 var Undo = document.getElementById('Undo');
 var Redo = document.getElementById('Redo');
@@ -50,6 +50,37 @@ var BoxEnd = null;
 
 ctx.lineJoin = 'round';
 ctx.lineCap = 'round';
+
+// class color map
+const colorMap = {
+    1: [255, 0, 0, 255],       // red
+    2: [0, 0, 255, 255],       // blue
+    3: [0, 255, 0, 255],       // green
+    4: [255, 255, 0, 255],     // yellow
+    5: [255, 165, 0, 255],     // orange
+    6: [255, 0, 255, 255],     // magenta
+    7: [0, 255, 255, 255],     // cyan
+    8: [128, 0, 128, 255],     // purple
+    9: [255, 192, 203, 255],   // pink
+    10: [128, 128, 128, 255],  // gray
+};
+
+// reverse class color map
+const reverseColorMap = {
+    '255,0,0,255': 1,       // red
+    '0,0,255,255': 2,       // blue
+    '0,255,0,255': 3,       // green
+    '255,255,0,255': 4,     // yellow
+    '255,165,0,255': 5,     // orange
+    '255,0,255,255': 6,     // magenta
+    '0,255,255,255': 7,     // cyan
+    '128,0,128,255': 8,     // purple
+    '255,192,203,255': 9,   // pink
+    '128,128,128,255': 10,  // gray
+};
+
+// class map
+let classesMap = ["eraser"];
 
 // ! Loading state (1/4): Begin
 
@@ -416,15 +447,11 @@ function base64torgba(encodedData) {
 
     for (let i = 0, j = 0; i < len; i++, j += 4) {
         let pixelValue = binaryString.charCodeAt(i);
-        if (pixelValue === 0) {
-            // transparent
+        const color = colorMap[pixelValue];
+        if (color) {
+            bytes.set(color, j);
+        } else {
             bytes.set([0, 0, 0, 0], j);
-        } else if (pixelValue === 1) {
-            // red
-            bytes.set([255, 0, 0, 255], j);
-        } else if (pixelValue === 2) {
-            // blue
-            bytes.set([0, 0, 255, 255], j);
         }
     }
     return bytes
@@ -644,23 +671,14 @@ function canvastobase64() {
     let binaryString = '';
 
     for (let i = 0; i < data.length; i += 4) {
-        let r = data[i];
-        let g = data[i + 1];
-        let b = data[i + 2];
-        let a = data[i + 3];
-
-        if (a === 0) {
-            // transparent
+        let rgba = `${data[i]},${data[i + 1]},${data[i + 2]},${data[i + 3]}`;
+        if (data[i + 3] === 0) {
             binaryString += String.fromCharCode(0);
-        } else if (r === 255 && g === 0 && b === 0 && a === 255) {
-            // red
-            binaryString += String.fromCharCode(1);
-        } else if (r === 0 && g === 0 && b === 255 && a === 255) {
-            // blue
-            binaryString += String.fromCharCode(2);
+        } else if (rgba in reverseColorMap) {
+            binaryString += String.fromCharCode(reverseColorMap[rgba]);
         } else {
             // default
-            binaryString += String.fromCharCode(0); 
+            binaryString += String.fromCharCode(0);
         }
     }
     return window.btoa(binaryString);
@@ -709,13 +727,15 @@ function draw(e) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    if (currentBrush === 'eraser') {
-        ctx.globalCompositeOperation = 'destination-out';
-        ctx.strokeStyle = 'rgba(0,0,0,1)';
-    } else {
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.strokeStyle = currentBrush === 'class1' ? 'rgba(255,0,0,1)' : 'rgba(0,0,255,1)';
-    }
+    const brushClassNumber = classesMap.indexOf(currentBrush);
+
+    const brushColor = brushClassNumber !== -1 && colorMap[brushClassNumber] 
+                        ? `rgba(${colorMap[brushClassNumber].join(',')})` 
+                        : 'rgba(0,0,0,1)';
+
+    ctx.strokeStyle = brushColor;
+
+    ctx.globalCompositeOperation = currentBrush === 'eraser' ? 'destination-out' : 'source-over';
 
     if (!isDrawing) return;
 
@@ -791,7 +811,7 @@ async function medsam_estimation(normalizedStart,normalizedEnd) {
     const boxRequest = {
         normalizedStart: normalizedStart,
         normalizedEnd: normalizedEnd,
-        segClass: BrushSelect.value,
+        segClass: classesMap.indexOf(BrushSelect.value),
         inpIdx: dcm_idx_
     };
     const box_response = await fetch(
@@ -805,7 +825,7 @@ async function medsam_estimation(normalizedStart,normalizedEnd) {
         });
     if (box_response.ok) {
         const box_data = await box_response.json();
-        fillCanvas(box_data['mask'], box_data['dimensions']);
+        mergeMask(ctx, box_data['mask'], OverlayCanvas.width, OverlayCanvas.height, colorMap);
     }
 }
 
@@ -815,8 +835,23 @@ Mode.addEventListener('click', function () {
         Mode.textContent = 'Box';
         BoxCanvas.style.pointerEvents = isEditing ? 'auto' : 'none';
         document.querySelector('#BrushSelect option[value="eraser"]').disabled = true;
-        BrushSelect.value = 'class1';
-        BrushSelect.dispatchEvent(new Event('change'));
+
+        // switch to first available option after eraser
+        let foundEraser = false;
+        let firstAvailableOption = null;
+        document.querySelectorAll('#BrushSelect option').forEach(option => {
+            if (foundEraser && !option.disabled) {
+                firstAvailableOption = firstAvailableOption || option;
+            }
+            if (option.value === 'eraser') {
+                foundEraser = true;
+            }
+        });
+
+        if (firstAvailableOption) {
+            BrushSelect.value = firstAvailableOption.value;
+            BrushSelect.dispatchEvent(new Event('change'));
+        }
     } else {
         editMode = 'brush';
         Mode.textContent = 'Brush';
@@ -873,4 +908,91 @@ function fillCanvas(maskData, dimensions) {
     BoxCanvas.height = dimensions[1];
     const drawData = new ImageData(base64torgba(maskData), dimensions[0], dimensions[1]);
     ctx.putImageData(drawData, 0, 0);
+}
+
+function add_class() {
+    const inputVal = ClassText.value.trim();
+    if (inputVal === '') {
+        alert('Please enter a class name.');
+        return;
+    }
+
+    if (classesMap.includes(inputVal)) {
+        alert('This class already exists.');
+        return;
+    }
+
+    if (classesMap.length >= 10) {
+        alert('Maximum of 10 classes reached.');
+        return;
+    }
+
+    classesMap.push(inputVal);
+
+    const newOption = new Option(inputVal, inputVal, false, true);
+    BrushSelect.add(newOption);
+    BrushSelect.value = inputVal;
+    ClassText.value = '';
+
+    const event = new Event('change');
+    BrushSelect.dispatchEvent(event);
+}
+
+function remove_class() {
+    const inputVal = ClassText.value.trim();
+    if (inputVal === '') {
+        alert('Please enter a class name to remove.');
+        return;
+    }
+
+    const index = classesMap.indexOf(inputVal);
+    if (index === -1) {
+        alert('Class not found.');
+        return;
+    }
+
+    classesMap.splice(index, 1);
+
+    for (let i = 0; i < BrushSelect.options.length; i++) {
+        if (BrushSelect.options[i].value === inputVal) {
+            BrushSelect.remove(i);
+            break;
+        }
+    }
+
+    ClassText.value = '';
+}
+
+function submit_classes(){
+    ToggleEdit.disabled = false;
+    Mode.disabled = false;
+    BrushSizeSlider.disabled = false;
+    Undo.disabled = false;
+    Redo.disabled = false;
+    LoadDICOM.disabled = false;
+    ModifyDICOM.disabled = false;
+    Add.disabled = true;
+    Remove.disabled = true;
+    ClassText.disabled = true;
+    SubmitClasses.disabled = true;
+}
+
+function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
+    const binaryString = window.atob(base64DicomMask);
+
+    let imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+    let data = imageData.data;
+
+    for (let i = 0; i < binaryString.length; i++) {
+        let maskValue = binaryString.charCodeAt(i);
+        let index = i * 4;
+
+        if (maskValue in colorMap) {
+            data[index] = colorMap[maskValue][0];
+            data[index + 1] = colorMap[maskValue][1];
+            data[index + 2] = colorMap[maskValue][2];
+            data[index + 3] = colorMap[maskValue][3];
+        }
+    }
+    ctx.putImageData(imageData, 0, 0);
 }
