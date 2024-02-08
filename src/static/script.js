@@ -618,7 +618,7 @@ async function reset_mask() {
     }
 }
 
-async function modify_dicom() {   
+async function modify_dicom() {
     const requestBody = {
         pixelData: canvastobase64(),
         filepath: dicom_pair_fps[dcm_idx_][1]

@@ -29,6 +29,13 @@ Now open a browser, type and enter `localhost:8000` on the browser's search bar.
 
 For development, in the uvicorn command simply add `--reload` to consider script modifications.
 
+Clone a lite version of MedSAM by
+```
+git clone -b LiteMedSAM https://github.com/bowang-lab/MedSAM/
+```
+
+Enter the MedSAM folder `cd MedSAM` and run `pip install -e .`.
+
 ### GPU Support
 
 It should be noted that for the parallelization of pixel data de-identification, an NVIDIA GPU would contribute a lot. To install the necessary packages, the machine needs to have the corresponding NVIDIA drivers installed, along with the [CUDA toolkit](https://docs.nvidia.com/cuda/). Finally, apply the following on your python environment
