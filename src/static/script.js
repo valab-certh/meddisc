@@ -825,7 +825,7 @@ async function medsam_estimation(normalizedStart,normalizedEnd) {
         });
     if (box_response.ok) {
         const box_data = await box_response.json();
-        fillCanvas(box_data['mask'], box_data['dimensions']);
+        mergeMask(ctx, box_data['mask'], OverlayCanvas.width, OverlayCanvas.height, colorMap);
     }
 }
 
@@ -893,4 +893,23 @@ function fillCanvas(maskData, dimensions) {
     BoxCanvas.height = dimensions[1];
     const drawData = new ImageData(base64torgba(maskData), dimensions[0], dimensions[1]);
     ctx.putImageData(drawData, 0, 0);
+}
+function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
+    const binaryString = window.atob(base64DicomMask);
+
+    let imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+    let data = imageData.data;
+
+    for (let i = 0; i < binaryString.length; i++) {
+        let maskValue = binaryString.charCodeAt(i);
+        let index = i * 4;
+
+        if (maskValue in colorMap) {
+            data[index] = colorMap[maskValue][0];
+            data[index + 1] = colorMap[maskValue][1];
+            data[index + 2] = colorMap[maskValue][2];
+            data[index + 3] = colorMap[maskValue][3];
+        }
+    }
+    ctx.putImageData(imageData, 0, 0);
 }
