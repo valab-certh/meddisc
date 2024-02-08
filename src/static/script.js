@@ -936,7 +936,6 @@ function add_class() {
 
     const event = new Event('change');
     BrushSelect.dispatchEvent(event);
-    console.log(classesMap);
 }
 
 function remove_class() {
@@ -962,7 +961,6 @@ function remove_class() {
     }
 
     ClassText.value = '';
-    console.log(classesMap);
 }
 
 function submit_classes(){
