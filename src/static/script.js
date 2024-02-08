@@ -14,7 +14,7 @@ var ctx = OverlayCanvas.getContext('2d');
 var ToggleEdit = document.getElementById('ToggleEdit');
 var BrushSizeSlider = document.getElementById('BrushSizeSlider');
 var BrushSelect = document.getElementById('BrushSelect');
-var LoadDICOM = document.getElementById('LoadDICOM');
+var LoadDICOM = document.getElementById('ResetDICOM');
 var ModifyDICOM = document.getElementById('ModifyDICOM');
 var Undo = document.getElementById('Undo');
 var Redo = document.getElementById('Redo');
@@ -811,7 +811,7 @@ async function medsam_estimation(normalizedStart,normalizedEnd) {
     const boxRequest = {
         normalizedStart: normalizedStart,
         normalizedEnd: normalizedEnd,
-        segClass: BrushSelect.value,
+        segClass: classesMap.indexOf(BrushSelect.value),
         inpIdx: dcm_idx_
     };
     const box_response = await fetch(
