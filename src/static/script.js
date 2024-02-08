@@ -51,6 +51,37 @@ var BoxEnd = null;
 ctx.lineJoin = 'round';
 ctx.lineCap = 'round';
 
+// class color map
+const colorMap = {
+    1: [255, 0, 0, 255],       // red
+    2: [0, 0, 255, 255],       // blue
+    3: [0, 255, 0, 255],       // green
+    4: [255, 255, 0, 255],     // yellow
+    5: [255, 165, 0, 255],     // orange
+    6: [255, 0, 255, 255],     // magenta
+    7: [0, 255, 255, 255],     // cyan
+    8: [128, 0, 128, 255],     // purple
+    9: [255, 192, 203, 255],   // pink
+    10: [128, 128, 128, 255],  // gray
+};
+
+// reverse class color map
+const reverseColorMap = {
+    '255,0,0,255': 1,       // red
+    '0,0,255,255': 2,       // blue
+    '0,255,0,255': 3,       // green
+    '255,255,0,255': 4,     // yellow
+    '255,165,0,255': 5,     // orange
+    '255,0,255,255': 6,     // magenta
+    '0,255,255,255': 7,     // cyan
+    '128,0,128,255': 8,     // purple
+    '255,192,203,255': 9,   // pink
+    '128,128,128,255': 10,  // gray
+};
+
+// class map
+let classesMap = ["eraser"];
+
 // ! Loading state (1/4): Begin
 
 var slider_pending_update = false;
