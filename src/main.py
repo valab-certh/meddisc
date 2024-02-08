@@ -245,11 +245,11 @@ async def correct_segmentation_sequence():
     with open(file = './session_data/user_options.json', mode = 'r') as file:
         user_input = json.load(file)
 
-    fps = glob(os.path.join(user_input['input_dcm_dp'], '*'))
+    fps = glob(os.path.join(user_input['output_dcm_dp'], '*'))
 
     for fp in fps:
 
-        classes_idx2name = ['lesion', 'lung']
+        classes_idx2name = [] ## Should be inserted by front end
 
         dcm = pydicom.dcmread(fp)
 
@@ -695,46 +695,6 @@ def medsam_inference(medsam_model, img_embed, box_256, new_size, original_size):
     medsam_seg = (low_res_pred > 0.5).astype(np.uint8)
 
     return medsam_seg
-
-def seg_est_covid19(dcm: pydicom.dataset.FileDataset) -> tuple[np.ndarray, list[str]]:
-    '''
-        Description:
-            Responsible for estimating the segmentation mask for the (1) lesions caused by the Covid-19 virus along with (2) lung areas. In the current version it takes into account exactly 1 example per run.
-
-        Args:
-            dcm. DICOM file to be predicted.
-
-        Returns:
-            mask. Shape (H, W). Segmentation mask. Each pointed element takes 8 bits.
-            class_names. Contains an ordered set of classes.
-    '''
-
-    img = dcm.pixel_array
-    H, W = img.shape
-
-    model = load_model('./pretrained_segmenters/covid19')
-
-    ## ! Preprocess: Begin
-
-    img = img.astype(np.float32) / 4095
-
-    ## Resize
-    img = cv2.resize(src = img, dsize = (256, 256)).astype(np.float32)
-
-    ## Add batch axis
-    img = np.expand_dims(img, axis=0)
-
-    ## Add channel axis
-    img = np.expand_dims(img, axis=-1)
-
-    ## ! Preprocess: End
-
-    seg_probs = model.predict(img)[0, ...]
-
-    ## Postprocess
-    mask = cv2.resize(np.argmax(seg_probs, axis = -1), dsize = (W, H), interpolation = cv2.INTER_NEAREST).astype(np.uint8)
-
-    return mask, ['lesion', 'lung']
 
 def attach_segm_data(dcm: pydicom.dataset.FileDataset, seg_mask: np.array, class_names: list[str]) -> pydicom.dataset.FileDataset:
     '''

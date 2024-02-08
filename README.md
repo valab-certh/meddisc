@@ -1,8 +1,8 @@
 # DICOM De-Identifier
 
-The scripts provided in this repository serve as a tool for the removal of a patient's personal identifiable information (PII) from their associated DICOM files, either through a predefined set of de-identification profiles or by using a custom end-user defined configuration file. This implementation adheres to the standards specified in NEMA's Attribute Confidentiality Profiles which can be accessed at [[link](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html)]. Additionally has the capability to reduct burned-in text from the DICOM's pixel data. Primarily developed as a component of the INCISIVE project, the tool's main objective is to ensure patient anonymization.
+The scripts provided in this repository serve as a tool for the removal of a patient's personal identifiable information (PII) from their associated DICOM files, either through a predefined set of de-identification profiles or by using a custom end-user defined configuration file. It also has the capability to reduct burned-in text from the DICOM's pixel data. The de-identification implementation adheres to the standards specified in NEMA's Attribute Confidentiality Profiles [[link](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html)]. Additionally the tool offers a semi-automatic segmentation functionality based on [MedSAM](https://github.com/bowang-lab/MedSAM) for multiple classes.
 
-The DICOM De-Identifier provides a user-friendly interface, ensuring a smooth User Experience (UX). The UI design allows users to easily navigate through the tool and perform the necessary operations for patient data de-identification.
+Our tool provides a user-friendly interface, ensuring a smooth User Experience (UX). The UI design allows users to easily navigate through the tool and perform the necessary operations for patient data de-identification.
 
 <p align="center" style="font-size: 80%;">
     <img src='./readme_content/fig0.png' width='70%' align='center'>
@@ -29,10 +29,11 @@ Now open a browser, type and enter `localhost:8000` on the browser's search bar.
 
 For development, in the uvicorn command simply add `--reload` to consider script modifications.
 
-Clone a lite version of MedSAM by
+Clone a lite version of MedSAM by cloning the corresponding branch through
 ```
 git clone -b LiteMedSAM https://github.com/bowang-lab/MedSAM/
 ```
+Our prefered cloning path is inside a virtual environment's `python3.X/site-packages/`.
 
 Enter the MedSAM folder `cd MedSAM` and run `pip install -e .`.
 
@@ -49,7 +50,11 @@ For cases where you want to run this code using venv and the pip package manager
 
 ## Utilities
 
-In the **Input** section, the user may upload a directory containing DICOM files for patient de-identification. Additionally if the user seeks to continue the de-identification's session (e.g. because of an interruption) they can upload the corresponding session file provided as one of the server's output files.
+In the **Input** section, the user may upload a directory containing DICOM files for patient de-identification and segmentation.
+
+### De-identification
+
+If the user seeks to restore a previous session for the de-identification, they may upload the corresponding session file provided as one of the server's output files.
 
 In case the end-user wants to tailor their own de-identification process, they can do so by uploading their own `.csv` file which has to contain two columns. One with title `Tag ID` and the other with title `Action`. Each cell below `Tag ID` must hold a DICOM tag ID with a preceeding apostrophe in the format `'hhhhhhhh` and must correspond to one of the actions `K`, `X` and `C` (their functionality is specified in the Technical Description section). One such example is
 
@@ -67,7 +72,7 @@ In case the end-user wants to tailor their own de-identification process, they c
 
 To select any of the pre-defined de-identification profiles (otherwise called *action groups*), the user may select the de-identification process through the **De-identification options** section.
 
-### Options
+#### Options
 
 To clarify the following descriptions, we define a new term called *action group*.
 
@@ -157,6 +162,20 @@ In the table below, each row corresponds to a tag field existing in both the raw
     Figure 5. Header de-identification comparison. On the left side is the header of the raw DICOM file, and on the right side the header of the cleaned or de-identified DICOM file.
 </p>
 
+### Segmentation
+
+Right after the de-identification process is completed, the user is asked to define the classes for the segmentation process. After the user submits the class names they may apply semi-automatic annotation based on a pretrained lite version of the MedSAM segmentation model. As soon as they activate the Edit Mode, they can start annotating the image either through a brush or by defining a bounding box which prompts MedSAM to return a segmentation mask of the area contained in that box. The resulting segmentation masks are stored inside the exported DICOM files, in their corresponding file headers in the following structure
+```
+(0062,0002) SQ SegmentSequence = <sequence of 1 item>
+  #0
+  (0008,0016) UI SOPClassUID = 1.2.840.10008.5.1.4.1.1.66.4
+  (0028,0010) US Rows = {Number of columns for mask array}
+  (0028,0011) US Columns = {Number of columns for mask array}
+  (0028,0100) US BitsAllocated = 8
+  (0062,0006) ST SegmentDescription = {Sorted class names with ";" delimiter}
+  (7FE0,0010) OB PixelData = <binary data of length: 4088484>
+```
+
 ## In-Depth Technical Description
 
 The backend is implemented in Python. During runtime, the input DICOM file's information is stored in a `pydicom.dataset.FileDataset` object, where all standard DICOM object manipulations (e.g. exportation into a DICOM file) are based on the `pydicom` library.
@@ -185,39 +204,39 @@ Visit repo [DICOMImageDeIdentifier](https://github.com/fl0wxr/DICOMImageDeIdenti
 
 Below is a list of the currently implemented **actions** for the de-identifier.
 
-#### Remove Tag - Code `X`
+#### Remove Attribute - Code `X`
 
-Replaces tag value with empty string. E.g.
+Replaces attribute value with empty string. E.g.
 ```
 dcm[<TAG_INDEX>].value = ''
 ```
 
-#### Clean Tag - Code `C`
+#### Clean Attribute - Code `C`
 
 Implemented only for VRs that are either `DA` or `TM`.
 
-`DA` -> Such tags are date tags in the format `YYYYMMDD`. The way that `C` is applied in such tags is by taking `YYYYMMDD` and adding to that date a random offset number of $\texttt{days}$ which is sampled from the following discrete uniform distribution $\mathfrak{U}$, as follows
+`DA` -> Such attributes contain date information in the format `YYYYMMDD`. The way that `C` is applied in such attributes is by taking `YYYYMMDD` and adding to that date a random offset number of $\texttt{days}$ which is sampled from the following discrete uniform distribution $\mathfrak{U}$, as follows
 $$\texttt{days} \sim \mathfrak{U}(365 \cdot 10, 2 \cdot (365 \cdot 10))$$
 This approach effectively preserves a patient's temporal correlations which helps retain useful patient information allowing for further analysis on the de-identified files.
 
-`TM` -> Day time tags in the format `HHMMSS.FFFFFF`. The way that `C` is applied in such a tag is by simply replacing its value with a random offset number of $\texttt{seconds}$ (hence there is no second-fraction), sampled as
+`TM` -> Day time attributes in the format `HHMMSS.FFFFFF`. The way that `C` is applied to such attributes is by simply replacing its value with a random offset number of $\texttt{seconds}$ (hence there is no second-fraction), sampled as
 $$\texttt{seconds} \sim \mathfrak{U}(0, 3600 \cdot 24)$$
 
-#### Keep Tag - Code `K`
+#### Keep Attribute - Code `K`
 
-Simply keeps a tag as is.
+Simply keeps an attribute as is.
 
-#### Replace Tag - Code `Z`
+#### Replace Attribute - Code `Z`
 
-Replaces tag value with a dummy one. Implemented only for patient ID with tag index `(0010, 0020)` and patient Name with tag index `(0010, 0010)` in which case both values are replaced by a common pseudo patient ID.
+Replaces an attribute value with a dummy one. Implemented only for patient ID with tag `(0010, 0020)` and patient Name with tag `(0010, 0010)` in which case both values are replaced by a common pseudo patient ID.
 
-### Additional Altered DICOM Tags
+### Additional Altered DICOM Attributes
 
-- It should be noted that DICOM files that include instances of the `GroupLength` tag with tag code `(gggg, 0000)`, are being automatically dropped by the respective function that is used to export the DICOM object.
+- It should be noted that DICOM files that include instances of the `GroupLength` tag with tag index `(gggg, 0000)`, are being automatically dropped by the respective function that is used to export the DICOM object.
 - Inside the output DICOM file, additional DICOM attributes were included that specify the anonymization process
-    - Tag instance with code `(0012, 0063)` where its value is a concatenated sequence of codes as per Table CID 7050 from [[link](https://dicom.nema.org/medical/dicom/2019a/output/chtml/part16/sect_CID_7050.html)]. These specify how the DICOM de-identification procedure was performed.
-    - Tag instance with code `(0012, 0062)` signifies if patient identity was pseudonymized/removed from both the attributes and the pixel data [[link](https://dicom.innolitics.com/ciods/rt-plan/patient/00120062)].
-    - Tag instance with code `(0028, 0301)` signifies if PII was removed from burned in text in pixel data [[link](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/sect_E.3.html)].
+    - Attribute instance with code `(0012, 0063)` where its value is a concatenated sequence of codes as per Table CID 7050 from [[link](https://dicom.nema.org/medical/dicom/2019a/output/chtml/part16/sect_CID_7050.html)]. These specify how the DICOM de-identification procedure was performed.
+    - Attribute instance with code `(0012, 0062)` signifies if patient identity was pseudonymized/removed from both the attributes and the pixel data [[link](https://dicom.innolitics.com/ciods/rt-plan/patient/00120062)].
+    - Attribute instance with code `(0028, 0301)` signifies if PII was removed from burned in text in pixel data [[link](https://dicom.nema.org/medical/dicom/current/output/chtml/part15/sect_E.3.html)].
 
 ## Citation
 
