@@ -740,13 +740,15 @@ function draw(e) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    if (currentBrush === 'eraser') {
-        ctx.globalCompositeOperation = 'destination-out';
-        ctx.strokeStyle = 'rgba(0,0,0,1)';
-    } else {
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.strokeStyle = currentBrush === 'class1' ? 'rgba(255,0,0,1)' : 'rgba(0,0,255,1)';
-    }
+    const brushClassNumber = classesMap.indexOf(currentBrush);
+
+    const brushColor = brushClassNumber !== -1 && colorMap[brushClassNumber] 
+                        ? `rgba(${colorMap[brushClassNumber].join(',')})` 
+                        : 'rgba(0,0,0,1)';
+
+    ctx.strokeStyle = brushColor;
+
+    ctx.globalCompositeOperation = currentBrush === 'eraser' ? 'destination-out' : 'source-over';
 
     if (!isDrawing) return;
 
