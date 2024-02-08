@@ -239,17 +239,15 @@ async def get_files(files: List[UploadFile] = File(...)):
 
     return {'n_uploaded_files': len(proper_dicom_paths), 'total_size': total_uploaded_file_megabytes}
 
-@app.post('/correct_segmentation_sequence')
-async def correct_segmentation_sequence():
+@app.post('/initialize_segmentation_sequence')
+async def initialize_segmentation_sequence(classes_idx2name: List[str]):
 
     with open(file = './session_data/user_options.json', mode = 'r') as file:
         user_input = json.load(file)
 
-    fps = glob(os.path.join(user_input['output_dcm_dp'], '*'))
+    fps = glob.glob(os.path.join(user_input['output_dcm_dp'], '**', '*.dcm'), recursive = True)
 
     for fp in fps:
-
-        classes_idx2name = [] ## Should be inserted by front end
 
         dcm = pydicom.dcmread(fp)
 
@@ -276,13 +274,11 @@ async def get_files(ConfigFile: UploadFile = File(...)):
 
 @app.post("/medsam_estimation/")
 async def medsam_estimation(boxdata: BoxData):
-    ## Currently works for exactly 1 bounding box
 
     start = boxdata.normalizedStart
     end = boxdata.normalizedEnd
     segClass = boxdata.segClass
     inpIdx = boxdata.inpIdx
-    # process data here
 
     bbox = np.array([min(start['x'],end['x']), min(start['y'],end['y']), max(end['x'],start['x']), max(end['y'], start['y'])])
 
@@ -292,6 +288,7 @@ async def medsam_estimation(boxdata: BoxData):
     print('Starting segmentation')
     t0 = time.time()
     medsam_seg = medsam_inference(medsam_model, embeddings[inpIdx], box_256, (newh, neww), (Hs[inpIdx], Ws[inpIdx]))
+    medsam_seg = segClass * medsam_seg
     print('Segmentation completed in %.2f seconds'%(time.time()-t0))
     medsam_seg *= segClass
     return \

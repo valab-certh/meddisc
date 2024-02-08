@@ -579,7 +579,7 @@ async function submit_dicom_processing_request()
 
     await fetch
     (
-        '/correct_segmentation_sequence/',
+        '/initialized_segmentation_sequence/',
         {
             method: 'POST'
         }
