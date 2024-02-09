@@ -848,7 +848,7 @@ Mode.addEventListener('click', function () {
             }
         });
 
-        if (firstAvailableOption) {
+        if (currentBrush=='eraser') {
             BrushSelect.value = firstAvailableOption.value;
             BrushSelect.dispatchEvent(new Event('change'));
         }
