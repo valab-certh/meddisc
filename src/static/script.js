@@ -922,7 +922,7 @@ function add_class() {
         return;
     }
 
-    if (classesMap.length >= 10) {
+    if (classesMap.length >= 11) {
         alert('Maximum of 10 classes reached.');
         return;
     }
