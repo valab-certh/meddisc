@@ -14,10 +14,13 @@ var ctx = OverlayCanvas.getContext('2d');
 var ToggleEdit = document.getElementById('ToggleEdit');
 var BrushSizeSlider = document.getElementById('BrushSizeSlider');
 var BrushSelect = document.getElementById('BrushSelect');
-var LoadDICOM = document.getElementById('LoadDICOM');
+var LoadDICOM = document.getElementById('ResetDICOM');
 var ModifyDICOM = document.getElementById('ModifyDICOM');
 var Undo = document.getElementById('Undo');
 var Redo = document.getElementById('Redo');
+var Mode = document.getElementById('Mode');
+var BoxCanvas = document.getElementById('BoxCanvas');
+var bctx = BoxCanvas.getContext('2d');
 var notificationMessage = document.getElementById("notification-message");
 var notificationIcon = document.getElementById("notification-icon");
 var notificationText = document.getElementById("notification-text");
@@ -44,10 +47,44 @@ var lastX = 0;
 var lastY = 0;
 var undoStack = [];
 var redoStack = [];
+var editMode = 'brush';
+var BoxStart = null;
+var BoxEnd = null;
 var notificationTimeout;
 
 ctx.lineJoin = 'round';
 ctx.lineCap = 'round';
+
+// class color map
+const colorMap = {
+    1: [255, 0, 0, 255],       // red
+    2: [0, 0, 255, 255],       // blue
+    3: [0, 255, 0, 255],       // green
+    4: [255, 255, 0, 255],     // yellow
+    5: [255, 165, 0, 255],     // orange
+    6: [255, 0, 255, 255],     // magenta
+    7: [0, 255, 255, 255],     // cyan
+    8: [128, 0, 128, 255],     // purple
+    9: [255, 192, 203, 255],   // pink
+    10: [128, 128, 128, 255],  // gray
+};
+
+// reverse class color map
+const reverseColorMap = {
+    '255,0,0,255': 1,       // red
+    '0,0,255,255': 2,       // blue
+    '0,255,0,255': 3,       // green
+    '255,255,0,255': 4,     // yellow
+    '255,165,0,255': 5,     // orange
+    '255,0,255,255': 6,     // magenta
+    '0,255,255,255': 7,     // cyan
+    '128,0,128,255': 8,     // purple
+    '255,192,203,255': 9,   // pink
+    '128,128,128,255': 10,  // gray
+};
+
+// class map
+let classesMap = ["eraser"];
 
 // ! Loading state (1/4): Begin
 
@@ -397,11 +434,7 @@ async function UpdateDICOMInformation(dcm_idx)
         CleanedImg.style.minHeight = PredeterminedHeight;
         RawImgInner.src = raw_dicom_img_fp;
         CleanedImgInner.src = cleaned_dicom_img_fp;
-        // fill canvas with segmentation mask
-        OverlayCanvas.width = dimensions[0];
-        OverlayCanvas.height = dimensions[1];
-        const imageData = new ImageData(base64torgba(segmentation_data), dimensions[0], dimensions[1]);
-        ctx.putImageData(imageData, 0, 0);
+        fillCanvas(segmentation_data, dimensions);
         RawImg.style.minHeight = 0;
         CleanedImg.style.minHeight = 0;
     }
@@ -418,15 +451,11 @@ function base64torgba(encodedData) {
 
     for (let i = 0, j = 0; i < len; i++, j += 4) {
         let pixelValue = binaryString.charCodeAt(i);
-        if (pixelValue === 0) {
-            // transparent
+        const color = colorMap[pixelValue];
+        if (color) {
+            bytes.set(color, j);
+        } else {
             bytes.set([0, 0, 0, 0], j);
-        } else if (pixelValue === 1) {
-            // red
-            bytes.set([255, 0, 0, 255], j);
-        } else if (pixelValue === 2) {
-            // blue
-            bytes.set([0, 0, 255, 255], j);
         }
     }
     return bytes
@@ -594,7 +623,7 @@ async function submit_dicom_processing_request()
     CheckForChanges();
 
     ConversionResult.style.display = 'inline';
-
+    
     retain_safe_private_input_checkbox.disabled = false;
     retain_uids_input_checkbox.disabled = false;
     retain_device_identity_input_checkbox.disabled = false;
@@ -616,16 +645,11 @@ async function reset_mask() {
     showNotification("success", "Loaded mask from DICOM ", 3000);
     if (reset_response.ok) {
         const response_data = await reset_response.json();
-        const PixelData = response_data['PixelData'];
-        const reset_dimensions = response_data['dimensions']
-        OverlayCanvas.width = reset_dimensions[0];
-        OverlayCanvas.height = reset_dimensions[1];
-        const resetData = new ImageData(base64torgba(PixelData), reset_dimensions[0], reset_dimensions[1]);
-        ctx.putImageData(resetData, 0, 0);
+        fillCanvas(response_data['PixelData'], response_data['dimensions']);
     }
 }
 
-async function modify_dicom() {   
+async function modify_dicom() {
     const requestBody = {
         pixelData: canvastobase64(),
         filepath: dicom_pair_fps[dcm_idx_][1]
@@ -652,23 +676,14 @@ function canvastobase64() {
     let binaryString = '';
 
     for (let i = 0; i < data.length; i += 4) {
-        let r = data[i];
-        let g = data[i + 1];
-        let b = data[i + 2];
-        let a = data[i + 3];
-
-        if (a === 0) {
-            // transparent
+        let rgba = `${data[i]},${data[i + 1]},${data[i + 2]},${data[i + 3]}`;
+        if (data[i + 3] === 0) {
             binaryString += String.fromCharCode(0);
-        } else if (r === 255 && g === 0 && b === 0 && a === 255) {
-            // red
-            binaryString += String.fromCharCode(1);
-        } else if (r === 0 && g === 0 && b === 255 && a === 255) {
-            // blue
-            binaryString += String.fromCharCode(2);
+        } else if (rgba in reverseColorMap) {
+            binaryString += String.fromCharCode(reverseColorMap[rgba]);
         } else {
             // default
-            binaryString += String.fromCharCode(0); 
+            binaryString += String.fromCharCode(0);
         }
     }
     return window.btoa(binaryString);
@@ -691,6 +706,7 @@ ToggleEdit.addEventListener('click', () => {
     isEditing = !isEditing;
     ToggleEdit.textContent = isEditing ? 'Edit Mode' : 'View Mode';
     OverlayCanvas.style.pointerEvents = isEditing ? 'auto' : 'none';
+    BoxCanvas.style.pointerEvents = (isEditing && editMode === 'boundingBox') ? 'auto' : 'none';
     showNotification("info", ToggleEdit.textContent, 1000);
 });
 
@@ -718,13 +734,15 @@ function draw(e) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    if (currentBrush === 'eraser') {
-        ctx.globalCompositeOperation = 'destination-out';
-        ctx.strokeStyle = 'rgba(0,0,0,1)';
-    } else {
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.strokeStyle = currentBrush === 'class1' ? 'rgba(255,0,0,1)' : 'rgba(0,0,255,1)';
-    }
+    const brushClassNumber = classesMap.indexOf(currentBrush);
+
+    const brushColor = brushClassNumber !== -1 && colorMap[brushClassNumber] 
+                        ? `rgba(${colorMap[brushClassNumber].join(',')})` 
+                        : 'rgba(0,0,0,1)';
+
+    ctx.strokeStyle = brushColor;
+
+    ctx.globalCompositeOperation = currentBrush === 'eraser' ? 'destination-out' : 'source-over';
 
     if (!isDrawing) return;
 
@@ -792,6 +810,201 @@ OverlayCanvas.addEventListener('mouseup', () => {
     isDrawing = false;
 });
 OverlayCanvas.addEventListener('mouseout', () => isDrawing = false);
+
+function clearBoundingBox() {
+    bctx.clearRect(0, 0, BoxCanvas.width, BoxCanvas.height);
+}
+
+async function medsam_estimation(normalizedStart,normalizedEnd) {
+    if (editMode !== 'boundingBox' || !BoxStart || !BoxEnd) return;
+    const boxRequest = {
+        normalizedStart: normalizedStart,
+        normalizedEnd: normalizedEnd,
+        segClass: classesMap.indexOf(BrushSelect.value),
+        inpIdx: dcm_idx_
+    };
+    const box_response = await fetch(
+        '/medsam_estimation/',
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(boxRequest)
+        });
+    if (box_response.ok) {
+        const box_data = await box_response.json();
+        mergeMask(ctx, box_data['mask'], OverlayCanvas.width, OverlayCanvas.height, colorMap);
+    }
+}
+
+Mode.addEventListener('click', function () {
+    if (editMode === 'brush') {
+        editMode = 'boundingBox';
+        Mode.textContent = 'Box';
+        BoxCanvas.style.pointerEvents = isEditing ? 'auto' : 'none';
+        document.querySelector('#BrushSelect option[value="eraser"]').disabled = true;
+
+        // switch to first available option after eraser
+        let foundEraser = false;
+        let firstAvailableOption = null;
+        document.querySelectorAll('#BrushSelect option').forEach(option => {
+            if (foundEraser && !option.disabled) {
+                firstAvailableOption = firstAvailableOption || option;
+            }
+            if (option.value === 'eraser') {
+                foundEraser = true;
+            }
+        });
+
+        if (firstAvailableOption) {
+            BrushSelect.value = firstAvailableOption.value;
+            BrushSelect.dispatchEvent(new Event('change'));
+        }
+    } else {
+        editMode = 'brush';
+        Mode.textContent = 'Brush';
+        BoxCanvas.style.pointerEvents = 'none';
+        document.querySelector('#BrushSelect option[value="eraser"]').disabled = false;
+    }
+});
+
+BoxCanvas.addEventListener('mousedown', (e) => {
+    if (editMode !== 'boundingBox') return;
+    var mousePos = getMousePos(BoxCanvas, e);
+    BoxStart = mousePos;
+    BoxEnd = null;
+});
+
+BoxCanvas.addEventListener('mousemove', (e) => {
+    if (editMode !== 'boundingBox' || !BoxStart) return;
+    var mousePos = getMousePos(BoxCanvas, e);
+    BoxEnd = mousePos;
+    clearBoundingBox();
+
+    bctx.beginPath();
+    bctx.rect(BoxStart.x, BoxStart.y, BoxEnd.x - BoxStart.x, BoxEnd.y - BoxStart.y);
+    bctx.strokeStyle = currentBrush === 'class1' ? 'rgba(255,0,0,1)' : 'rgba(0,0,255,1)';
+    bctx.stroke();
+});
+
+BoxCanvas.addEventListener('mouseup', () => {
+    if (editMode !== 'boundingBox' || !BoxStart || !BoxEnd) return;
+    const normalizedStart = {
+        x: BoxStart.x / BoxCanvas.width,
+        y: BoxStart.y / BoxCanvas.height
+    };
+    const normalizedEnd = {
+        x: BoxEnd.x / BoxCanvas.width,
+        y: BoxEnd.y / BoxCanvas.height
+    };  
+    // send request on mouseup
+    medsam_estimation(normalizedStart,normalizedEnd);
+    clearBoundingBox();
+    BoxStart = null;
+});
+
+
+BoxCanvas.addEventListener('mouseout', () => {
+    if (editMode === 'boundingBox') clearBoundingBox();
+    BoxStart = null;
+});
+
+function fillCanvas(maskData, dimensions) {
+    OverlayCanvas.width = dimensions[0];
+    OverlayCanvas.height = dimensions[1];
+    BoxCanvas.width = dimensions[0];
+    BoxCanvas.height = dimensions[1];
+    const drawData = new ImageData(base64torgba(maskData), dimensions[0], dimensions[1]);
+    ctx.putImageData(drawData, 0, 0);
+}
+
+function add_class() {
+    const inputVal = ClassText.value.trim();
+    if (inputVal === '') {
+        alert('Please enter a class name.');
+        return;
+    }
+
+    if (classesMap.includes(inputVal)) {
+        alert('This class already exists.');
+        return;
+    }
+
+    if (classesMap.length >= 10) {
+        alert('Maximum of 10 classes reached.');
+        return;
+    }
+
+    classesMap.push(inputVal);
+
+    const newOption = new Option(inputVal, inputVal, false, true);
+    BrushSelect.add(newOption);
+    BrushSelect.value = inputVal;
+    ClassText.value = '';
+
+    const event = new Event('change');
+    BrushSelect.dispatchEvent(event);
+}
+
+function remove_class() {
+    const inputVal = ClassText.value.trim();
+    if (inputVal === '') {
+        alert('Please enter a class name to remove.');
+        return;
+    }
+
+    const index = classesMap.indexOf(inputVal);
+    if (index === -1) {
+        alert('Class not found.');
+        return;
+    }
+
+    classesMap.splice(index, 1);
+
+    for (let i = 0; i < BrushSelect.options.length; i++) {
+        if (BrushSelect.options[i].value === inputVal) {
+            BrushSelect.remove(i);
+            break;
+        }
+    }
+
+    ClassText.value = '';
+}
+
+function submit_classes(){
+    ToggleEdit.disabled = false;
+    Mode.disabled = false;
+    BrushSizeSlider.disabled = false;
+    Undo.disabled = false;
+    Redo.disabled = false;
+    LoadDICOM.disabled = false;
+    ModifyDICOM.disabled = false;
+    Add.disabled = true;
+    Remove.disabled = true;
+    ClassText.disabled = true;
+    SubmitClasses.disabled = true;
+}
+
+function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
+    const binaryString = window.atob(base64DicomMask);
+
+    let imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+    let data = imageData.data;
+
+    for (let i = 0; i < binaryString.length; i++) {
+        let maskValue = binaryString.charCodeAt(i);
+        let index = i * 4;
+
+        if (maskValue in colorMap) {
+            data[index] = colorMap[maskValue][0];
+            data[index + 1] = colorMap[maskValue][1];
+            data[index + 2] = colorMap[maskValue][2];
+            data[index + 3] = colorMap[maskValue][3];
+        }
+    }
+    ctx.putImageData(imageData, 0, 0);
+}
 
 function showNotification(type, text, duration) {
     // clear existing timeout
