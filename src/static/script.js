@@ -876,7 +876,8 @@ BoxCanvas.addEventListener('mousemove', (e) => {
     bctx.beginPath();
     bctx.lineWidth = 5; 
     bctx.rect(BoxStart.x, BoxStart.y, BoxEnd.x - BoxStart.x, BoxEnd.y - BoxStart.y);
-    bctx.strokeStyle = currentBrush === 'class1' ? 'rgba(255,0,0,1)' : 'rgba(0,0,255,1)';
+    const classNumber = classesMap.indexOf(currentBrush);
+    bctx.strokeStyle = `rgba(${colorMap[classNumber].join(',')})`;
     bctx.stroke();
 });
 
