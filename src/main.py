@@ -175,23 +175,17 @@ async def conversion_info(dicom_pair_fp: List[str] = Body(...)):
     # with open(file = '../cleaned_dcm_meta.json', mode = 'w') as file:
     #     json.dump(DCM2DictMetadata(ds = cleaned_dcm), fp = file)
 
-    try:
-        mask = cleaned_dcm.SegmentSequence[0].PixelData
-    except:
-        mask = np.zeros(shape = (cleaned_dcm.Rows, cleaned_dcm.Columns), dtype = np.uint8)
-
     return \
     {
         'raw_dicom_metadata': DCM2DictMetadata(ds = raw_dcm),
         'raw_dicom_img_fp': raw_img_fp,
         'cleaned_dicom_metadata': DCM2DictMetadata(ds = cleaned_dcm),
         'cleaned_dicom_img_fp': cleaned_img_fp,
-        'segmentation_data': base64.b64encode(mask).decode('utf-8'),
         'dimensions': [cleaned_dcm.Rows, cleaned_dcm.Columns]
     }
 
-@app.post('/reset_mask/')
-async def reset_mask(current_dcm_fp: str = Body(...)):
+@app.post('/get_mask_from_file/')
+async def get_mask_from_file(current_dcm_fp: str = Body(...)):
     current_dcm = pydicom.dcmread(current_dcm_fp)
     return \
     {
@@ -239,25 +233,104 @@ async def get_files(files: List[UploadFile] = File(...)):
 
     return {'n_uploaded_files': len(proper_dicom_paths), 'total_size': total_uploaded_file_megabytes}
 
-@app.post('/initialize_segmentation_sequence')
-async def initialize_segmentation_sequence(classes_idx2name: List[str]):
+@app.post('/correct_seg_homogeneity')
+async def correct_seg_homogeneity():
+    '''
+        Description:
+            Checks for segmentation sequence attribute homogeneity in DICOM batch. Considers any potential conflicts.
+    '''
+
+    def SegmentSequenceHomogeneityCheck(fps):
+
+        found_classes = []
+        for fp in fps:
+
+            dcm = pydicom.dcmread(fp)
+
+            try:
+                ## If this breaks then there is no homogeneity; includes the case in which there no segmentation sequence
+                np.frombuffer(dcm.SegmentSequence[0].PixelData, dtype = np.uint8).reshape((dcm.Rows, dcm.Columns))
+
+                ## Checks if next DICOM file shares the same classes with a previous DICOM file
+                found_classes.append(dcm.SegmentSequence[0].SegmentDescription)
+            except:
+                return False
+
+        ## At this point it is safe to accept that all DICOM files have a sound segmentation sequence attribute
+
+        ## Checks class homogeneity across all DICOM files
+        if len(set(found_classes)) > 1 or dcm.SegmentSequence[0].SegmentDescription.split(';')[0] != 'background':
+            return False
+
+        return True
 
     with open(file = './session_data/user_options.json', mode = 'r') as file:
         user_input = json.load(file)
 
-    fps = glob.glob(os.path.join(user_input['output_dcm_dp'], '**', '*.dcm'), recursive = True)
+    fps = glob(os.path.join(user_input['output_dcm_dp'], '**', '*.dcm'), recursive = True)
+
+    ## Input homogeneity check (not considering newly defined classes)
+    homogeneity_state = SegmentSequenceHomogeneityCheck(fps)
+
+    if not homogeneity_state:
+        print('W: Input segment sequence attributes are not homogeneous on input batch')
+
+        renew_segm_seq(fps, ['background'])
+
+@app.post('/get_batch_classes')
+async def get_batch_classes():
+    '''
+        Description:
+            Gets class names from a homogenous batch, and returns them.
+
+        Returns:
+            found_classes. Contains a list of all the classes.
+    '''
+
+    with open(file = './session_data/user_options.json', mode = 'r') as file:
+        user_input = json.load(file)
+
+    fps = glob(os.path.join(user_input['output_dcm_dp'], '**', '*.dcm'), recursive = True)
+
+    try:
+        found_classes = {'classes': pydicom.dcmread(fps[0]).SegmentSequence[0].SegmentDescription.split(';')}
+    except:
+        exit('E: Fatal Error; corrupted segmentation sequence attribute detected')
+
+    return found_classes
+
+@app.post('/align_classes')
+async def align_classes(classes: List[str]):
+    '''
+        Description:
+            Aligns classes and adjusts mask based on the received class list.
+
+        Args.
+            classes. List containing the names of all classes.
+    '''
+
+    with open(file = './session_data/user_options.json', mode = 'r') as file:
+        user_input = json.load(file)
+
+    fps = glob(os.path.join(user_input['output_dcm_dp'], '**', '*.dcm'), recursive = True)
+
+    renew_segm_seq(fps, classes)
+
+def renew_segm_seq(fps, classes):
+
+    if classes != ['background']:
+        print('W: Proceeding to overwrite the batches DICOM headers with a segmentation sequence that adheres to newly defined classes; the segmentation masks are reset')
+    else:
+        print('W: Proceeding to overwrite the batches DICOM headers with a segmentation sequence containing only the background; the segmentation masks are reset')
 
     for fp in fps:
 
         dcm = pydicom.dcmread(fp)
 
         ## Improvement 0x8fee8c92e9 -> This should be replaced by our own IOD
-        if (0x0062, 0x0002) in dcm and dcm.SegmentSequence[0].SegmentDescription == ';'.join(classes_idx2name):
-            continue
-        else:
-            img_shape = dcm.pixel_array.shape
-            mask = np.zeros(shape = img_shape, dtype = np.uint8)
-            dcm = attach_segm_data(dcm = dcm, seg_mask = mask, class_names = classes_idx2name)
+        img_shape = dcm.pixel_array.shape
+        mask = np.zeros(shape = img_shape, dtype = np.uint8)
+        dcm = attach_segm_data(dcm = dcm, seg_mask = mask, class_names = classes)
 
         dcm.save_as(fp)
 
@@ -662,7 +735,7 @@ def dicom_deidentifier(SESSION_FP: None or str = None) -> tuple[dict, list[tuple
         ## Overwrite session file to save progress
         rw_obj.export_session(session = session)
 
-    print('Operation completed')
+    print('\nOperation completed')
 
     return session, rw_obj.dicom_pair_fps
 

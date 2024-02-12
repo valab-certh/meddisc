@@ -35,7 +35,7 @@ git clone -b LiteMedSAM https://github.com/bowang-lab/MedSAM/
 ```
 Our prefered cloning path is inside a virtual environment's `python3.X/site-packages/`.
 
-Enter the MedSAM folder `cd MedSAM` and run `pip install -e .`.
+Enter the MedSAM folder `cd MedSAM` and run `pip install -e .`. The corresponding `README.md` can be found at [[link](https://github.com/bowang-lab/MedSAM/blob/LiteMedSAM/README.md)].
 
 ### GPU Support
 
