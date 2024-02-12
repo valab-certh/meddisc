@@ -1001,7 +1001,7 @@ async function submit_classes(){
     if (classesMap !== predefinedClassesMap)
     {
         // The user is prompted to decide which of the classes map will be used for the override
-        let overwrite_with_newly_defined_classes = window.confirm("Press OK to discard imported classes from input batch and overwrite with newly defined ones (resets all masks). Otherwise to press Cancel to ignore the newly defined classes.");
+        let overwrite_with_newly_defined_classes = window.confirm("Press OK to discard imported classes from input batch and overwrite with newly defined ones (resets all masks). Otherwise press Cancel to ignore the newly defined classes.");
 
         if (overwrite_with_newly_defined_classes === false)
         {

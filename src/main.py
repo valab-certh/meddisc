@@ -38,8 +38,6 @@ import torch.nn.functional as F
 from copy import deepcopy
 from tiny_vit_sam import TinyViT
 from segment_anything.modeling import MaskDecoder, PromptEncoder, TwoWayTransformer
-
-## SegSAM Dependencies
 import torch
 
 class user_options_class(BaseModel):
@@ -251,7 +249,7 @@ async def correct_seg_homogeneity():
                 ## If this breaks then there is no homogeneity; includes the case in which there no segmentation sequence
                 np.frombuffer(dcm.SegmentSequence[0].PixelData, dtype = np.uint8).reshape((dcm.Rows, dcm.Columns))
 
-                ## Checks if next DICOM file shares the same classes with a previous DICOM file
+                ## Checks if next DICOM file shares the same classes with the previously checked DICOM files
                 found_classes.append(dcm.SegmentSequence[0].SegmentDescription)
             except:
                 return False

@@ -23,7 +23,7 @@ python3 -m pip install -r requirements.txt
 
 First download and extract the latest release. For releases past `v1.3.8`, an additional step is to extract `pretrained_segmenters.tar.gz` inside `src`. From inside `src` start the server through
 ```
-uvicorn server:app --port 8000
+uvicorn main:app --port 8000
 ```
 Now open a browser, type and enter `localhost:8000` on the browser's search bar. When the end-user opens the interface for the first time it will look like that of Figure 1.
 
