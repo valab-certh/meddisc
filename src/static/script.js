@@ -446,7 +446,7 @@ async function UpdateDICOMInformation(dcm_idx)
     if (classes_submitted_state)
     {
         get_mask_from_file();
-        undoStack= [];
+        undoStack = [];
         redoStack = [];
     }
 }
