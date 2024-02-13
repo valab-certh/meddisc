@@ -37,7 +37,7 @@ var dcm_idx_;
 
 // GUI variables initialization 
 var isEditing = false;
-var currentBrush = 'eraser';
+var currentBrush = 'background';
 var brushSize = 25;
 var isDrawing = false;
 var lastX = 0;
@@ -80,7 +80,8 @@ const reverseColorMap = {
 };
 
 // class map
-let classesMap = ["eraser"];
+let classesMap = ["background"];
+let predefinedClassesMap;
 
 // ! Loading state (1/4): Begin
 
@@ -392,7 +393,6 @@ async function UpdateDICOMInformation(dcm_idx)
         const dicom_metadata_table = table(dicom_pair['raw_dicom_metadata'], dicom_pair['cleaned_dicom_metadata'], DiffEnabled);
         const raw_dicom_img_fp = dicom_pair['raw_dicom_img_fp'];
         const cleaned_dicom_img_fp = dicom_pair['cleaned_dicom_img_fp'];
-        const segmentation_data = dicom_pair['segmentation_data'];
         const dimensions = dicom_pair['dimensions']
 
         if (RawImgInner.height !== 0)
@@ -430,7 +430,6 @@ async function UpdateDICOMInformation(dcm_idx)
         CleanedImg.style.minHeight = PredeterminedHeight;
         RawImgInner.src = raw_dicom_img_fp;
         CleanedImgInner.src = cleaned_dicom_img_fp;
-        fillCanvas(segmentation_data, dimensions);
         RawImg.style.minHeight = 0;
         CleanedImg.style.minHeight = 0;
     }
@@ -577,14 +576,6 @@ async function submit_dicom_processing_request()
 {
     SubmitAnonymizationProcess.disabled = true;
 
-    await fetch
-    (
-        '/correct_segmentation_sequence/',
-        {
-            method: 'POST'
-        }
-    );
-
     const data =
     {
         'clean_image': clean_image.checked,
@@ -626,11 +617,42 @@ async function submit_dicom_processing_request()
     retain_patient_characteristics_input_checkbox.disabled = false;
     date_processing_select.disabled = false;
     retain_descriptors_input_checkbox.disabled = false;
+
+    await fetch
+    (
+        '/correct_seg_homogeneity',
+        {
+            method: 'POST'
+        }
+    );
+
+    const predefinedClassesMap_responce = await fetch
+    (
+        '/get_batch_classes',
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }
+    );
+
+    predefinedClassesMap = await predefinedClassesMap_responce.json()
+    predefinedClassesMap = predefinedClassesMap.classes
+
+    classesMap = Array.from(predefinedClassesMap)
+
+    // Loads predefined classes to buttons and canvas; skips the background
+    for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
+    {
+        const newOption = new Option(classesMap[class_idx], classesMap[class_idx], false, false);
+        BrushSelect.add(newOption);
+    }
 }
 
-async function reset_mask() {
+async function get_mask_from_file() {
     const reset_response = await fetch(
-        '/reset_mask/',
+        '/get_mask_from_file/',
         {
             method: 'POST',
             headers: {
@@ -735,7 +757,7 @@ function draw(e) {
 
     ctx.strokeStyle = brushColor;
 
-    ctx.globalCompositeOperation = currentBrush === 'eraser' ? 'destination-out' : 'source-over';
+    ctx.globalCompositeOperation = currentBrush === 'background' ? 'destination-out' : 'source-over';
 
     if (!isDrawing) return;
 
@@ -834,17 +856,17 @@ Mode.addEventListener('click', function () {
         editMode = 'boundingBox';
         Mode.textContent = 'Box';
         BoxCanvas.style.pointerEvents = isEditing ? 'auto' : 'none';
-        document.querySelector('#BrushSelect option[value="eraser"]').disabled = true;
+        document.querySelector('#BrushSelect option[value="background"]').disabled = true;
 
-        // switch to first available option after eraser
-        let foundEraser = false;
+        // switch to first available option after background
+        let foundBackground = false;
         let firstAvailableOption = null;
         document.querySelectorAll('#BrushSelect option').forEach(option => {
-            if (foundEraser && !option.disabled) {
+            if (foundBackground && !option.disabled) {
                 firstAvailableOption = firstAvailableOption || option;
             }
-            if (option.value === 'eraser') {
-                foundEraser = true;
+            if (option.value === 'background') {
+                foundBackground = true;
             }
         });
 
@@ -856,7 +878,7 @@ Mode.addEventListener('click', function () {
         editMode = 'brush';
         Mode.textContent = 'Brush';
         BoxCanvas.style.pointerEvents = 'none';
-        document.querySelector('#BrushSelect option[value="eraser"]').disabled = false;
+        document.querySelector('#BrushSelect option[value="background"]').disabled = false;
     }
 });
 
@@ -896,7 +918,6 @@ BoxCanvas.addEventListener('mouseup', () => {
     clearBoundingBox();
     BoxStart = null;
 });
-
 
 BoxCanvas.addEventListener('mouseout', () => {
     if (editMode === 'boundingBox') clearBoundingBox();
@@ -965,7 +986,8 @@ function remove_class() {
     ClassText.value = '';
 }
 
-function submit_classes(){
+async function submit_classes(){
+
     ToggleEdit.disabled = false;
     Mode.disabled = false;
     BrushSizeSlider.disabled = false;
@@ -976,7 +998,55 @@ function submit_classes(){
     Add.disabled = true;
     Remove.disabled = true;
     ClassText.disabled = true;
-    SubmitClasses.disabled = true;
+    submit_classes.disabled = true;
+
+    if (classesMap !== predefinedClassesMap)
+    {
+        // The user is prompted to decide which of the classes map will be used for the override
+        let overwrite_with_newly_defined_classes = window.confirm("Press OK to discard imported classes from input batch and overwrite with newly defined ones (resets all masks). Otherwise press Cancel to ignore the newly defined classes.");
+
+        if (overwrite_with_newly_defined_classes === false)
+        {
+            // Using imported classes from batch
+
+            // Removes all existing classes from UI
+
+            for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
+            {
+                BrushSelect.remove(class_idx);
+            }
+
+            classesMap = Array.from(predefinedClassesMap)
+
+            // Applies user choice to buttons and canvas
+            for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
+            {
+                const newOption = new Option(classesMap[class_idx], classesMap[class_idx], false, false);
+                BrushSelect.add(newOption);
+            }
+        }
+        else
+        {
+            // Using newly defined classes
+
+            // Adjusts embedded segmentation classes and resets all map arrays on batch
+            await fetch
+            (
+                '/align_classes/',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(classesMap)
+                }
+            );
+        }
+
+
+    }
+
+    get_mask_from_file();
 }
 
 function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
