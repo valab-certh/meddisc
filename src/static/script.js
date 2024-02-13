@@ -859,6 +859,7 @@ async function medsam_estimation(normalizedStart,normalizedEnd) {
     if (box_response.ok) {
         const box_data = await box_response.json();
         mergeMask(ctx, box_data['mask'], OverlayCanvas.width, OverlayCanvas.height, colorMap);
+        saveState();
     }
 }
 
