@@ -881,7 +881,7 @@ Mode.addEventListener('click', function () {
             }
         });
 
-        if (firstAvailableOption) {
+        if (currentBrush=='background') {
             BrushSelect.value = firstAvailableOption.value;
             BrushSelect.dispatchEvent(new Event('change'));
         }
@@ -907,8 +907,10 @@ BoxCanvas.addEventListener('mousemove', (e) => {
     clearBoundingBox();
 
     bctx.beginPath();
+    bctx.lineWidth = 5; 
     bctx.rect(BoxStart.x, BoxStart.y, BoxEnd.x - BoxStart.x, BoxEnd.y - BoxStart.y);
-    bctx.strokeStyle = currentBrush === 'class1' ? 'rgba(255,0,0,1)' : 'rgba(0,0,255,1)';
+    const classNumber = classesMap.indexOf(currentBrush);
+    bctx.strokeStyle = `rgba(${colorMap[classNumber].join(',')})`;
     bctx.stroke();
 });
 
@@ -954,7 +956,7 @@ function add_class() {
         return;
     }
 
-    if (classesMap.length >= 10) {
+    if (classesMap.length >= 11) {
         alert('Maximum of 10 classes reached.');
         return;
     }
