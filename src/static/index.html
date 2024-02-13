@@ -143,7 +143,7 @@
                     <input type="range" id="BrushSizeSlider" min="1" max="50" value="25" disabled>
                     <button class="SubmitAnon" id="Undo" disabled>↩</button>
                     <button class="SubmitAnon" id="Redo" disabled>↪</button>
-                    <button class="SubmitAnon" id="ResetDICOM" onclick="reset_mask()" disabled>Reset</button>
+                    <button class="SubmitAnon" id="ResetDICOM" onclick="get_mask_from_file(dcm_idx_)" disabled>Reset</button>
                     <button class="SubmitAnon" id="ModifyDICOM" onclick="modify_dicom()" disabled>Modify</button>
                 </div>
                 <div style="background-color: rgba(50, 50, 55, 255); display: flex; border-radius: 3px; color: white;">
@@ -174,6 +174,17 @@
                 </div>
             </div>
         </main>
+        <dialog class="modal" id="modal">
+            <!-- Modal content -->
+            <div class="modal-content">
+                <h2 class="modal-header">Classes Conflict</h2>
+                <p>Warning: The newly defined classes are inconsistent with the batch classes. How should this be handled?
+                </br></br>
+                Press "Override New Classes" to override the newly defined classes and reset each DICOM file's mask. Otherwise you can keep the batch classes along with their masks by pressing "Keep Batch Classes".</p>
+                <button id="overrideMasks">Override New Classes</button>
+                <button id="useBatchMasks">Keep Batch Classes</button>
+            </div>
+        </dialog>
         <script src="/static/script.js"></script>
     </body>
 </html>

@@ -350,11 +350,35 @@ label.normal-label
     justify-content: flex-end;
 }
 
-input[type="range"]{
+input[type="range"] {
     padding: 5px 10px;
     border: none;
     border-radius: 5px;
     background-color: #555;
     color: white;
     cursor: pointer;
-  }
+}
+
+.modal {
+
+}
+
+.modal-header {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.modal-content
+{
+    max-width: 450px;
+    overflow-wrap: anywhere;
+}
+
+.open-button {
+
+}
+
+.close-button {
+
+}

@@ -101,6 +101,12 @@ var PredeterminedHeight = '37vw';
 
 var masks = '';
 
+// Modal
+var modal = document.querySelector('#modal');
+var openModal = document.querySelector('.open-button');
+var closeModal = document.querySelector('.close-button');
+var classes_submitted_state = false;
+
 
 function ShowDiff(ToggleValue)
 {
@@ -436,6 +442,11 @@ async function UpdateDICOMInformation(dcm_idx)
 
     // Loading state (4/4)
     LoadingState = false;
+
+    if (classes_submitted_state)
+    {
+        get_mask_from_file();
+    }
 }
 
 function base64torgba(encodedData) {
@@ -986,6 +997,7 @@ function remove_class() {
 
 async function submit_classes(){
 
+    classes_submitted_state = true;
     ToggleEdit.disabled = false;
     Mode.disabled = false;
     BrushSizeSlider.disabled = false;
@@ -996,23 +1008,27 @@ async function submit_classes(){
     Add.disabled = true;
     Remove.disabled = true;
     ClassText.disabled = true;
-    submit_classes.disabled = true;
+    SubmitClasses.disabled = true;
 
     if (classesMap !== predefinedClassesMap)
     {
         // The user is prompted to decide which of the classes map will be used for the override
-        let overwrite_with_newly_defined_classes = window.confirm("Press OK to discard imported classes from input batch and overwrite with newly defined ones (resets all masks). Otherwise press Cancel to ignore the newly defined classes.");
+        let overwrite_with_newly_defined_classes = window.confirm("Press OK to discard imported classes from input batch and override the newly defined ones (resets all masks). Otherwise press Cancel to ignore the newly defined classes.");
 
+        // await modal.showModal();
+        
         if (overwrite_with_newly_defined_classes === false)
         {
             // Using imported classes from batch
-
+            
             // Removes all existing classes from UI
 
             for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
             {
-                BrushSelect.remove(class_idx);
+                // The list shrinks
+                BrushSelect.remove(1);
             }
+
 
             classesMap = Array.from(predefinedClassesMap)
 
@@ -1022,6 +1038,7 @@ async function submit_classes(){
                 const newOption = new Option(classesMap[class_idx], classesMap[class_idx], false, false);
                 BrushSelect.add(newOption);
             }
+
         }
         else
         {
@@ -1066,3 +1083,7 @@ function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
     }
     ctx.putImageData(imageData, 0, 0);
 }
+
+// closeModal.addEventListener('click', function(){
+//     modal.close();
+// })

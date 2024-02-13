@@ -359,9 +359,9 @@ async def medsam_estimation(boxdata: BoxData):
     print('Starting segmentation')
     t0 = time.time()
     medsam_seg = medsam_inference(medsam_model, embeddings[inpIdx], box_256, (newh, neww), (Hs[inpIdx], Ws[inpIdx]))
-    medsam_seg = segClass * medsam_seg
+    medsam_seg = (segClass * medsam_seg).astype(np.uint8)
     print('Segmentation completed in %.2f seconds'%(time.time()-t0))
-    medsam_seg *= segClass
+
     return \
     {
         'mask': base64.b64encode(medsam_seg).decode('utf-8'),
