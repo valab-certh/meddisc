@@ -870,7 +870,7 @@ Mode.addEventListener('click', function () {
             }
         });
 
-        if (currentBrush=='eraser') {
+        if (currentBrush=='background') {
             BrushSelect.value = firstAvailableOption.value;
             BrushSelect.dispatchEvent(new Event('change'));
         }
