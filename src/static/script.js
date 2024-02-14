@@ -1088,7 +1088,6 @@ useBatchMasks.addEventListener('click', function(){
 
     modal.close();
 })
-}
 
 function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
     const binaryString = window.atob(base64DicomMask);
