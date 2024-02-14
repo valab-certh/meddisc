@@ -1005,6 +1005,8 @@ function remove_class() {
     }
 
     ClassText.value = '';
+    const event = new Event('change');
+    BrushSelect.dispatchEvent(event);
 }
 
 async function submit_classes(){
