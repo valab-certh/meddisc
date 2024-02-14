@@ -133,7 +133,7 @@
                         <option value="background" selected="selected">background</option>
                     </select>
                     <div class="colorIndicator"></div>
-                    <input type="text" id="ClassText" class="PseudoPrefix" placeholder="class_name">
+                    <input type="text" id="ClassText" class="PseudoPrefix" placeholder="Enter class name">
                     <button class="SubmitAnon" id="Add" onclick="add_class()">+</button>
                     <button class="SubmitAnon" id="Remove" onclick="remove_class()">-</button>
                     <button class="SubmitAnon" id="SubmitClasses" onclick="submit_classes()">Submit Classes</button>
@@ -144,8 +144,8 @@
                     <input type="range" id="BrushSizeSlider" min="1" max="50" value="25" disabled>
                     <button class="SubmitAnon" id="Undo" disabled>↩</button>
                     <button class="SubmitAnon" id="Redo" disabled>↪</button>
-                    <button class="SubmitAnon" id="ResetDICOM" onclick="get_mask_from_file(dcm_idx_)" disabled>Reset</button>
-                    <button class="SubmitAnon" id="ModifyDICOM" onclick="modify_dicom()" disabled>Modify</button>
+                    <button class="SubmitAnon" id="ResetDICOM" onclick="get_mask_from_file(dcm_idx_)" disabled>Load</button>
+                    <button class="SubmitAnon" id="ModifyDICOM" onclick="modify_dicom()" disabled>Save to DICOM</button>
                 </div>
                 <div style="background-color: rgba(50, 50, 55, 255); display: flex; border-radius: 3px; color: white;">
                     <div class="image-row-left-label">
