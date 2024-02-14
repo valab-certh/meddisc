@@ -506,6 +506,7 @@ document.querySelector('#UploadForm input[name="files"]').addEventListener
                 </br>
             `;
             SubmitAnonymizationProcess.disabled = false;
+            resetGUIElements();
         }
         else
         {
@@ -989,6 +990,11 @@ function remove_class() {
         return;
     }
 
+    if (inputVal === 'background') {
+        alert('Cannot remove background class');
+        return;
+    }
+
     classesMap.splice(index, 1);
 
     for (let i = 0; i < BrushSelect.options.length; i++) {
@@ -999,6 +1005,8 @@ function remove_class() {
     }
 
     ClassText.value = '';
+    const event = new Event('change');
+    BrushSelect.dispatchEvent(event);
 }
 
 async function submit_classes(){
@@ -1130,4 +1138,40 @@ function updateBrushIndicator(brushNumber) {
             colorIndicator.style.backgroundImage = "none";
         }
     }
+}
+
+function resetGUIElements() {
+    for (var i = BrushSelect.options.length - 1; i >= 0; i--) {
+        if (BrushSelect.options[i].value !== 'background') {
+            BrushSelect.remove(i);
+        }
+    }
+    BrushSelect.value = "background";
+    const event = new Event('change');
+    BrushSelect.dispatchEvent(event);
+    classesMap = ["background"];
+    classes_submitted_state = false;
+
+    // reset to view mode
+    ToggleEdit.disabled = true;
+    isEditing = false;
+    ToggleEdit.textContent = 'View Mode';
+    OverlayCanvas.style.pointerEvents = 'none';
+    BoxCanvas.style.pointerEvents = 'none';
+
+    // reset to brush mode
+    Mode.disabled = true;
+    editMode = 'brush';
+    Mode.textContent = 'Brush';
+    document.querySelector('#BrushSelect option[value="background"]').disabled = false;
+
+    BrushSizeSlider.disabled = true;
+    Undo.disabled = true;
+    Redo.disabled = true;
+    LoadDICOM.disabled = true;
+    ModifyDICOM.disabled = true;
+    Add.disabled = false;
+    Remove.disabled = false;
+    ClassText.disabled = false;
+    SubmitClasses.disabled = false;
 }
