@@ -446,6 +446,8 @@ async function UpdateDICOMInformation(dcm_idx)
     if (classes_submitted_state)
     {
         get_mask_from_file();
+        undoStack = [];
+        redoStack = [];
     }
 }
 
@@ -859,6 +861,7 @@ async function medsam_estimation(normalizedStart,normalizedEnd) {
     if (box_response.ok) {
         const box_data = await box_response.json();
         mergeMask(ctx, box_data['mask'], OverlayCanvas.width, OverlayCanvas.height, colorMap);
+        saveState();
     }
 }
 
