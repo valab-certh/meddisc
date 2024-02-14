@@ -990,6 +990,11 @@ function remove_class() {
         return;
     }
 
+    if (inputVal === 'background') {
+        alert('Cannot remove background class');
+        return;
+    }
+
     classesMap.splice(index, 1);
 
     for (let i = 0; i < BrushSelect.options.length; i++) {
