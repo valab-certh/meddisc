@@ -382,3 +382,19 @@ input[type="range"] {
 .close-button {
 
 }
+
+.colorIndicator {
+    width: 36px;
+    height: 36px;
+    margin-left: 10px;
+    margin-right: 10px;
+    border-radius: 5px;
+    opacity: 0.3;
+    background-image:
+        linear-gradient(45deg, #808080 25%, transparent 25%, transparent 75%, #808080 75%),
+        linear-gradient(45deg, #808080 25%, #f0f0f0 25%, #f0f0f0 75%, #808080 75%);
+    background-position: 0 0, 9px 9px;
+    background-size: 18px 18px;
+    width: 36px;
+    height: 36px;/
+}
