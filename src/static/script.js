@@ -723,6 +723,7 @@ function canvastobase64() {
 // brush selection
 BrushSelect.addEventListener('change', (event) => {
     currentBrush = event.target.value;
+    updateBrushIndicator(classesMap.indexOf(currentBrush));
 });
 
 // brush radius selection
@@ -1092,3 +1093,26 @@ function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
 // closeModal.addEventListener('click', function(){
 //     modal.close();
 // })
+
+// update the brush indicator color
+function updateBrushIndicator(brushNumber) {
+    const colorIndicator = document.querySelector('.colorIndicator');
+
+    if (brushNumber === 0) {
+        // checkerboard pattern
+        colorIndicator.style.backgroundImage = 
+            "linear-gradient(45deg, #808080 25%, transparent 25%, transparent 75%, #808080 75%)," +
+            "linear-gradient(45deg, #808080 25%, #f0f0f0 25%, #f0f0f0 75%, #808080 75%)";
+        colorIndicator.style.backgroundPosition = "0 0, 9px 9px";
+        colorIndicator.style.backgroundSize = "18px 18px";
+    } else {
+        // get color from map
+        const color = colorMap[brushNumber];
+        if (color) {
+            const rgbaColor = `rgba(${color.join(',')})`;
+            colorIndicator.style.backgroundColor = rgbaColor;
+
+            colorIndicator.style.backgroundImage = "none";
+        }
+    }
+}
