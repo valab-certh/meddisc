@@ -47,6 +47,7 @@ var redoStack = [];
 var editMode = 'brush';
 var BoxStart = null;
 var BoxEnd = null;
+var progress_saved = true;
 
 ctx.lineJoin = 'round';
 ctx.lineCap = 'round';
@@ -363,91 +364,108 @@ function CheckForChanges()
 
 async function UpdateDICOMInformation(dcm_idx)
 {
-    // ! Loading state (3/4): Begin
-
-    slider_pending_update = true;
-    pending_dcm_idx = dcm_idx;
-
-    if (LoadingState)
+    if (progress_saved == true)
     {
-        return;
-    }
+        // ! Loading state (3/4): Begin
 
-    slider_pending_update = false;
+        slider_pending_update = true;
+        pending_dcm_idx = dcm_idx;
 
-    LoadingState = true;
-
-    // ! Loading state (3/4): End
-
-    dcm_idx_ = dcm_idx
-    const dicom_pair_fp = await dicom_pair_fps[dcm_idx_]
-    const conversion_info_response = await fetch
-    (
-        '/conversion_info/',
+        if (LoadingState)
         {
-            method: 'POST',
-            headers:
-            {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(dicom_pair_fp)
+            return;
         }
-    );
 
-    dicom_pair = await conversion_info_response.json();
-    const dicom_metadata_table = table(dicom_pair['raw_dicom_metadata'], dicom_pair['cleaned_dicom_metadata'], DiffEnabled);
-    const raw_dicom_img_fp = dicom_pair['raw_dicom_img_fp'];
-    const cleaned_dicom_img_fp = dicom_pair['cleaned_dicom_img_fp'];
-    const dimensions = dicom_pair['dimensions']
+        slider_pending_update = false;
 
-    if (RawImgInner.height !== 0)
-    {
-        PredeterminedHeight = String(RawImgInner.height) + 'px';
+        LoadingState = true;
+
+        // ! Loading state (3/4): End
+
+        dcm_idx_ = dcm_idx
+        const dicom_pair_fp = await dicom_pair_fps[dcm_idx_]
+        const conversion_info_response = await fetch
+        (
+            '/conversion_info/',
+            {
+                method: 'POST',
+                headers:
+                {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(dicom_pair_fp)
+            }
+        );
+
+        dicom_pair = await conversion_info_response.json();
+        const dicom_metadata_table = table(dicom_pair['raw_dicom_metadata'], dicom_pair['cleaned_dicom_metadata'], DiffEnabled);
+        const raw_dicom_img_fp = dicom_pair['raw_dicom_img_fp'];
+        const cleaned_dicom_img_fp = dicom_pair['cleaned_dicom_img_fp'];
+        const dimensions = dicom_pair['dimensions']
+
+        if (RawImgInner.height !== 0)
+        {
+            PredeterminedHeight = String(RawImgInner.height) + 'px';
+        }
+
+        try
+        {
+            modality = dicom_pair['raw_dicom_metadata']['00080060'].value;
+        }
+        catch (error)
+        {
+            modality = '-';
+        }
+
+        // The condition is useful to capture the exception of the first run where the mask wasn't defined
+        if (classes_submitted_state)
+        {
+            await get_mask_from_file();
+            undoStack = [];
+            redoStack = [];
+        }
+
+        DICOMOverview.innerHTML =
+        `
+            Index: ${dcm_idx_}
+            </br>
+            Raw File Path: ${dicom_pair_fp[0]}
+            </br>
+            Clean File Path: ${dicom_pair_fp[1]}
+            </br>
+            Patient's Original ID: ${dicom_pair['raw_dicom_metadata']['00100020'].value}
+            </br>
+            Modality: ${modality}
+            </br>
+            Total number of altered tags (excluding the pixel data): ${total_altered_dicom_tags}
+        `;
+
+        MetadataTable.innerHTML = dicom_metadata_table;
+
+        RawImg.style.minHeight = PredeterminedHeight;
+        CleanedImg.style.minHeight = PredeterminedHeight;
+        RawImgInner.src = raw_dicom_img_fp;
+        CleanedImgInner.src = cleaned_dicom_img_fp;
+        RawImg.style.minHeight = 0;
+        CleanedImg.style.minHeight = 0;
+
+        // Loading state (4/4)
+        LoadingState = false;
     }
-
-    try
+    else
     {
-        modality = dicom_pair['raw_dicom_metadata']['00080060'].value;
+        save = confirm('Unsaved changes found. Save last changes before continuing?')
+        if (save)
+        {
+            await modify_dicom()
+            await UpdateDICOMInformation(dcm_idx)
+        }
+        else
+        {
+            progress_saved = true
+            await UpdateDICOMInformation(dcm_idx)
+        }
     }
-    catch (error)
-    {
-        modality = '-';
-    }
-
-    // The condition is useful to capture the exception of the first run where the mask wasn't defined
-    if (classes_submitted_state)
-    {
-        await get_mask_from_file();
-        undoStack = [];
-        redoStack = [];
-    }
-
-    DICOMOverview.innerHTML =
-    `
-        Index: ${dcm_idx_}
-        </br>
-        Raw File Path: ${dicom_pair_fp[0]}
-        </br>
-        Clean File Path: ${dicom_pair_fp[1]}
-        </br>
-        Patient's Original ID: ${dicom_pair['raw_dicom_metadata']['00100020'].value}
-        </br>
-        Modality: ${modality}
-        </br>
-        Total number of altered tags (excluding the pixel data): ${total_altered_dicom_tags}
-    `;
-
-    MetadataTable.innerHTML = dicom_metadata_table;
-
-    RawImg.style.minHeight = PredeterminedHeight;
-    CleanedImg.style.minHeight = PredeterminedHeight;
-    RawImgInner.src = raw_dicom_img_fp;
-    CleanedImgInner.src = cleaned_dicom_img_fp;
-    RawImg.style.minHeight = 0;
-    CleanedImg.style.minHeight = 0;
-
-    // Loading state (4/4)
-    LoadingState = false;
 }
 
 function base64torgba(encodedData) {
@@ -695,10 +713,9 @@ async function modify_dicom() {
             body: JSON.stringify(requestBody)
         });
     if (modify_response.ok) {
-        
+        progress_saved = true
     }
 }
-
 
 function canvastobase64() {
     const canvasData = ctx.getImageData(0, 0, OverlayCanvas.width, OverlayCanvas.height);
@@ -1114,6 +1131,9 @@ function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
             data[index + 3] = colorMap[maskValue][3];
         }
     }
+
+    progress_saved = false
+
     ctx.putImageData(imageData, 0, 0);
 }
 
