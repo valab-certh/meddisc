@@ -860,7 +860,8 @@ async function medsam_estimation(normalizedStart,normalizedEnd) {
         });
     if (box_response.ok) {
         const box_data = await box_response.json();
-        mergeMask(ctx, box_data['mask'], OverlayCanvas.width, OverlayCanvas.height, colorMap);
+        const dims = box_data['dimensions']
+        mergeMask(ctx, box_data['mask'], dims[0], dims[1], colorMap);
         saveState();
     }
 }
@@ -939,10 +940,10 @@ BoxCanvas.addEventListener('mouseout', () => {
 });
 
 function fillCanvas(maskData, dimensions) {
-    OverlayCanvas.width = dimensions[0];
-    OverlayCanvas.height = dimensions[1];
-    BoxCanvas.width = dimensions[0];
-    BoxCanvas.height = dimensions[1];
+    OverlayCanvas.width = dimensions[1];
+    OverlayCanvas.height = dimensions[0];
+    BoxCanvas.width = dimensions[1];
+    BoxCanvas.height = dimensions[0];
     const drawData = new ImageData(base64torgba(maskData), dimensions[0], dimensions[1]);
     ctx.putImageData(drawData, 0, 0);
 }
