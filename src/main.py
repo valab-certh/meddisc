@@ -8,6 +8,7 @@ import tensorflow as tf
 ## Warning supression
 tf.get_logger().setLevel(logging.ERROR)
 
+from typing import Union
 from tensorflow.keras.models import load_model
 from fastapi import FastAPI, File, UploadFile, Form, Body
 from fastapi.responses import FileResponse
@@ -106,7 +107,7 @@ def clean_imgs():
         if fp != '.gitkeep':
             os.remove(dp + '/' + fp)
 
-def DCM2DictMetadata(ds: pydicom.dataset.Dataset) -> pydicom.dataset.Dataset:
+def DCM2DictMetadata(ds: pydicom.dataset.Dataset) -> dict:
 
     ds_metadata_dict = {}
     for ds_attr in ds:
@@ -170,12 +171,6 @@ async def conversion_info(dicom_pair_fp: List[str] = Body(...)):
         cleaned_img = image_preprocessing(cleaned_dcm.pixel_array, downscale_dimensionality = downscale_dimensionality, multichannel = True, retain_aspect_ratio = True)
         Image.fromarray(cleaned_img).save(cleaned_img_fp)
 
-    # with open(file = '../raw_dcm_meta.json', mode = 'w') as file:
-    #     json.dump(DCM2DictMetadata(ds = raw_dcm), fp = file)
-
-    # with open(file = '../cleaned_dcm_meta.json', mode = 'w') as file:
-    #     json.dump(DCM2DictMetadata(ds = cleaned_dcm), fp = file)
-
     return \
     {
         'raw_dicom_metadata': DCM2DictMetadata(ds = raw_dcm),
@@ -187,7 +182,9 @@ async def conversion_info(dicom_pair_fp: List[str] = Body(...)):
 
 @app.post('/get_mask_from_file/')
 async def get_mask_from_file(current_dcm_fp: str = Body(...)):
+
     current_dcm = pydicom.dcmread(current_dcm_fp)
+
     return \
     {
         'PixelData': base64.b64encode(current_dcm.SegmentSequence[0].PixelData).decode('utf-8'),
@@ -196,11 +193,13 @@ async def get_mask_from_file(current_dcm_fp: str = Body(...)):
 
 @app.post('/modify_dicom/')
 async def modify_dicom(data: DicomData):
+
     pixelData = base64.b64decode(data.pixelData)
     filepath = data.filepath
     modified_dcm = pydicom.dcmread(filepath)
     modified_dcm.SegmentSequence[0].PixelData = pixelData
     modified_dcm.save_as(filepath)
+
     return \
     {
         'success': True
@@ -241,7 +240,7 @@ async def correct_seg_homogeneity():
             Checks for segmentation sequence attribute homogeneity in DICOM batch. Considers any potential conflicts.
     '''
 
-    def SegmentSequenceHomogeneityCheck(fps):
+    def SegmentSequenceHomogeneityCheck(fps: list[str]) -> bool:
 
         found_classes = []
         for fp in fps:
@@ -250,10 +249,13 @@ async def correct_seg_homogeneity():
 
             try:
                 ## If this breaks then there is no homogeneity; includes the case in which there no segmentation sequence
-                np.frombuffer(dcm.SegmentSequence[0].PixelData, dtype = np.uint8).reshape((dcm.Rows, dcm.Columns))
+                mask = np.frombuffer(dcm.SegmentSequence[0].PixelData, dtype = np.uint8).reshape((dcm.Rows, dcm.Columns))
 
                 ## Checks if next DICOM file shares the same classes with the previously checked DICOM files
                 found_classes.append(dcm.SegmentSequence[0].SegmentDescription)
+
+                if len(found_classes) != (len(np.unique(mask))):
+                    return False
             except:
                 return False
 
@@ -317,12 +319,12 @@ async def align_classes(classes: List[str]):
 
     renew_segm_seq(fps, classes)
 
-def renew_segm_seq(fps, classes):
+def renew_segm_seq(fps: list[str], classes: list[str]):
 
     if classes != ['background']:
-        print('W: Proceeding to overwrite the batches DICOM headers with a segmentation sequence that adheres to newly defined classes; the segmentation masks are reset')
+        print('W: Proceeding to overwrite the batch DICOM headers with a segmentation sequence that adheres to newly defined classes; the segmentation masks are reset')
     else:
-        print('W: Proceeding to overwrite the batches DICOM headers with a segmentation sequence containing only the background; the segmentation masks are reset')
+        print('W: Proceeding to overwrite the batch DICOM headers with a segmentation sequence containing only the background; the segmentation masks are reset')
 
     for fp in fps:
 
@@ -594,7 +596,7 @@ def prepare_medsam():
 
     print('Initialization completed - %.2f'%(time.time()-t0))
 
-def dicom_deidentifier(SESSION_FP: None or str = None) -> tuple[dict, list[tuple[str]]]:
+def dicom_deidentifier(SESSION_FP: Union[None, str] = None) -> tuple[dict, list[tuple[str]]]:
     '''
         Description:
             Applies de-identification to a set of DICOM files based on the configuration file `user_options.json`. Additionally it can consider a session file, namely `session.json` in case a session was interrupted.
@@ -1038,7 +1040,7 @@ def image_deintentifier(dcm: pydicom.dataset.FileDataset) -> pydicom.dataset.Fil
 
     return dcm
 
-def get_action_group(user_input: dict, action_groups_df: pd.core.frame.DataFrame, custom_config_df: pd.core.frame.DataFrame or None) -> pd.core.frame.DataFrame:
+def get_action_group(user_input: dict, action_groups_df: pd.core.frame.DataFrame, custom_config_df: Union[pd.core.frame.DataFrame, None]) -> pd.core.frame.DataFrame:
     '''
         Description:
             Depending on the user's choice, and an action group lookup table, based on Nema's action principles as per Table E.1-1a and Table E.1-1 of https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html, an action group is generated. That action group is in the form of a column from Table E.1-1 acting as a configuration basis for the anonymization of a DICOM file.
@@ -1147,7 +1149,7 @@ def get_action_group(user_input: dict, action_groups_df: pd.core.frame.DataFrame
 
     return requested_action_group_df
 
-def adjust_dicom_metadata(dcm: pydicom.dataset.FileDataset, action_group_fp: str, patient_pseudo_id: str, days_total_offset: int, seconds_total_offset: int) -> (pydicom.dataset.FileDataset, dict):
+def adjust_dicom_metadata(dcm: pydicom.dataset.FileDataset, action_group_fp: str, patient_pseudo_id: str, days_total_offset: int, seconds_total_offset: int) -> tuple[pydicom.dataset.FileDataset, dict]:
     '''
         Description:
             Peforms metadata de-identification on a DICOM object based on a configuration file.
@@ -1204,7 +1206,7 @@ def adjust_dicom_metadata(dcm: pydicom.dataset.FileDataset, action_group_fp: str
 
         return output_time_str
 
-    def recursive_SQ_cleaner(ds: pydicom.dataset.Dataset or pydicom.dataset.FileDataset, action: str, action_attr_tag_idx: str) -> pydicom.dataset.Dataset or pydicom.dataset.FileDataset:
+    def recursive_SQ_cleaner(ds: pydicom.dataset.FileDataset, action: str, action_attr_tag_idx: str) -> pydicom.dataset.FileDataset:
         '''
             Description:
                 Cleans DICOM file's metadata based on one de-identification action and it does so recursively with respect to sequence depth.
@@ -1355,7 +1357,7 @@ class rwdcm:
 
         return proper_dicom_paths
 
-    def parse_file(self) -> pydicom.dataset.FileDataset or False:
+    def parse_file(self) -> Union[pydicom.dataset.FileDataset, bool]:
         '''
             Description:
                 Reads a DICOM file only if it was not converted by the current session. The comparison is made based on the raw files' hashes.

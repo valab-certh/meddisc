@@ -103,8 +103,9 @@ var masks = '';
 
 // Modal
 var modal = document.querySelector('#modal');
-var openModal = document.querySelector('.open-button');
-var closeModal = document.querySelector('.close-button');
+var openModal = document.querySelector('#open-button');
+var overrideMasks = document.querySelector('#overrideMasks');
+var useBatchMasks = document.querySelector('#useBatchMasks');
 var classes_submitted_state = false;
 
 
@@ -354,7 +355,7 @@ function CheckForChanges()
 {
     if (slider_pending_update)
     {
-        UpdateDICOMInformation(pending_dcm_idx)
+        UpdateDICOMInformation(pending_dcm_idx);
     }
 
     setTimeout(CheckForChanges, 50);
@@ -393,62 +394,60 @@ async function UpdateDICOMInformation(dcm_idx)
         }
     );
 
-    if (conversion_info_response.ok)
+    dicom_pair = await conversion_info_response.json();
+    const dicom_metadata_table = table(dicom_pair['raw_dicom_metadata'], dicom_pair['cleaned_dicom_metadata'], DiffEnabled);
+    const raw_dicom_img_fp = dicom_pair['raw_dicom_img_fp'];
+    const cleaned_dicom_img_fp = dicom_pair['cleaned_dicom_img_fp'];
+    const dimensions = dicom_pair['dimensions']
+
+    if (RawImgInner.height !== 0)
     {
-        dicom_pair = await conversion_info_response.json();
-        const dicom_metadata_table = table(dicom_pair['raw_dicom_metadata'], dicom_pair['cleaned_dicom_metadata'], DiffEnabled);
-        const raw_dicom_img_fp = dicom_pair['raw_dicom_img_fp'];
-        const cleaned_dicom_img_fp = dicom_pair['cleaned_dicom_img_fp'];
-        const dimensions = dicom_pair['dimensions']
-
-        if (RawImgInner.height !== 0)
-        {
-            PredeterminedHeight = String(RawImgInner.height) + 'px';
-        }
-
-        try
-        {
-            modality = dicom_pair['raw_dicom_metadata']['00080060'].value;
-        }
-        catch (error)
-        {
-            modality = '-';
-        }
-
-        DICOMOverview.innerHTML =
-        `
-            Index: ${dcm_idx_}
-            </br>
-            Raw File Path: ${dicom_pair_fp[0]}
-            </br>
-            Clean File Path: ${dicom_pair_fp[1]}
-            </br>
-            Patient's Original ID: ${dicom_pair['raw_dicom_metadata']['00100020'].value}
-            </br>
-            Modality: ${modality}
-            </br>
-            Total number of altered tags (excluding the pixel data): ${total_altered_dicom_tags}
-        `;
-
-        MetadataTable.innerHTML = dicom_metadata_table;
-
-        RawImg.style.minHeight = PredeterminedHeight;
-        CleanedImg.style.minHeight = PredeterminedHeight;
-        RawImgInner.src = raw_dicom_img_fp;
-        CleanedImgInner.src = cleaned_dicom_img_fp;
-        RawImg.style.minHeight = 0;
-        CleanedImg.style.minHeight = 0;
+        PredeterminedHeight = String(RawImgInner.height) + 'px';
     }
 
-    // Loading state (4/4)
-    LoadingState = false;
+    try
+    {
+        modality = dicom_pair['raw_dicom_metadata']['00080060'].value;
+    }
+    catch (error)
+    {
+        modality = '-';
+    }
 
+    // The condition is useful to capture the exception of the first run where the mask wasn't defined
     if (classes_submitted_state)
     {
-        get_mask_from_file();
+        await get_mask_from_file();
         undoStack = [];
         redoStack = [];
     }
+
+    DICOMOverview.innerHTML =
+    `
+        Index: ${dcm_idx_}
+        </br>
+        Raw File Path: ${dicom_pair_fp[0]}
+        </br>
+        Clean File Path: ${dicom_pair_fp[1]}
+        </br>
+        Patient's Original ID: ${dicom_pair['raw_dicom_metadata']['00100020'].value}
+        </br>
+        Modality: ${modality}
+        </br>
+        Total number of altered tags (excluding the pixel data): ${total_altered_dicom_tags}
+    `;
+
+    MetadataTable.innerHTML = dicom_metadata_table;
+
+    RawImg.style.minHeight = PredeterminedHeight;
+    CleanedImg.style.minHeight = PredeterminedHeight;
+    RawImgInner.src = raw_dicom_img_fp;
+    CleanedImgInner.src = cleaned_dicom_img_fp;
+    RawImg.style.minHeight = 0;
+    CleanedImg.style.minHeight = 0;
+
+    // Loading state (4/4)
+    LoadingState = false;
 }
 
 function base64torgba(encodedData) {
@@ -1017,58 +1016,16 @@ async function submit_classes(){
     ClassText.disabled = true;
     SubmitClasses.disabled = true;
 
-    if (classesMap !== predefinedClassesMap)
+    // Submit classes and conflict prompting
+    if ((predefinedClassesMap.length === 1 && predefinedClassesMap[0] == 'background') || classesMap === predefinedClassesMap)
     {
-        // The user is prompted to decide which of the classes map will be used for the override
-        let overwrite_with_newly_defined_classes = window.confirm("Press OK to discard imported classes from input batch and override the newly defined ones (resets all masks). Otherwise press Cancel to ignore the newly defined classes.");
-
-        // await modal.showModal();
-        
-        if (overwrite_with_newly_defined_classes === false)
-        {
-            // Using imported classes from batch
-            
-            // Removes all existing classes from UI
-
-            for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
-            {
-                // The list shrinks
-                BrushSelect.remove(1);
-            }
-
-
-            classesMap = Array.from(predefinedClassesMap)
-
-            // Applies user choice to buttons and canvas
-            for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
-            {
-                const newOption = new Option(classesMap[class_idx], classesMap[class_idx], false, false);
-                BrushSelect.add(newOption);
-            }
-
-        }
-        else
-        {
-            // Using newly defined classes
-
-            // Adjusts embedded segmentation classes and resets all map arrays on batch
-            await fetch
-            (
-                '/align_classes/',
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(classesMap)
-                }
-            );
-        }
-
-
+        get_mask_from_file();
     }
-
-    get_mask_from_file();
+    else if (classesMap !== predefinedClassesMap)
+    {
+        // The user is prompted to decide what set classes will be used
+        modal.showModal();
+    }
 }
 
 function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
@@ -1091,9 +1048,67 @@ function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
     ctx.putImageData(imageData, 0, 0);
 }
 
-// closeModal.addEventListener('click', function(){
-//     modal.close();
-// })
+overrideMasks.addEventListener('click', async function(){
+
+    await fetch
+    (
+        '/align_classes/',
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(classesMap)
+        }
+    );
+
+    get_mask_from_file();
+
+    modal.close();
+})
+
+useBatchMasks.addEventListener('click', function(){
+
+    for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
+    {
+        // The list shrinks
+        BrushSelect.remove(1);
+    }
+
+    classesMap = Array.from(predefinedClassesMap)
+
+    // Applies user choice to buttons and canvas
+    for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
+    {
+        const newOption = new Option(classesMap[class_idx], classesMap[class_idx], false, false);
+        BrushSelect.add(newOption);
+    }
+
+    get_mask_from_file();
+
+    modal.close();
+})
+}
+
+function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
+    const binaryString = window.atob(base64DicomMask);
+
+    let imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+    let data = imageData.data;
+
+    for (let i = 0; i < binaryString.length; i++) {
+        let maskValue = binaryString.charCodeAt(i);
+        let index = i * 4;
+
+        if (maskValue in colorMap) {
+            data[index] = colorMap[maskValue][0];
+            data[index + 1] = colorMap[maskValue][1];
+            data[index + 2] = colorMap[maskValue][2];
+            data[index + 3] = colorMap[maskValue][3];
+        }
+    }
+    ctx.putImageData(imageData, 0, 0);
+}
 
 // update the brush indicator color
 function updateBrushIndicator(brushNumber) {
