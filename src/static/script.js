@@ -21,6 +21,9 @@ var Redo = document.getElementById('Redo');
 var Mode = document.getElementById('Mode');
 var BoxCanvas = document.getElementById('BoxCanvas');
 var bctx = BoxCanvas.getContext('2d');
+var notificationMessage = document.getElementById("notification-message");
+var notificationIcon = document.getElementById("notification-icon");
+var notificationText = document.getElementById("notification-text");
 var retain_safe_private_input_checkbox = document.getElementById('retain-safe-private-input-checkbox');
 var retain_uids_input_checkbox = document.getElementById('retain-uids-input-checkbox');
 var retain_device_identity_input_checkbox = document.getElementById('retain-device-identity-input-checkbox');
@@ -48,6 +51,7 @@ var editMode = 'brush';
 var BoxStart = null;
 var BoxEnd = null;
 var progress_saved = true;
+var notificationTimeout;
 
 ctx.lineJoin = 'round';
 ctx.lineCap = 'round';
@@ -695,6 +699,7 @@ async function get_mask_from_file() {
     if (reset_response.ok) {
         const response_data = await reset_response.json();
         fillCanvas(response_data['PixelData'], response_data['dimensions']);
+        showNotification("success", "Loaded mask from DICOM", 1500);
     }
 }
 
@@ -714,6 +719,7 @@ async function modify_dicom() {
         });
     if (modify_response.ok) {
         progress_saved = true
+        showNotification("success", "Saved to DICOM", 1500);
     }
 }
 
@@ -754,6 +760,7 @@ ToggleEdit.addEventListener('click', () => {
     ToggleEdit.textContent = isEditing ? 'Edit Mode' : 'View Mode';
     OverlayCanvas.style.pointerEvents = isEditing ? 'auto' : 'none';
     BoxCanvas.style.pointerEvents = (isEditing && editMode === 'boundingBox') ? 'auto' : 'none';
+    showNotification("info", "Switched to " + ToggleEdit.textContent, 1500);
 });
 
 // mouse position function for scaling
@@ -818,6 +825,7 @@ function undoLastAction() {
             ctx.clearRect(0, 0, OverlayCanvas.width, OverlayCanvas.height);
         }
     }
+    showNotification("info", "Undo", 1500);
 }
 
 // redo function
@@ -827,6 +835,7 @@ function redoLastAction() {
         undoStack.push(nextState);
         ctx.putImageData(nextState, 0, 0);
     }
+    showNotification("info", "Redo", 1500);
 }
 
 // event listeners for undo and redo
@@ -913,6 +922,7 @@ Mode.addEventListener('click', function () {
         BoxCanvas.style.pointerEvents = 'none';
         document.querySelector('#BrushSelect option[value="background"]').disabled = false;
     }
+    showNotification("info", "Switched to " + Mode.textContent, 1500);
 });
 
 BoxCanvas.addEventListener('mousedown', (e) => {
@@ -969,17 +979,17 @@ function fillCanvas(maskData, dimensions) {
 function add_class() {
     const inputVal = ClassText.value.trim();
     if (inputVal === '') {
-        alert('Please enter a class name.');
+        showNotification("info", "Please enter a class name", 1500);
         return;
     }
 
     if (classesMap.includes(inputVal)) {
-        alert('This class already exists.');
+        showNotification("failure", "This class already exists", 1500);
         return;
     }
 
     if (classesMap.length >= 11) {
-        alert('Maximum of 10 classes reached.');
+        showNotification("failure", "Maximum of 10 classes reached", 1500);
         return;
     }
 
@@ -992,23 +1002,24 @@ function add_class() {
 
     const event = new Event('change');
     BrushSelect.dispatchEvent(event);
+    showNotification("success", "Added class " + inputVal, 1500);
 }
 
 function remove_class() {
     const inputVal = ClassText.value.trim();
     if (inputVal === '') {
-        alert('Please enter a class name to remove.');
+        showNotification("info", "Please enter a class name", 1500);
         return;
     }
 
     const index = classesMap.indexOf(inputVal);
     if (index === -1) {
-        alert('Class not found.');
+        showNotification("failure", "Class not found", 1500);
         return;
     }
 
     if (inputVal === 'background') {
-        alert('Cannot remove background class');
+        showNotification("failure", "Cannot remove background class", 1500);
         return;
     }
 
@@ -1024,6 +1035,7 @@ function remove_class() {
     ClassText.value = '';
     const event = new Event('change');
     BrushSelect.dispatchEvent(event);
+    showNotification("success", "Removed class " + inputVal, 1500);
 }
 
 async function submit_classes(){
@@ -1051,6 +1063,7 @@ async function submit_classes(){
         // The user is prompted to decide what set classes will be used
         modal.showModal();
     }
+    showNotification("success", "Sumitted classes", 1500);
 }
 
 function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
@@ -1194,4 +1207,41 @@ function resetGUIElements() {
     Remove.disabled = false;
     ClassText.disabled = false;
     SubmitClasses.disabled = false;
+}
+
+function showNotification(type, text, duration) {
+    // clear existing timeout
+    clearTimeout(notificationTimeout);
+
+    notificationText.textContent = text;
+
+    switch (type) {
+        case "success":
+            notificationIcon.textContent = "✔️"; 
+            notificationMessage.style.backgroundColor = "green";
+            notificationMessage.style.color = "white";
+            break;
+        case "info":
+            notificationIcon.textContent = "ℹ️"; 
+            notificationMessage.style.backgroundColor = "lightblue";
+            notificationMessage.style.color = "black";
+            break;
+        case "failure":
+            notificationIcon.textContent = "❌"; 
+            notificationMessage.style.backgroundColor = "red";
+            notificationMessage.style.color = "white";
+            break;
+        default:
+            notificationIcon.textContent = "";
+            notificationMessage.style.backgroundColor = "grey";
+            notificationMessage.style.color = "black";
+            break;
+    }
+
+    notificationMessage.style.display = "flex";
+
+    // hide after duration ms
+    notificationTimeout = setTimeout(function() {
+        notificationMessage.style.display = "none";
+    }, duration);
 }
