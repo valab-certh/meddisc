@@ -1029,7 +1029,9 @@ async function submit_classes(){
 
     classes_submitted_state = true;
     ToggleEdit.disabled = false;
-    Mode.disabled = false;
+    if (classesMap.length > 1){
+        Mode.disabled = false;
+    }
     BrushSizeSlider.disabled = false;
     Undo.disabled = false;
     Redo.disabled = false;
