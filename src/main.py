@@ -187,7 +187,7 @@ async def get_mask_from_file(current_dcm_fp: str = Body(...)):
     return \
     {
         'PixelData': base64.b64encode(current_dcm.SegmentSequence[0].PixelData).decode('utf-8'),
-        'dimensions': [current_dcm.Rows, current_dcm.Columns]
+        'dimensions': [current_dcm.Columns, current_dcm.Rows]
     }
 
 @app.post('/modify_dicom/')

@@ -957,10 +957,10 @@ BoxCanvas.addEventListener('mouseout', () => {
 });
 
 function fillCanvas(maskData, dimensions) {
-    OverlayCanvas.width = dimensions[1];
-    OverlayCanvas.height = dimensions[0];
-    BoxCanvas.width = dimensions[1];
-    BoxCanvas.height = dimensions[0];
+    OverlayCanvas.width = dimensions[0];
+    OverlayCanvas.height = dimensions[1];
+    BoxCanvas.width = dimensions[0];
+    BoxCanvas.height = dimensions[1];
     const drawData = new ImageData(base64torgba(maskData), dimensions[0], dimensions[1]);
     ctx.putImageData(drawData, 0, 0);
 }
