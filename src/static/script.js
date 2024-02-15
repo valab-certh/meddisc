@@ -405,7 +405,6 @@ async function UpdateDICOMInformation(dcm_idx)
         const dicom_metadata_table = table(dicom_pair['raw_dicom_metadata'], dicom_pair['cleaned_dicom_metadata'], DiffEnabled);
         const raw_dicom_img_fp = dicom_pair['raw_dicom_img_fp'];
         const cleaned_dicom_img_fp = dicom_pair['cleaned_dicom_img_fp'];
-        const dimensions = dicom_pair['dimensions']
 
         if (RawImgInner.height !== 0)
         {
@@ -968,10 +967,10 @@ BoxCanvas.addEventListener('mouseout', () => {
 });
 
 function fillCanvas(maskData, dimensions) {
-    OverlayCanvas.width = dimensions[1];
-    OverlayCanvas.height = dimensions[0];
-    BoxCanvas.width = dimensions[1];
-    BoxCanvas.height = dimensions[0];
+    OverlayCanvas.width = dimensions[0];
+    OverlayCanvas.height = dimensions[1];
+    BoxCanvas.width = dimensions[0];
+    BoxCanvas.height = dimensions[1];
     const drawData = new ImageData(base64torgba(maskData), dimensions[0], dimensions[1]);
     ctx.putImageData(drawData, 0, 0);
 }
@@ -1042,7 +1041,9 @@ async function submit_classes(){
 
     classes_submitted_state = true;
     ToggleEdit.disabled = false;
-    Mode.disabled = false;
+    if (classesMap.length > 1){
+        Mode.disabled = false;
+    }
     BrushSizeSlider.disabled = false;
     Undo.disabled = false;
     Redo.disabled = false;

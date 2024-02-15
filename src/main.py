@@ -177,7 +177,6 @@ async def conversion_info(dicom_pair_fp: List[str] = Body(...)):
         'raw_dicom_img_fp': raw_img_fp,
         'cleaned_dicom_metadata': DCM2DictMetadata(ds = cleaned_dcm),
         'cleaned_dicom_img_fp': cleaned_img_fp,
-        'dimensions': [cleaned_dcm.Rows, cleaned_dcm.Columns]
     }
 
 @app.post('/get_mask_from_file/')
@@ -188,7 +187,7 @@ async def get_mask_from_file(current_dcm_fp: str = Body(...)):
     return \
     {
         'PixelData': base64.b64encode(current_dcm.SegmentSequence[0].PixelData).decode('utf-8'),
-        'dimensions': [current_dcm.Rows, current_dcm.Columns]
+        'dimensions': [current_dcm.Columns, current_dcm.Rows]
     }
 
 @app.post('/modify_dicom/')
