@@ -177,7 +177,6 @@ async def conversion_info(dicom_pair_fp: List[str] = Body(...)):
         'raw_dicom_img_fp': raw_img_fp,
         'cleaned_dicom_metadata': DCM2DictMetadata(ds = cleaned_dcm),
         'cleaned_dicom_img_fp': cleaned_img_fp,
-        'dimensions': [cleaned_dcm.Rows, cleaned_dcm.Columns]
     }
 
 @app.post('/get_mask_from_file/')

@@ -401,7 +401,6 @@ async function UpdateDICOMInformation(dcm_idx)
         const dicom_metadata_table = table(dicom_pair['raw_dicom_metadata'], dicom_pair['cleaned_dicom_metadata'], DiffEnabled);
         const raw_dicom_img_fp = dicom_pair['raw_dicom_img_fp'];
         const cleaned_dicom_img_fp = dicom_pair['cleaned_dicom_img_fp'];
-        const dimensions = dicom_pair['dimensions']
 
         if (RawImgInner.height !== 0)
         {
