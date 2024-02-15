@@ -66,6 +66,7 @@ class ResponseModel(BaseModel):
 class DicomData(BaseModel):
     pixelData: str
     filepath: str
+    classes: list
 
 class BoxData(BaseModel):
     normalizedStart: Dict
@@ -197,6 +198,7 @@ async def modify_dicom(data: DicomData):
     filepath = data.filepath
     modified_dcm = pydicom.dcmread(filepath)
     modified_dcm.SegmentSequence[0].PixelData = pixelData
+    modified_dcm.SegmentSequence[0].SegmentDescription = ';'.join(data.classes)
     modified_dcm.save_as(filepath)
 
     return \
