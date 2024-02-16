@@ -14,11 +14,36 @@ The currect system has been tested specifically on a machine equipped with an Ub
 
 ## Setup
 
+### Deployment - CPU
+
+First clone the git repository through
+```
+git clone https://github.com/fl0wxr/DICOMDeIdentifier.git
+```
+Then navigate inside the project directory and apply
+```
+docker build -t dicom_tools .
+```
+and then
+```
+docker run --name dicom_tools -p 8000:8000 dicom_tools
+```
+Finally in your browser access the following url
+```
+http://localhost:8000/
+```
+
+### Development
+
 The backend relies on uvicorn which can be configured through Python's FastAPI library, so these must be installed on the server's machine.
 
 Install all prerequisites by applying
 ```
 python3 -m pip install -r requirements.txt
+```
+and
+```
+python3 -m pip install torch torchvision -f https://download.pytorch.org/whl/cpu/torch_stable.html
 ```
 
 First download and extract the latest release. For releases past `v1.3.8`, an additional step is to extract `pretrained_segmenters.tar.gz` inside `src`. From inside `src` start the server through
@@ -37,7 +62,7 @@ Our prefered cloning path is inside a virtual environment's `python3.X/site-pack
 
 Enter the MedSAM folder `cd MedSAM` and run `pip install -e .`. The corresponding `README.md` can be found at [[link](https://github.com/bowang-lab/MedSAM/blob/LiteMedSAM/README.md)].
 
-### GPU Support
+#### GPU Support
 
 It should be noted that for the parallelization of pixel data de-identification, an NVIDIA GPU would contribute a lot. To install the necessary packages, the machine needs to have the corresponding NVIDIA drivers installed, along with the [CUDA toolkit](https://docs.nvidia.com/cuda/). Finally, apply the following on your python environment
 ```
