@@ -16,6 +16,13 @@ The currect system has been tested specifically on a machine equipped with an Ub
 
 ### Deployment - CPU
 
+#### Requirements
+
+- Docker [[link](https://docs.docker.com/desktop/)]
+- Git [[link](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)]
+
+#### Installation
+
 First clone the git repository through
 ```
 git clone https://github.com/fl0wxr/DICOMDeIdentifier.git
