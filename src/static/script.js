@@ -38,7 +38,6 @@ var OpenSequences = [];
 var DiffEnabled = false;
 var dcm_idx_;
 
-// GUI variables initialization 
 var isEditing = false;
 var currentBrush = 'background';
 var brushSize = 25;
@@ -56,57 +55,48 @@ var notificationTimeout;
 ctx.lineJoin = 'round';
 ctx.lineCap = 'round';
 
-// class color map
 const colorMap = {
-    1: [255, 0, 0, 255],       // red
-    2: [0, 0, 255, 255],       // blue
-    3: [0, 255, 0, 255],       // green
-    4: [255, 255, 0, 255],     // yellow
-    5: [255, 165, 0, 255],     // orange
-    6: [255, 0, 255, 255],     // magenta
-    7: [0, 255, 255, 255],     // cyan
-    8: [128, 0, 128, 255],     // purple
-    9: [255, 192, 203, 255],   // pink
-    10: [128, 128, 128, 255],  // gray
+    1: [255, 0, 0, 255],
+    2: [0, 0, 255, 255],
+    3: [0, 255, 0, 255],
+    4: [255, 255, 0, 255],
+    5: [255, 165, 0, 255],
+    6: [255, 0, 255, 255],
+    7: [0, 255, 255, 255],
+    8: [128, 0, 128, 255],
+    9: [255, 192, 203, 255],
+    10: [128, 128, 128, 255],
 };
 
-// reverse class color map
 const reverseColorMap = {
-    '255,0,0,255': 1,       // red
-    '0,0,255,255': 2,       // blue
-    '0,255,0,255': 3,       // green
-    '255,255,0,255': 4,     // yellow
-    '255,165,0,255': 5,     // orange
-    '255,0,255,255': 6,     // magenta
-    '0,255,255,255': 7,     // cyan
-    '128,0,128,255': 8,     // purple
-    '255,192,203,255': 9,   // pink
-    '128,128,128,255': 10,  // gray
+    '255,0,0,255': 1,
+    '0,0,255,255': 2,
+    '0,255,0,255': 3,
+    '255,255,0,255': 4,
+    '255,165,0,255': 5,
+    '255,0,255,255': 6,
+    '0,255,255,255': 7,
+    '128,0,128,255': 8,
+    '255,192,203,255': 9,
+    '128,128,128,255': 10,
 };
 
-// class map
 let classesMap = ["background"];
 let predefinedClassesMap;
 
-// ! Loading state (1/4): Begin
 
 var slider_pending_update = false;
 var pending_dcm_idx = 0;
 var dicom_pair;
 var total_altered_dicom_tags = '-';
 
-// Description
-//     Clean solution to the issue of delayed slider responses. The advantage of this method compared to methods like throttling is that it continues execution as soon as the content is loaded into the HTML.
 var LoadingState = false;
 
-// ! Loading state (1/4): End
 
-// Used for UX performance during the slider's image transitions. Helps (but is not sufficient by itself) for the prevention of that momentary flickering where during that time interval, the entire table below fills the empty space.
 var PredeterminedHeight = '37vw';
 
 var masks = '';
 
-// Modal
 var modal = document.querySelector('#modal');
 var openModal = document.querySelector('#open-button');
 var overrideMasks = document.querySelector('#overrideMasks');
@@ -129,14 +119,12 @@ function HideSequence(SequenceID)
 
     if (FirstOccurence == -1)
     {
-        // Expand sequence
         OpenSequences.push(SequenceID);
         style = 'block';
         expand_row_symbol = '-';
     }
     else
     {
-        // Contract sequence
         OpenSequences.splice(FirstOccurence, 1);
         style = 'none';
         expand_row_symbol = '+';
@@ -355,7 +343,6 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
     return MetadataTable;
 };
 
-// Loading state (2/4)
 function CheckForChanges()
 {
     if (slider_pending_update)
@@ -370,7 +357,6 @@ async function UpdateDICOMInformation(dcm_idx)
 {
     if (progress_saved == true)
     {
-        // ! Loading state (3/4): Begin
 
         slider_pending_update = true;
         pending_dcm_idx = dcm_idx;
@@ -384,7 +370,6 @@ async function UpdateDICOMInformation(dcm_idx)
 
         LoadingState = true;
 
-        // ! Loading state (3/4): End
 
         dcm_idx_ = dcm_idx
         const dicom_pair_fp = await dicom_pair_fps[dcm_idx_]
@@ -420,7 +405,6 @@ async function UpdateDICOMInformation(dcm_idx)
             modality = '-';
         }
 
-        // The condition is useful to capture the exception of the first run where the mask wasn't defined
         if (classes_submitted_state)
         {
             await get_mask_from_file();
@@ -452,7 +436,6 @@ async function UpdateDICOMInformation(dcm_idx)
         RawImg.style.minHeight = 0;
         CleanedImg.style.minHeight = 0;
 
-        // Loading state (4/4)
         LoadingState = false;
     }
     else
@@ -472,10 +455,9 @@ async function UpdateDICOMInformation(dcm_idx)
 }
 
 function base64torgba(encodedData) {
-    // decode base64
     const binaryString = window.atob(encodedData);
     const len = binaryString.length;
-    const bytes = new Uint8ClampedArray(len * 4); // *4 for RGBA
+    const bytes = new Uint8ClampedArray(len * 4);
 
     for (let i = 0, j = 0; i < len; i++, j += 4) {
         let pixelValue = binaryString.charCodeAt(i);
@@ -637,7 +619,6 @@ async function submit_dicom_processing_request()
 
     dicom_pair_fps = await dicom_pair_fps_response.json();
 
-    // Builds slider based on number of converted input DICOM files
     DICOMSlider.max = n_uploaded_files-1;
     DICOMSlider.value = 0;
     await UpdateDICOMInformation(0);
@@ -676,7 +657,6 @@ async function submit_dicom_processing_request()
 
     classesMap = Array.from(predefinedClassesMap)
 
-    // Loads predefined classes to buttons and canvas; skips the background
     for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
     {
         const newOption = new Option(classesMap[class_idx], classesMap[class_idx], false, false);
@@ -725,7 +705,7 @@ async function modify_dicom() {
 
 function canvastobase64() {
     const canvasData = ctx.getImageData(0, 0, OverlayCanvas.width, OverlayCanvas.height);
-    const data = canvasData.data; // RGBA data
+    const data = canvasData.data;
     let binaryString = '';
 
     for (let i = 0; i < data.length; i += 4) {
@@ -735,26 +715,21 @@ function canvastobase64() {
         } else if (rgba in reverseColorMap) {
             binaryString += String.fromCharCode(reverseColorMap[rgba]);
         } else {
-            // default
             binaryString += String.fromCharCode(0);
         }
     }
     return window.btoa(binaryString);
 }
 
-// GUI functions and listeners
-// brush selection
 BrushSelect.addEventListener('change', (event) => {
     currentBrush = event.target.value;
     updateBrushIndicator(classesMap.indexOf(currentBrush));
 });
 
-// brush radius selection
 BrushSizeSlider.addEventListener('input', (event) => {
     brushSize = event.target.value;
 });
 
-// toggle edit
 ToggleEdit.addEventListener('click', () => {
     isEditing = !isEditing;
     ToggleEdit.textContent = isEditing ? 'Edit Mode' : 'View Mode';
@@ -763,21 +738,17 @@ ToggleEdit.addEventListener('click', () => {
     showNotification("info", "Switched to " + ToggleEdit.textContent, 1500);
 });
 
-// mouse position function for scaling
 function getMousePos(canvas, evt) {
     var rect = canvas.getBoundingClientRect();
-    // calculate scaling factor
     var scaleX = canvas.width / rect.width;
     var scaleY = canvas.height / rect.height;
 
-    // adjust coordinates
     return {
-        x: (evt.clientX - rect.left) * scaleX, // Adjusting X coordinate
-        y: (evt.clientY - rect.top) * scaleY  // Adjusting Y coordinate
+        x: (evt.clientX - rect.left) * scaleX,
+        y: (evt.clientY - rect.top) * scaleY
     };
 }
 
-// draw function
 function draw(e) {
     if (!isEditing) return;
 
@@ -808,13 +779,11 @@ function draw(e) {
     lastY = mousePos.y;
 }
 
-// save state function
 function saveState() {
     undoStack.push(ctx.getImageData(0, 0, OverlayCanvas.width, OverlayCanvas.height));
     redoStack = [];
 }
 
-// undo function
 function undoLastAction() {
     if (undoStack.length > 0) {
         redoStack.push(undoStack.pop());
@@ -828,7 +797,6 @@ function undoLastAction() {
     showNotification("info", "Undo", 1500);
 }
 
-// redo function
 function redoLastAction() {
     if (redoStack.length > 0) {
         const nextState = redoStack.pop();
@@ -838,7 +806,6 @@ function redoLastAction() {
     showNotification("info", "Redo", 1500);
 }
 
-// event listeners for undo and redo
 document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
         e.preventDefault();
@@ -859,7 +826,7 @@ OverlayCanvas.addEventListener('mousedown', (e) => {
 });
 OverlayCanvas.addEventListener('mousemove', draw);
 OverlayCanvas.addEventListener('mouseup', () => {
-    saveState(); // save state after every stroke
+    saveState();
     isDrawing = false;
 });
 OverlayCanvas.addEventListener('mouseout', () => isDrawing = false);
@@ -900,7 +867,6 @@ Mode.addEventListener('click', function () {
         BoxCanvas.style.pointerEvents = isEditing ? 'auto' : 'none';
         document.querySelector('#BrushSelect option[value="background"]').disabled = true;
 
-        // switch to first available option after background
         let foundBackground = false;
         let firstAvailableOption = null;
         document.querySelectorAll('#BrushSelect option').forEach(option => {
@@ -956,7 +922,6 @@ BoxCanvas.addEventListener('mouseup', () => {
         x: BoxEnd.x / BoxCanvas.width,
         y: BoxEnd.y / BoxCanvas.height
     };  
-    // send request on mouseup
     medsam_estimation(normalizedStart,normalizedEnd);
     clearBoundingBox();
     BoxStart = null;
@@ -1055,14 +1020,12 @@ async function submit_classes(){
     ClassText.disabled = true;
     SubmitClasses.disabled = true;
 
-    // Submit classes and conflict prompting
     if ((predefinedClassesMap.length === 1 && predefinedClassesMap[0] == 'background') || classesMap === predefinedClassesMap)
     {
         get_mask_from_file();
     }
     else if (classesMap !== predefinedClassesMap)
     {
-        // The user is prompted to decide what set classes will be used
         modal.showModal();
     }
     showNotification("success", "Sumitted classes", 1500);
@@ -1111,13 +1074,11 @@ useBatchMasks.addEventListener('click', function(){
 
     for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
     {
-        // The list shrinks
         BrushSelect.remove(1);
     }
 
     classesMap = Array.from(predefinedClassesMap)
 
-    // Applies user choice to buttons and canvas
     for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
     {
         const newOption = new Option(classesMap[class_idx], classesMap[class_idx], false, false);
@@ -1152,19 +1113,16 @@ function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
     ctx.putImageData(imageData, 0, 0);
 }
 
-// update the brush indicator color
 function updateBrushIndicator(brushNumber) {
     const colorIndicator = document.querySelector('.colorIndicator');
 
     if (brushNumber === 0) {
-        // checkerboard pattern
         colorIndicator.style.backgroundImage = 
             "linear-gradient(45deg, #808080 25%, transparent 25%, transparent 75%, #808080 75%)," +
             "linear-gradient(45deg, #808080 25%, #f0f0f0 25%, #f0f0f0 75%, #808080 75%)";
         colorIndicator.style.backgroundPosition = "0 0, 9px 9px";
         colorIndicator.style.backgroundSize = "18px 18px";
     } else {
-        // get color from map
         const color = colorMap[brushNumber];
         if (color) {
             const rgbaColor = `rgba(${color.join(',')})`;
@@ -1187,14 +1145,12 @@ function resetGUIElements() {
     classesMap = ["background"];
     classes_submitted_state = false;
 
-    // reset to view mode
     ToggleEdit.disabled = true;
     isEditing = false;
     ToggleEdit.textContent = 'View Mode';
     OverlayCanvas.style.pointerEvents = 'none';
     BoxCanvas.style.pointerEvents = 'none';
 
-    // reset to brush mode
     Mode.disabled = true;
     editMode = 'brush';
     Mode.textContent = 'Brush';
@@ -1212,7 +1168,6 @@ function resetGUIElements() {
 }
 
 function showNotification(type, text, duration) {
-    // clear existing timeout
     clearTimeout(notificationTimeout);
 
     notificationText.textContent = text;
@@ -1242,7 +1197,6 @@ function showNotification(type, text, duration) {
 
     notificationMessage.style.display = "flex";
 
-    // hide after duration ms
     notificationTimeout = setTimeout(function() {
         notificationMessage.style.display = "none";
     }, duration);
