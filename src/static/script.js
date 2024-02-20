@@ -37,7 +37,6 @@ var dicom_pair_fps;
 var OpenSequences = [];
 var DiffEnabled = false;
 var dcm_idx_;
-
 var isEditing = false;
 var currentBrush = 'background';
 var brushSize = 25;
@@ -51,10 +50,8 @@ var BoxStart = null;
 var BoxEnd = null;
 var progress_saved = true;
 var notificationTimeout;
-
 ctx.lineJoin = 'round';
 ctx.lineCap = 'round';
-
 const colorMap = {
     1: [255, 0, 0, 255],
     2: [0, 0, 255, 255],
@@ -67,7 +64,6 @@ const colorMap = {
     9: [255, 192, 203, 255],
     10: [128, 128, 128, 255],
 };
-
 const reverseColorMap = {
     '255,0,0,255': 1,
     '0,0,255,255': 2,
@@ -80,29 +76,20 @@ const reverseColorMap = {
     '255,192,203,255': 9,
     '128,128,128,255': 10,
 };
-
 let classesMap = ["background"];
 let predefinedClassesMap;
-
-
 var slider_pending_update = false;
 var pending_dcm_idx = 0;
 var dicom_pair;
 var total_altered_dicom_tags = '-';
-
 var LoadingState = false;
-
-
 var PredeterminedHeight = '37vw';
-
 var masks = '';
-
 var modal = document.querySelector('#modal');
 var openModal = document.querySelector('#open-button');
 var overrideMasks = document.querySelector('#overrideMasks');
 var useBatchMasks = document.querySelector('#useBatchMasks');
 var classes_submitted_state = false;
-
 
 function ShowDiff(ToggleValue)
 {
@@ -116,7 +103,6 @@ function HideSequence(SequenceID)
     const FirstOccurence = OpenSequencesStringified.indexOf(JSON.stringify(SequenceID));
     let style;
     let expand_row_symbol;
-
     if (FirstOccurence == -1)
     {
         OpenSequences.push(SequenceID);
@@ -129,7 +115,6 @@ function HideSequence(SequenceID)
         style = 'none';
         expand_row_symbol = '+';
     }
-
     document.getElementById(JSON.stringify(SequenceID)).style.display = style;
     document.getElementById(JSON.stringify(SequenceID) + '_expand_row').innerHTML = expand_row_symbol;
 }
@@ -141,9 +126,7 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
         let CurrentNodeIdx = ParentNodeIdx.slice();
         const indentation_block_unit = `<div class="cell-expand-row-margin"></div>`;
         let indentation_block;
-
         CurrentNodeIdx.push(-1);
-
         for (let tagID in RawDCMMetadataObjectLvN)
         {
             let tagID_part1 = tagID.substring(0, 4);
@@ -157,10 +140,7 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
             let right_row_contents;
             let left_col_style;
             let right_col_style;
-
-
             CurrentNodeIdx[CurrentNodeIdx.length - 1] += 1;
-
             if (CleanedDCMMetadataObjectLvN.hasOwnProperty(tagID))
             {
                 cleaned_value = CleanedDCMMetadataObjectLvN[tagID].value;
@@ -171,7 +151,6 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
                 cleaned_value = '<TAG REMOVED>';
                 tag_dropped = true;
             }
-
             if (tag_dropped)
             {
                 left_col_style = ' style="background-color: rgba(0, 255, 255, 10%);"';
@@ -205,7 +184,6 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
                     <div class="cell-dcmtag-name"${right_col_style}>${name}</div>
                 `;
             }
-
             if (vr === 'SQ')
             {
                 indentation_block = indentation_block_unit.repeat(OffesetLeftMarginLvN);
@@ -232,15 +210,12 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
                         </div>
                     </div>
                 `;
-
                 MetadataTable = 
                 `
                     ${MetadataTable}
                     <div id="${JSON.stringify(CurrentNodeIdx)}" style="display: none;">
                 `;
-
                 CurrentNodeIdx.push(-1);
-
                 for (let ds_idx in raw_value)
                 {
                     CurrentNodeIdx[CurrentNodeIdx.length - 1] += 1;
@@ -265,10 +240,8 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
                             </div>
                         </div>
                     `;
-
                     const RawDCMMetadataObjectLvN = raw_value[ds_idx];
                     const CleanedDCMMetadataObjectLvN = cleaned_value[ds_idx];
-
                     MetadataTable = RecursiveLevelBuild(MetadataTable, RawDCMMetadataObjectLvN, CleanedDCMMetadataObjectLvN, OffesetLeftMarginLvN+2, CurrentNodeIdx, DiffEnabled);
                 }
                 MetadataTable = 
@@ -276,7 +249,6 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
                         ${MetadataTable}
                     </div>
                 `;
-
                 CurrentNodeIdx = CurrentNodeIdx.slice(0, CurrentNodeIdx.length-1);
             }
             else
@@ -304,14 +276,10 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
                 `;
             }
         }
-
         return MetadataTable;
     };
-
     total_altered_dicom_tags = 0;
-
     let UppermostRowStyle = ` style="background-color: rgba(45, 45, 50, 255);"`;
-
     let MetadataTable = 
     `
         <div class="outer-row">
@@ -337,9 +305,7 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
     const ParentNodeIdx = [];
     const RawDCMMetadataObjectLv0 = RawDCMMetadataObject;
     const CleanedDCMMetadataObjectLv0 = CleanedDCMMetadataObject;
-
     MetadataTable = RecursiveLevelBuild(MetadataTable, RawDCMMetadataObjectLv0, CleanedDCMMetadataObjectLv0, OffesetLeftMarginLv0, ParentNodeIdx, DiffEnabled);
-
     return MetadataTable;
 };
 
@@ -349,7 +315,6 @@ function CheckForChanges()
     {
         UpdateDICOMInformation(pending_dcm_idx);
     }
-
     setTimeout(CheckForChanges, 50);
 };
 
@@ -357,20 +322,14 @@ async function UpdateDICOMInformation(dcm_idx)
 {
     if (progress_saved == true)
     {
-
         slider_pending_update = true;
         pending_dcm_idx = dcm_idx;
-
         if (LoadingState)
         {
             return;
         }
-
         slider_pending_update = false;
-
         LoadingState = true;
-
-
         dcm_idx_ = dcm_idx
         const dicom_pair_fp = await dicom_pair_fps[dcm_idx_]
         const conversion_info_response = await fetch
@@ -385,17 +344,14 @@ async function UpdateDICOMInformation(dcm_idx)
                 body: JSON.stringify(dicom_pair_fp)
             }
         );
-
         dicom_pair = await conversion_info_response.json();
         const dicom_metadata_table = table(dicom_pair['raw_dicom_metadata'], dicom_pair['cleaned_dicom_metadata'], DiffEnabled);
         const raw_dicom_img_fp = dicom_pair['raw_dicom_img_fp'];
         const cleaned_dicom_img_fp = dicom_pair['cleaned_dicom_img_fp'];
-
         if (RawImgInner.height !== 0)
         {
             PredeterminedHeight = String(RawImgInner.height) + 'px';
         }
-
         try
         {
             modality = dicom_pair['raw_dicom_metadata']['00080060'].value;
@@ -404,14 +360,12 @@ async function UpdateDICOMInformation(dcm_idx)
         {
             modality = '-';
         }
-
         if (classes_submitted_state)
         {
             await get_mask_from_file();
             undoStack = [];
             redoStack = [];
         }
-
         DICOMOverview.innerHTML =
         `
             Index: ${dcm_idx_}
@@ -426,16 +380,13 @@ async function UpdateDICOMInformation(dcm_idx)
             </br>
             Total number of altered tags (excluding the pixel data): ${total_altered_dicom_tags}
         `;
-
         MetadataTable.innerHTML = dicom_metadata_table;
-
         RawImg.style.minHeight = PredeterminedHeight;
         CleanedImg.style.minHeight = PredeterminedHeight;
         RawImgInner.src = raw_dicom_img_fp;
         CleanedImgInner.src = cleaned_dicom_img_fp;
         RawImg.style.minHeight = 0;
         CleanedImg.style.minHeight = 0;
-
         LoadingState = false;
     }
     else
@@ -458,7 +409,6 @@ function base64torgba(encodedData) {
     const binaryString = window.atob(encodedData);
     const len = binaryString.length;
     const bytes = new Uint8ClampedArray(len * 4);
-
     for (let i = 0, j = 0; i < len; i++, j += 4) {
         let pixelValue = binaryString.charCodeAt(i);
         const color = colorMap[pixelValue];
@@ -481,7 +431,6 @@ document.querySelector('#UploadForm input[name="files"]').addEventListener
         {
             formData.append('files', this.files[i]);
         }
-
         const dcm_files_response = await fetch
         (
             '/upload_files/',
@@ -491,9 +440,7 @@ document.querySelector('#UploadForm input[name="files"]').addEventListener
             }
         );
         const dcm_files = await dcm_files_response.json();
-
         ConversionResult.style.display = 'none';
-
         if (dcm_files_response.ok && dcm_files.n_uploaded_files > 0)
         {
             n_uploaded_files = dcm_files.n_uploaded_files;
@@ -527,11 +474,9 @@ document.querySelector('#SessionForm input[name="SessionFile"]').addEventListene
         const fileInput = this;
         const file = fileInput.files[0];
         const reader = new FileReader();
-
         reader.onload = async function()
         {
             const payload = JSON.parse(reader.result);
-
             const response = await fetch
             (
                 '/session/',
@@ -545,7 +490,6 @@ document.querySelector('#SessionForm input[name="SessionFile"]').addEventListene
                 }
             );
         };
-
         reader.readAsText(file);
     }
 );
@@ -569,14 +513,12 @@ window.onload = function()
                         body: formData
                     }
                 )
-
                 retain_safe_private_input_checkbox.checked = false;
                 retain_uids_input_checkbox.checked = false;
                 retain_device_identity_input_checkbox.checked = false;
                 retain_patient_characteristics_input_checkbox.checked = false;
                 date_processing_select.value = 'offset';
                 retain_descriptors_input_checkbox.checked = false;
-
                 retain_safe_private_input_checkbox.disabled = true;
                 retain_uids_input_checkbox.disabled = true;
                 retain_device_identity_input_checkbox.disabled = true;
@@ -591,7 +533,6 @@ window.onload = function()
 async function submit_dicom_processing_request()
 {
     SubmitAnonymizationProcess.disabled = true;
-
     const data =
     {
         'clean_image': clean_image.checked,
@@ -603,7 +544,6 @@ async function submit_dicom_processing_request()
         'retain_descriptors': retain_descriptors_input_checkbox.checked,
         'patient_pseudo_id_prefix': patient_pseudo_id_prefix_input_text.value
     };
-
     const dicom_pair_fps_response = await fetch
     (
         '/submit_button',
@@ -616,23 +556,18 @@ async function submit_dicom_processing_request()
             body: JSON.stringify(data)
         }
     );
-
     dicom_pair_fps = await dicom_pair_fps_response.json();
-
     DICOMSlider.max = n_uploaded_files-1;
     DICOMSlider.value = 0;
     await UpdateDICOMInformation(0);
     CheckForChanges();
-
     ConversionResult.style.display = 'inline';
-    
     retain_safe_private_input_checkbox.disabled = false;
     retain_uids_input_checkbox.disabled = false;
     retain_device_identity_input_checkbox.disabled = false;
     retain_patient_characteristics_input_checkbox.disabled = false;
     date_processing_select.disabled = false;
     retain_descriptors_input_checkbox.disabled = false;
-
     await fetch
     (
         '/correct_seg_homogeneity',
@@ -640,7 +575,6 @@ async function submit_dicom_processing_request()
             method: 'POST'
         }
     );
-
     const predefinedClassesMap_responce = await fetch
     (
         '/get_batch_classes',
@@ -651,12 +585,9 @@ async function submit_dicom_processing_request()
             }
         }
     );
-
     predefinedClassesMap = await predefinedClassesMap_responce.json()
     predefinedClassesMap = predefinedClassesMap.classes
-
     classesMap = Array.from(predefinedClassesMap)
-
     for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
     {
         const newOption = new Option(classesMap[class_idx], classesMap[class_idx], false, false);
@@ -674,7 +605,6 @@ async function get_mask_from_file() {
             },
             body: JSON.stringify(dicom_pair_fps[dcm_idx_][1])
         });
-    
     if (reset_response.ok) {
         const response_data = await reset_response.json();
         fillCanvas(response_data['PixelData'], response_data['dimensions']);
@@ -707,7 +637,6 @@ function canvastobase64() {
     const canvasData = ctx.getImageData(0, 0, OverlayCanvas.width, OverlayCanvas.height);
     const data = canvasData.data;
     let binaryString = '';
-
     for (let i = 0; i < data.length; i += 4) {
         let rgba = `${data[i]},${data[i + 1]},${data[i + 2]},${data[i + 3]}`;
         if (data[i + 3] === 0) {
@@ -742,7 +671,6 @@ function getMousePos(canvas, evt) {
     var rect = canvas.getBoundingClientRect();
     var scaleX = canvas.width / rect.width;
     var scaleY = canvas.height / rect.height;
-
     return {
         x: (evt.clientX - rect.left) * scaleX,
         y: (evt.clientY - rect.top) * scaleY
@@ -751,30 +679,21 @@ function getMousePos(canvas, evt) {
 
 function draw(e) {
     if (!isEditing) return;
-
     var mousePos = getMousePos(OverlayCanvas, e);
-
     ctx.lineWidth = brushSize;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-
     const brushClassNumber = classesMap.indexOf(currentBrush);
-
     const brushColor = brushClassNumber !== -1 && colorMap[brushClassNumber] 
                         ? `rgba(${colorMap[brushClassNumber].join(',')})` 
                         : 'rgba(0,0,0,1)';
-
     ctx.strokeStyle = brushColor;
-
     ctx.globalCompositeOperation = currentBrush === 'background' ? 'destination-out' : 'source-over';
-
     if (!isDrawing) return;
-
     ctx.beginPath();
     ctx.moveTo(lastX, lastY);
     ctx.lineTo(mousePos.x, mousePos.y);
     ctx.stroke();
-
     lastX = mousePos.x;
     lastY = mousePos.y;
 }
@@ -866,7 +785,6 @@ Mode.addEventListener('click', function () {
         Mode.textContent = 'Box';
         BoxCanvas.style.pointerEvents = isEditing ? 'auto' : 'none';
         document.querySelector('#BrushSelect option[value="background"]').disabled = true;
-
         let foundBackground = false;
         let firstAvailableOption = null;
         document.querySelectorAll('#BrushSelect option').forEach(option => {
@@ -877,7 +795,6 @@ Mode.addEventListener('click', function () {
                 foundBackground = true;
             }
         });
-
         if (currentBrush=='background') {
             BrushSelect.value = firstAvailableOption.value;
             BrushSelect.dispatchEvent(new Event('change'));
@@ -903,7 +820,6 @@ BoxCanvas.addEventListener('mousemove', (e) => {
     var mousePos = getMousePos(BoxCanvas, e);
     BoxEnd = mousePos;
     clearBoundingBox();
-
     bctx.beginPath();
     bctx.lineWidth = 5; 
     bctx.rect(BoxStart.x, BoxStart.y, BoxEnd.x - BoxStart.x, BoxEnd.y - BoxStart.y);
@@ -947,24 +863,19 @@ function add_class() {
         showNotification("info", "Please enter a class name", 1500);
         return;
     }
-
     if (classesMap.includes(inputVal)) {
         showNotification("failure", "This class already exists", 1500);
         return;
     }
-
     if (classesMap.length >= 11) {
         showNotification("failure", "Maximum of 10 classes reached", 1500);
         return;
     }
-
     classesMap.push(inputVal);
-
     const newOption = new Option(inputVal, inputVal, false, true);
     BrushSelect.add(newOption);
     BrushSelect.value = inputVal;
     ClassText.value = '';
-
     const event = new Event('change');
     BrushSelect.dispatchEvent(event);
     showNotification("success", "Added class " + inputVal, 1500);
@@ -976,27 +887,22 @@ function remove_class() {
         showNotification("info", "Please enter a class name", 1500);
         return;
     }
-
     const index = classesMap.indexOf(inputVal);
     if (index === -1) {
         showNotification("failure", "Class not found", 1500);
         return;
     }
-
     if (inputVal === 'background') {
         showNotification("failure", "Cannot remove background class", 1500);
         return;
     }
-
     classesMap.splice(index, 1);
-
     for (let i = 0; i < BrushSelect.options.length; i++) {
         if (BrushSelect.options[i].value === inputVal) {
             BrushSelect.remove(i);
             break;
         }
     }
-
     ClassText.value = '';
     const event = new Event('change');
     BrushSelect.dispatchEvent(event);
@@ -1004,7 +910,6 @@ function remove_class() {
 }
 
 async function submit_classes(){
-
     classes_submitted_state = true;
     ToggleEdit.disabled = false;
     if (classesMap.length > 1){
@@ -1019,7 +924,6 @@ async function submit_classes(){
     Remove.disabled = true;
     ClassText.disabled = true;
     SubmitClasses.disabled = true;
-
     if ((predefinedClassesMap.length === 1 && predefinedClassesMap[0] == 'background') || classesMap === predefinedClassesMap)
     {
         get_mask_from_file();
@@ -1033,10 +937,8 @@ async function submit_classes(){
 
 function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
     const binaryString = window.atob(base64DicomMask);
-
     let imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
     let data = imageData.data;
-
     for (let i = 0; i < binaryString.length; i++) {
         let maskValue = binaryString.charCodeAt(i);
         let index = i * 4;
@@ -1052,7 +954,6 @@ function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
 }
 
 overrideMasks.addEventListener('click', async function(){
-
     await fetch
     (
         '/align_classes/',
@@ -1064,38 +965,29 @@ overrideMasks.addEventListener('click', async function(){
             body: JSON.stringify(classesMap)
         }
     );
-
     get_mask_from_file();
-
     modal.close();
 })
 
 useBatchMasks.addEventListener('click', function(){
-
     for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
     {
         BrushSelect.remove(1);
     }
-
     classesMap = Array.from(predefinedClassesMap)
-
     for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
     {
         const newOption = new Option(classesMap[class_idx], classesMap[class_idx], false, false);
         BrushSelect.add(newOption);
     }
-
     get_mask_from_file();
-
     modal.close();
 })
 
 function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
     const binaryString = window.atob(base64DicomMask);
-
     let imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
     let data = imageData.data;
-
     for (let i = 0; i < binaryString.length; i++) {
         let maskValue = binaryString.charCodeAt(i);
         let index = i * 4;
@@ -1107,15 +999,12 @@ function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
             data[index + 3] = colorMap[maskValue][3];
         }
     }
-
     progress_saved = false
-
     ctx.putImageData(imageData, 0, 0);
 }
 
 function updateBrushIndicator(brushNumber) {
     const colorIndicator = document.querySelector('.colorIndicator');
-
     if (brushNumber === 0) {
         colorIndicator.style.backgroundImage = 
             "linear-gradient(45deg, #808080 25%, transparent 25%, transparent 75%, #808080 75%)," +
@@ -1144,18 +1033,15 @@ function resetGUIElements() {
     BrushSelect.dispatchEvent(event);
     classesMap = ["background"];
     classes_submitted_state = false;
-
     ToggleEdit.disabled = true;
     isEditing = false;
     ToggleEdit.textContent = 'View Mode';
     OverlayCanvas.style.pointerEvents = 'none';
     BoxCanvas.style.pointerEvents = 'none';
-
     Mode.disabled = true;
     editMode = 'brush';
     Mode.textContent = 'Brush';
     document.querySelector('#BrushSelect option[value="background"]').disabled = false;
-
     BrushSizeSlider.disabled = true;
     Undo.disabled = true;
     Redo.disabled = true;
@@ -1169,9 +1055,7 @@ function resetGUIElements() {
 
 function showNotification(type, text, duration) {
     clearTimeout(notificationTimeout);
-
     notificationText.textContent = text;
-
     switch (type) {
         case "success":
             notificationIcon.textContent = "✔️"; 
@@ -1194,9 +1078,7 @@ function showNotification(type, text, duration) {
             notificationMessage.style.color = "black";
             break;
     }
-
     notificationMessage.style.display = "flex";
-
     notificationTimeout = setTimeout(function() {
         notificationMessage.style.display = "none";
     }, duration);
