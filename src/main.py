@@ -1,13 +1,7 @@
 import os, logging
-
-## Warning supression
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
 import tensorflow as tf
-
-## Warning supression
 tf.get_logger().setLevel(logging.ERROR)
-
 from typing import Union
 from tensorflow.keras.models import load_model
 from fastapi import FastAPI, File, UploadFile, Form, Body
@@ -653,7 +647,6 @@ def image_deintentifier(dcm: pydicom.dataset.FileDataset) -> pydicom.dataset.Fil
     if min(raw_img_uint16_grayscale.shape) < min_dim:
         print('W: Pixel data will not be affected because the DICOM image resolution is excessively small')
         return dcm
-
     print('Input DICOM file information')
     print('Input image shape: ', raw_img_uint16_grayscale.shape)
     if downscale_dimensionality < max(raw_img_uint16_grayscale.shape[0], raw_img_uint16_grayscale.shape[1]):
@@ -728,14 +721,12 @@ def get_action_group(user_input: dict, action_groups_df: pd.core.frame.DataFrame
 def adjust_dicom_metadata(dcm: pydicom.dataset.FileDataset, action_group_fp: str, patient_pseudo_id: str, days_total_offset: int, seconds_total_offset: int) -> tuple[pydicom.dataset.FileDataset, dict]:
 
     def add_date_offset(input_date_str: str, days_total_offset: str) -> str:
-
         input_date = datetime.datetime.strptime(input_date_str, '%Y%m%d')
         output_date = input_date + datetime.timedelta(days = days_total_offset)
         output_date_str = output_date.strftime('%Y%m%d')
         return output_date_str
 
     def seconds2daytime(seconds_total_offset: int) -> str:
-        
         output_hours = seconds_total_offset // 3600
         output_minutes = (seconds_total_offset % 3600) // 60
         output_seconds = (seconds_total_offset % 3600) % 60
@@ -743,7 +734,6 @@ def adjust_dicom_metadata(dcm: pydicom.dataset.FileDataset, action_group_fp: str
         return output_time_str
 
     def recursive_SQ_cleaner(ds: pydicom.dataset.FileDataset, action: str, action_attr_tag_idx: str) -> pydicom.dataset.FileDataset:
-
         for ds_attr in ds:
             ds_tag_idx = re.sub('[(,) ]', '', str(ds_attr.tag))
             if ds[ds_tag_idx].VR == 'SQ':
@@ -784,7 +774,6 @@ def adjust_dicom_metadata(dcm: pydicom.dataset.FileDataset, action_group_fp: str
     return dcm, tag_value_replacements
 class rwdcm:
     def __init__(self, in_dp: str, out_dp: str):
-       
         self.SAFETY_SWITCH = True
         if not self.SAFETY_SWITCH:
             print('W: Safety switch is off. Output directory can now be deleted.')
