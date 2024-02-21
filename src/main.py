@@ -34,6 +34,7 @@ from copy import deepcopy
 from tiny_vit_sam import TinyViT
 from segment_anything.modeling import MaskDecoder, PromptEncoder, TwoWayTransformer
 import torch
+from uvicorn import run
 
 class user_options_class(BaseModel):
     ## These have to match exactly with javascript's "dictionary" keys, both the keys and the data types
@@ -849,3 +850,6 @@ class rwdcm:
     def export_session(self, session: dict):
         with open(self.clean_data_dp + '/session.json', 'w') as file:
             json.dump(session, file)
+
+if __name__ == "__main__":
+    run(app, host="0.0.0.0", port=8000)
