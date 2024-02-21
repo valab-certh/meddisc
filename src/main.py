@@ -291,8 +291,19 @@ async def handle_submit_button_click(user_options: user_options_class):
     dp, _, fps = list(os.walk('./session_data/raw'))[0]
     if set(fps).issubset({'.gitkeep'}):
         return False
-    with open(file = './user_default_options.json', mode = 'r') as file:
-        default_options = json.load(file)
+    default_options = \
+    {
+        "input_dcm_dp": "./session_data/raw",
+        "output_dcm_dp": "./session_data/clean",
+        "clean_image": True,
+        "retain_safe_private": False,
+        "retain_uids": False,
+        "retain_device_identity": False,
+        "retain_patient_characteristics": False,
+        "date_processing": "offset",
+        "retain_descriptors": False,
+        "patient_pseudo_id_prefix": "<PREFIX ID> - "
+    }   
     user_options['input_dcm_dp'] = default_options['input_dcm_dp']
     user_options['output_dcm_dp'] = default_options['output_dcm_dp']
     with open(file = './session_data/user_options.json', mode = 'w') as file:
