@@ -663,7 +663,9 @@ def image_deintentifier(dcm: pydicom.dataset.FileDataset) -> pydicom.dataset.Fil
     print('Input image shape: ', raw_img_uint16_grayscale.shape)
     if downscale_dimensionality < max(raw_img_uint16_grayscale.shape[0], raw_img_uint16_grayscale.shape[1]):
         print('Downscaling detection input image from shape (%d, %d) to (%d, %d)'%(raw_img_uint16_grayscale.shape[0], raw_img_uint16_grayscale.shape[1], downscale_dimensionality, downscale_dimensionality))
+
     raw_img_uint8_rgb = image_preprocessing(img = raw_img_uint16_grayscale, downscale_dimensionality = downscale_dimensionality)
+
     pipeline = keras_ocr.detection.Detector()
     bboxes = pipeline.detect([raw_img_uint8_rgb])[0]
     initial_array_shape = raw_img_uint16_grayscale.shape

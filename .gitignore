@@ -1,7 +1,5 @@
 .~*
-.$*
 __*
-info.md
 *.dcmdump
 src/script.js
 dummy_data_bkp
@@ -19,4 +17,3 @@ session_original.json
 front_end_idea.drawio
 custom_config.csv
 src/pretrained_segmenters
-Dockerfile_bkp
