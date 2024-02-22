@@ -37,7 +37,6 @@ import torch
 from uvicorn import run
 
 class user_options_class(BaseModel):
-    ## These have to match exactly with javascript's "dictionary" keys, both the keys and the data types
     clean_image: bool
     retain_safe_private: bool
     retain_uids: bool
@@ -185,7 +184,6 @@ async def get_files(files: List[UploadFile] = File(...)):
     proper_dicom_paths = []
     total_uploaded_file_bytes = 0
     for file in files:
-        ## Serialized file contents
         contents = await file.read()
         fp = './session_data/raw/' + file.filename.split('/')[-1]
         with open(file = fp, mode = 'wb') as f:
@@ -337,24 +335,23 @@ class MedSAM_Lite(nn.Module):
         self.prompt_encoder = prompt_encoder
 
     def forward(self, image, box_np):
-        image_embedding = self.image_encoder(image) # (B, 256, 64, 64)
-        # do not compute gradients for prompt encoder
+        image_embedding = self.image_encoder(image)
         with torch.no_grad():
             box_torch = torch.as_tensor(box_np, dtype=torch.float32, device='cpu')
             if len(box_torch.shape) == 2:
-                box_torch = box_torch[:, None, :] # (B, 1, 4)
+                box_torch = box_torch[:, None, :]
         sparse_embeddings, dense_embeddings = self.prompt_encoder(
             points=None,
             boxes=box_np,
             masks=None,
         )
         low_res_masks, iou_predictions = self.mask_decoder(
-            image_embeddings=image_embedding, # (B, 256, 64, 64)
-            image_pe=self.prompt_encoder.get_dense_pe(), # (1, 256, 64, 64)
-            sparse_prompt_embeddings=sparse_embeddings, # (B, 2, 256)
-            dense_prompt_embeddings=dense_embeddings, # (B, 256, 64, 64)
+            image_embeddings=image_embedding,
+            image_pe=self.prompt_encoder.get_dense_pe(),
+            sparse_prompt_embeddings=sparse_embeddings,
+            dense_prompt_embeddings=dense_embeddings,
             multimask_output=False,
-          ) # (B, 1, 256, 256)
+          )
         return low_res_masks
 
     @torch.no_grad()
@@ -379,10 +376,10 @@ def prepare_medsam():
         img_size=256,
         in_chans=3,
         embed_dims=[
-            64, ## (64, 256, 256)
-            128, ## (128, 128, 128)
-            160, ## (160, 64, 64)
-            320 ## (320, 64, 64) 
+            64,
+            128,
+            160,
+            320
         ],
         depths=[2, 2, 6, 2],
         num_heads=[2, 4, 5, 10],
@@ -440,10 +437,10 @@ def prepare_medsam():
             img_256.max() - img_256.min(), a_min=1e-8, a_max=None
         ) 
         img_256_tensor = (
-            torch.tensor(img_256).float().permute(2, 0, 1).unsqueeze(0)#.to(device)
+            torch.tensor(img_256).float().permute(2, 0, 1).unsqueeze(0)
         )
         with torch.no_grad():
-            embeddings.append(medsam_model.image_encoder(img_256_tensor))  # (1, 256, 64, 64)
+            embeddings.append(medsam_model.image_encoder(img_256_tensor))
     print('Initialization completed - %.2f'%(time.time()-t0))
 def dicom_deidentifier(SESSION_FP: Union[None, str] = None) -> tuple[dict, list[tuple[str]]]:
     GPU = True
@@ -514,7 +511,6 @@ def dicom_deidentifier(SESSION_FP: Union[None, str] = None) -> tuple[dict, list[
         session[real_patient_id]['secondsOffset'] = tag_value_replacements['seconds_total_offset']
         dcm = deidentification_attributes(user_input = user_input, dcm = dcm)
         if user_input['clean_image']:
-            ## Cleans burned in text in pixel data
             dcm = image_deintentifier(dcm = dcm)
         print('DICOM Processing Completed')
         rw_obj.export_processed_file(dcm = dcm)
@@ -526,17 +522,17 @@ def dicom_deidentifier(SESSION_FP: Union[None, str] = None) -> tuple[dict, list[
 def medsam_inference(medsam_model, img_embed, box_256, new_size, original_size):
     box_torch = torch.as_tensor(box_256, dtype=torch.float, device=img_embed.device)
     if len(box_torch.shape) == 2:
-        box_torch = box_torch[:, None, :] # (B, 1, 4)
+        box_torch = box_torch[:, None, :]
     sparse_embeddings, dense_embeddings = medsam_model.prompt_encoder(
         points = None,
         boxes = box_torch,
         masks = None,
     )
     low_res_logits, _ = medsam_model.mask_decoder(
-        image_embeddings=img_embed, # (B, 256, 64, 64)
-        image_pe=medsam_model.prompt_encoder.get_dense_pe(), # (1, 256, 64, 64)
-        sparse_prompt_embeddings=sparse_embeddings, # (B, 2, 256)
-        dense_prompt_embeddings=dense_embeddings, # (B, 256, 64, 64)
+        image_embeddings=img_embed,
+        image_pe=medsam_model.prompt_encoder.get_dense_pe(),
+        sparse_prompt_embeddings=sparse_embeddings,
+        dense_prompt_embeddings=dense_embeddings,
         multimask_output=False
     )
     low_res_pred = medsam_model.postprocess_masks(low_res_logits, new_size, original_size)
