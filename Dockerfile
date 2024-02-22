@@ -14,13 +14,13 @@ RUN git clone -b LiteMedSAM https://github.com/bowang-lab/MedSAM.git
 WORKDIR /app/MedSAM
 RUN pip install -e .
 
-WORKDIR /app/src
-COPY src/ .
-WORKDIR /app/src/pretrained_segmenters/MedSAM
+WORKDIR /app/python
+COPY python/ .
+WORKDIR /app/python/pretrained_segmenters/MedSAM
 RUN wget -O lite_medsam.pth https://github.com/uw0s/DICOMDeIdentifier/releases/download/v1.3.5/lite_medsam.pth
 
-WORKDIR /app/src
-COPY src/ .
+WORKDIR /app/python
+COPY python/ .
 
 EXPOSE 8000
 
