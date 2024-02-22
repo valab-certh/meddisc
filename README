@@ -1,0 +1,17 @@
+# DICOM De-Identifier
+
+# Requirements
+POSIX Shell & Utilities
+Git
+Docker
+
+# Download
+git clone https://github.com/fl0wxr/DICOMDeIdentifier $HOME/github.com/fl0wxr/DICOMDeIdentifier
+cd $HOME/github.com/fl0wxr/DICOMDeIdentifier
+
+# Development
+cd python/python/ && make clean check all && cd ../..
+cd python/ && make clean check all && cd ..
+
+# Staging
+cd python/ && make STAGING=1
