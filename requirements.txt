@@ -1,9 +1,0 @@
-fastapi==0.109.0
-keras-ocr==0.9.3
-pydicom==2.4.4
-python-multipart==0.0.6
-pylibjpeg==2.0.0
-pylibjpeg-libjpeg==2.0.0
--e git+https://github.com/bowang-lab/MedSAM.git@LiteMedSAM#egg=litemedsam
-tensorflow==2.15.0.post1
-uvicorn==0.26.0
