@@ -87,7 +87,7 @@ def clean_imgs():
             os.remove(dp + '/' + fp)
     if os.path.exists('./tmp/session-data/clean/de-identified-files'):
         shutil.rmtree('./tmp/session-data/clean/de-identified-files')
-    dp, _, fps = list(os.walk('./prm/static/client-data'))[0]
+    dp, _, fps = list(os.walk('./static/client-data'))[0]
     for fp in fps:
         if fp != '.gitkeep':
             os.remove(dp + '/' + fp)
@@ -121,15 +121,15 @@ def DCM2DictMetadata(ds: pydicom.dataset.Dataset) -> dict:
 app = FastAPI()
 app.mount\
 (
-    path = '/prm/static',
-    app = StaticFiles(directory='prm/static'),
+    path = '/static',
+    app = StaticFiles(directory='static'),
     name = 'sttc'
 )
 
 @app.get('/')
 async def get_root():
     clean_all()
-    return FileResponse('./prm/static/index.html')
+    return FileResponse('./templates/index.html')
 
 @app.post('/conversion_info')
 async def conversion_info(dicom_pair_fp: List[str] = Body(...)):
@@ -137,12 +137,12 @@ async def conversion_info(dicom_pair_fp: List[str] = Body(...)):
     raw_dcm = pydicom.dcmread(dicom_pair_fp[0])
     cleaned_dcm = pydicom.dcmread(dicom_pair_fp[1])
     raw_hash = hashlib.sha256(raw_dcm.pixel_array.tobytes()).hexdigest()
-    raw_img_fp = './prm/static/client-data/' + raw_hash + '.png'
+    raw_img_fp = './static/client-data/' + raw_hash + '.png'
     if not os.path.exists(raw_img_fp):
         raw_img = image_preprocessing(raw_dcm.pixel_array, downscale_dimensionality = downscale_dimensionality, multichannel = True, retain_aspect_ratio = True)
         Image.fromarray(raw_img).save(raw_img_fp)
     cleaned_hash = hashlib.sha256(cleaned_dcm.pixel_array.tobytes()).hexdigest()
-    cleaned_img_fp = './prm/static/client-data/' + cleaned_hash + '.png'
+    cleaned_img_fp = './static/client-data/' + cleaned_hash + '.png'
     if not os.path.exists(cleaned_img_fp):
         cleaned_img = image_preprocessing(cleaned_dcm.pixel_array, downscale_dimensionality = downscale_dimensionality, multichannel = True, retain_aspect_ratio = True)
         Image.fromarray(cleaned_img).save(cleaned_img_fp)
@@ -413,7 +413,7 @@ def prepare_medsam():
         mask_decoder = medsam_lite_mask_decoder,
         prompt_encoder = medsam_lite_prompt_encoder
     )
-    medsam_lite_checkpoint = torch.load('./prm/model/lite_medsam.pth', map_location='cpu')
+    medsam_lite_checkpoint = torch.load('./prm/lite_medsam.pth', map_location='cpu')
     medsam_model.load_state_dict(medsam_lite_checkpoint)
     medsam_model.to('cpu')
     print('MedSAM model deserialization completed')
