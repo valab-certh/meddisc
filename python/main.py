@@ -847,4 +847,7 @@ class rwdcm:
             json.dump(session, file)
 
 if __name__ == "__main__":
-    run(app, host="0.0.0.0", port=8000)
+    if(os.getenv("STAGING")):
+        os.makedirs('tmp/session-data/raw')
+        os.makedirs('tmp/session-data/clean')
+        run(app, host="0.0.0.0", port=8000)
