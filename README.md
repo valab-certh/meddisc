@@ -214,7 +214,7 @@ The backend is implemented in Python. During runtime, the input DICOM file's inf
 
 The backend may serve one client at the time and in case the user seeks to continue a session, the server must remain active between potential data processing interruptions.
 
-##### Information of `requested_action_group_dcm.csv`
+##### Information of `requested-action-group-dcm.csv`
 
 This file contains the action group based on which the resulting metadata was de-identified. It is a result of the `user_input.json` and in accordance with NEMA's action groups. If this is corrupted or deleted and you want to rebuild it, execute `generate_action_groups.py` with an Internet connection.
 

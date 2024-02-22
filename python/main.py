@@ -73,23 +73,21 @@ def clean_all():
     clean_imgs()
 
 def clean_config_session():
-    if os.path.isfile('./tmp/session_data/user_input.json'):
-        os.remove('./tmp/session_data/user_input.json')
-    if os.path.isfile('./tmp/session_data/session.json'):
-        os.remove('./tmp/session_data/session.json')
-    if os.path.isfile('./tmp/session_data/requested_action_group_dcm.csv'):
-        os.remove('./tmp/session_data/requested_action_group_dcm.csv')
-    if os.path.isfile('./tmp/session_data/custom_config.csv'):
-        os.remove('./tmp/session_data/custom_config.csv')
+    if os.path.isfile('./tmp/session-data/session.json'):
+        os.remove('./tmp/session-data/session.json')
+    if os.path.isfile('./tmp/session-data/requested-action-group-dcm.csv'):
+        os.remove('./tmp/session-data/requested-action-group-dcm.csv')
+    if os.path.isfile('./tmp/session-data/custom-config.csv'):
+        os.remove('./tmp/session-data/custom-config.csv')
 
 def clean_imgs():
-    dp, _, fps = list(os.walk('./tmp/session_data/raw'))[0]
+    dp, _, fps = list(os.walk('./tmp/session-data/raw'))[0]
     for fp in fps:
         if fp != '.gitkeep':
             os.remove(dp + '/' + fp)
-    if os.path.exists('./tmp/session_data/clean/de-identified-files'):
-        shutil.rmtree('./tmp/session_data/clean/de-identified-files')
-    dp, _, fps = list(os.walk('./prm/static/client_data'))[0]
+    if os.path.exists('./tmp/session-data/clean/de-identified-files'):
+        shutil.rmtree('./tmp/session-data/clean/de-identified-files')
+    dp, _, fps = list(os.walk('./prm/static/client-data'))[0]
     for fp in fps:
         if fp != '.gitkeep':
             os.remove(dp + '/' + fp)
@@ -139,12 +137,12 @@ async def conversion_info(dicom_pair_fp: List[str] = Body(...)):
     raw_dcm = pydicom.dcmread(dicom_pair_fp[0])
     cleaned_dcm = pydicom.dcmread(dicom_pair_fp[1])
     raw_hash = hashlib.sha256(raw_dcm.pixel_array.tobytes()).hexdigest()
-    raw_img_fp = './prm/static/client_data/' + raw_hash + '.png'
+    raw_img_fp = './prm/static/client-data/' + raw_hash + '.png'
     if not os.path.exists(raw_img_fp):
         raw_img = image_preprocessing(raw_dcm.pixel_array, downscale_dimensionality = downscale_dimensionality, multichannel = True, retain_aspect_ratio = True)
         Image.fromarray(raw_img).save(raw_img_fp)
     cleaned_hash = hashlib.sha256(cleaned_dcm.pixel_array.tobytes()).hexdigest()
-    cleaned_img_fp = './prm/static/client_data/' + cleaned_hash + '.png'
+    cleaned_img_fp = './prm/static/client-data/' + cleaned_hash + '.png'
     if not os.path.exists(cleaned_img_fp):
         cleaned_img = image_preprocessing(cleaned_dcm.pixel_array, downscale_dimensionality = downscale_dimensionality, multichannel = True, retain_aspect_ratio = True)
         Image.fromarray(cleaned_img).save(cleaned_img_fp)
@@ -185,7 +183,7 @@ async def get_files(files: List[UploadFile] = File(...)):
     total_uploaded_file_bytes = 0
     for file in files:
         contents = await file.read()
-        fp = './tmp/session_data/raw/' + file.filename.split('/')[-1]
+        fp = './tmp/session-data/raw/' + file.filename.split('/')[-1]
         with open(file = fp, mode = 'wb') as f:
             f.write(contents)
         try:
@@ -216,7 +214,7 @@ async def correct_seg_homogeneity():
         if len(set(found_classes)) > 1 or dcm.SegmentSequence[0].SegmentDescription.split(';')[0] != 'background':
             return False
         return True
-    with open(file = './tmp/session_data/user_options.json', mode = 'r') as file:
+    with open(file = './tmp/session-data/user-options.json', mode = 'r') as file:
         user_input = json.load(file)
     fps = glob(os.path.join(user_input['output_dcm_dp'], '**', '*.dcm'), recursive = True)
     homogeneity_state = SegmentSequenceHomogeneityCheck(fps)
@@ -226,7 +224,7 @@ async def correct_seg_homogeneity():
 
 @app.post('/get_batch_classes')
 async def get_batch_classes():
-    with open(file = './tmp/session_data/user_options.json', mode = 'r') as file:
+    with open(file = './tmp/session-data/user-options.json', mode = 'r') as file:
         user_input = json.load(file)
     fps = glob(os.path.join(user_input['output_dcm_dp'], '**', '*.dcm'), recursive = True)
     try:
@@ -237,7 +235,7 @@ async def get_batch_classes():
 
 @app.post('/align_classes')
 async def align_classes(classes: List[str]):
-    with open(file = './tmp/session_data/user_options.json', mode = 'r') as file:
+    with open(file = './tmp/session-data/user-options.json', mode = 'r') as file:
         user_input = json.load(file)
     fps = glob(os.path.join(user_input['output_dcm_dp'], '**', '*.dcm'), recursive = True)
     renew_segm_seq(fps, classes)
@@ -256,13 +254,13 @@ def renew_segm_seq(fps: list[str], classes: list[str]):
 
 @app.post('/session')
 async def handle_session_button_click(session_dict: Dict[str, Any]):
-    with open(file = './tmp/session_data/session.json', mode = 'w') as file:
+    with open(file = './tmp/session-data/session.json', mode = 'w') as file:
         json.dump(session_dict, file)
 
 @app.post("/custom_config/")
 async def get_files(ConfigFile: UploadFile = File(...)):
     contents = await ConfigFile.read()
-    with open(file = './tmp/session_data/custom_config.csv', mode = 'wb') as file:
+    with open(file = './tmp/session-data/custom-config.csv', mode = 'wb') as file:
         file.write(contents)
 
 @app.post("/medsam_estimation/")
@@ -287,13 +285,13 @@ async def medsam_estimation(boxdata: BoxData):
 @app.post('/submit_button')
 async def handle_submit_button_click(user_options: user_options_class):
     user_options = dict(user_options)
-    dp, _, fps = list(os.walk('./tmp/session_data/raw'))[0]
+    dp, _, fps = list(os.walk('./tmp/session-data/raw'))[0]
     if set(fps).issubset({'.gitkeep'}):
         return False
     default_options = \
     {
-        "input_dcm_dp": "./tmp/session_data/raw",
-        "output_dcm_dp": "./tmp/session_data/clean",
+        "input_dcm_dp": "./tmp/session-data/raw",
+        "output_dcm_dp": "./tmp/session-data/clean",
         "clean_image": True,
         "retain_safe_private": False,
         "retain_uids": False,
@@ -305,10 +303,10 @@ async def handle_submit_button_click(user_options: user_options_class):
     }   
     user_options['input_dcm_dp'] = default_options['input_dcm_dp']
     user_options['output_dcm_dp'] = default_options['output_dcm_dp']
-    with open(file = './tmp/session_data/user_options.json', mode = 'w') as file:
+    with open(file = './tmp/session-data/user-options.json', mode = 'w') as file:
         json.dump(user_options, file)
-    session, dicom_pair_fps = dicom_deidentifier(SESSION_FP = './tmp/session_data/session.json')
-    with open(file = './tmp/session_data/session.json', mode = 'w') as file:
+    session, dicom_pair_fps = dicom_deidentifier(SESSION_FP = './tmp/session-data/session.json')
+    with open(file = './tmp/session-data/session.json', mode = 'w') as file:
         json.dump(session, file)
     prepare_medsam()
     initialize_masks()
@@ -419,7 +417,7 @@ def prepare_medsam():
     medsam_model.load_state_dict(medsam_lite_checkpoint)
     medsam_model.to('cpu')
     print('MedSAM model deserialization completed')
-    dcm_fps = sorted(glob('./tmp/session_data/raw/*'))
+    dcm_fps = sorted(glob('./tmp/session-data/raw/*'))
     t0 = time.time()
     print('Initializing MedSAM embeddings')
     for dcm_fp in dcm_fps:
@@ -452,21 +450,21 @@ def dicom_deidentifier(SESSION_FP: Union[None, str] = None) -> tuple[dict, list[
         print('[DISABLED] PARALLEL COMPUTATION\n\n---')
     elif tf.config.list_physical_devices('GPU')[0][1] == 'GPU':
         print('[ENABLED] PARALLEL COMPUTATION\n\n---')
-    if os.path.isfile('./tmp/session_data/custom_config.csv'):
-        custom_config_df = pd.read_csv(filepath_or_buffer = './tmp/session_data/custom_config.csv', index_col = 0)
+    if os.path.isfile('./tmp/session-data/custom-config.csv'):
+        custom_config_df = pd.read_csv(filepath_or_buffer = './tmp/session-data/custom-config.csv', index_col = 0)
         custom_config_df.index = custom_config_df.index.str.strip("'")
     else:
         custom_config_df = None
-    action_groups_df = pd.read_csv(filepath_or_buffer = './python/tmp/action_groups_dcm.csv', index_col = 0)
+    action_groups_df = pd.read_csv(filepath_or_buffer = './python/tmp/action-groups-dcm.csv', index_col = 0)
     if SESSION_FP == None or not os.path.isfile(SESSION_FP):
         print('Creating a new session')
         session = dict()
     else:
-        with open(file = './tmp/session_data/session.json', mode = 'r') as file:
+        with open(file = './tmp/session-data/session.json', mode = 'r') as file:
             print('Parsing already generated session')
             session = json.load(file)
-    if os.path.isfile('./tmp/session_data/user_options.json'):
-        with open(file = './tmp/session_data/user_options.json', mode = 'r') as file:
+    if os.path.isfile('./tmp/session-data/user-options.json'):
+        with open(file = './tmp/session-data/user-options.json', mode = 'r') as file:
             user_input = json.load(file)
     else:
         exit('E: No client de-identification configuration was provided')
@@ -478,7 +476,7 @@ def dicom_deidentifier(SESSION_FP: Union[None, str] = None) -> tuple[dict, list[
     else:
         max_pseudo_patient_id = max(pseudo_patient_ids)
     requested_action_group_df = get_action_group(user_input = user_input, action_groups_df = action_groups_df, custom_config_df = custom_config_df)
-    requested_action_group_df.to_csv('./tmp/session_data/requested_action_group_dcm.csv')
+    requested_action_group_df.to_csv('./tmp/session-data/requested-action-group-dcm.csv')
     rw_obj = rwdcm(in_dp = user_input['input_dcm_dp'], out_dp = user_input['output_dcm_dp'])
     while next(rw_obj):
         dcm = rw_obj.parse_file()
@@ -501,7 +499,7 @@ def dicom_deidentifier(SESSION_FP: Union[None, str] = None) -> tuple[dict, list[
         dcm, tag_value_replacements = adjust_dicom_metadata\
         (
             dcm = dcm,
-            action_group_fp = './tmp/session_data/requested_action_group_dcm.csv',
+            action_group_fp = './tmp/session-data/requested-action-group-dcm.csv',
             patient_pseudo_id = session[real_patient_id]['patientPseudoId'],
             days_total_offset = days_total_offset,
             seconds_total_offset = seconds_total_offset
