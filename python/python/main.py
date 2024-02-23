@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import os
 from urllib import request
 
 import pandas as pd
@@ -125,5 +124,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    if os.getenv("STAGING"):
-        main()
+    main()
