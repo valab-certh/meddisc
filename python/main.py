@@ -3,10 +3,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 tf.get_logger().setLevel(logging.ERROR)
 from typing import Union
-from tensorflow.keras.models import load_model
-from fastapi import FastAPI, File, UploadFile, Form, Body
+from fastapi import FastAPI, File, UploadFile, Body
 from fastapi.responses import FileResponse
-from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Any
@@ -27,10 +25,8 @@ import time
 import re
 import hashlib
 import base64
-from segment_anything import sam_model_registry
 import torch.nn as nn
 import torch.nn.functional as F
-from copy import deepcopy
 from tiny_vit_sam import TinyViT
 from segment_anything.modeling import MaskDecoder, PromptEncoder, TwoWayTransformer
 import torch
