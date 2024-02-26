@@ -196,13 +196,14 @@ async def get_files(files: List[UploadFile] = File(...)):
 @app.post('/correct_seg_homogeneity')
 async def correct_seg_homogeneity():
     def SegmentSequenceHomogeneityCheck(fps: list[str]) -> bool:
-        found_classes = []
         for fp in fps:
-            dcm = pydicom.dcmread(fp)
+            try:
+                dcm = pydicom.dcmread(fp)
+            except InvalidDicomError:
+                continue
             try:
                 mask = np.frombuffer(dcm.SegmentSequence[0].PixelData, dtype = np.uint8).reshape((dcm.Rows, dcm.Columns))
-                found_classes.append(dcm.SegmentSequence[0].SegmentDescription)
-
+                found_classes = dcm.SegmentSequence[0].SegmentDescription.split(';')
                 if len(found_classes) != (len(np.unique(mask))):
                     return False
             except:
@@ -210,6 +211,7 @@ async def correct_seg_homogeneity():
         if len(set(found_classes)) > 1 or dcm.SegmentSequence[0].SegmentDescription.split(';')[0] != 'background':
             return False
         return True
+
     with open(file = './tmp/session-data/user-options.json', mode = 'r') as file:
         user_input = json.load(file)
     fps = glob(os.path.join(user_input['output_dcm_dp'], '**', '*.dcm'), recursive = True)

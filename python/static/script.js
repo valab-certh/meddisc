@@ -924,15 +924,26 @@ async function submit_classes(){
     Remove.disabled = true;
     ClassText.disabled = true;
     SubmitClasses.disabled = true;
-    if ((predefinedClassesMap.length === 1 && predefinedClassesMap[0] == 'background') || classesMap === predefinedClassesMap)
+    if (predefinedClassesMap.length === 1 && predefinedClassesMap[0] == 'background')
     {
         get_mask_from_file();
     }
-    else if (classesMap !== predefinedClassesMap)
+    else if (classesMap.length !== predefinedClassesMap.length)
     {
         modal.showModal();
     }
-    showNotification("success", "Sumitted classes", 1500);
+    else
+    {
+        for (let i = 0; i < classesMap.length; i++)
+        {
+            if (classesMap[i] !== predefinedClassesMap[i])
+            {
+                modal.showModal();
+                break;
+            }
+        }
+    }
+    showNotification("success", "Submitted classes", 1500);
 }
 
 function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
