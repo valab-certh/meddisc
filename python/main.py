@@ -307,16 +307,7 @@ async def handle_submit_button_click(user_options: user_options_class):
     with open(file = './tmp/session-data/session.json', mode = 'w') as file:
         json.dump(session, file)
     prepare_medsam()
-    initialize_masks()
     return dicom_pair_fps
-
-def initialize_masks():
-    global seg_masks
-    seg_masks = []
-    global classes
-    classes = []
-    for inpIdx in range(len(embeddings)):
-        seg_masks.append(np.zeros(shape = (Hs[idx], Ws[idx]), dtype = np.uint8) for idx in range(len(embeddings)))
 
 class MedSAM_Lite(nn.Module):
     def __init__(
