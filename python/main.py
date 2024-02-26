@@ -31,6 +31,7 @@ from tiny_vit_sam import TinyViT
 from segment_anything.modeling import MaskDecoder, PromptEncoder, TwoWayTransformer
 import torch
 from uvicorn import run
+from io import BytesIO
 
 class user_options_class(BaseModel):
     clean_image: bool
@@ -83,10 +84,6 @@ def clean_imgs():
             os.remove(dp + '/' + fp)
     if os.path.exists('./tmp/session-data/clean/de-identified-files'):
         shutil.rmtree('./tmp/session-data/clean/de-identified-files')
-    dp, _, fps = list(os.walk('./static/client-data'))[0]
-    for fp in fps:
-        if fp != '.gitkeep':
-            os.remove(dp + '/' + fp)
 
 def DCM2DictMetadata(ds: pydicom.dataset.Dataset) -> dict:
     ds_metadata_dict = {}
@@ -131,23 +128,31 @@ async def get_root():
 async def conversion_info(dicom_pair_fp: List[str] = Body(...)):
     downscale_dimensionality = 1024
     raw_dcm = pydicom.dcmread(dicom_pair_fp[0])
+    raw_img = image_preprocessing(
+        raw_dcm.pixel_array,
+        downscale_dimensionality=downscale_dimensionality,
+        multichannel=True,
+        retain_aspect_ratio=True,
+    )
+    raw_buf = BytesIO()
+    Image.fromarray(raw_img).save(raw_buf, format="PNG")
+    raw_img_base64 = base64.b64encode(raw_buf.getvalue()).decode("utf-8")
     cleaned_dcm = pydicom.dcmread(dicom_pair_fp[1])
-    raw_hash = hashlib.sha256(raw_dcm.pixel_array.tobytes()).hexdigest()
-    raw_img_fp = './static/client-data/' + raw_hash + '.png'
-    if not os.path.exists(raw_img_fp):
-        raw_img = image_preprocessing(raw_dcm.pixel_array, downscale_dimensionality = downscale_dimensionality, multichannel = True, retain_aspect_ratio = True)
-        Image.fromarray(raw_img).save(raw_img_fp)
-    cleaned_hash = hashlib.sha256(cleaned_dcm.pixel_array.tobytes()).hexdigest()
-    cleaned_img_fp = './static/client-data/' + cleaned_hash + '.png'
-    if not os.path.exists(cleaned_img_fp):
-        cleaned_img = image_preprocessing(cleaned_dcm.pixel_array, downscale_dimensionality = downscale_dimensionality, multichannel = True, retain_aspect_ratio = True)
-        Image.fromarray(cleaned_img).save(cleaned_img_fp)
+    cleaned_img = image_preprocessing(
+        cleaned_dcm.pixel_array,
+        downscale_dimensionality=downscale_dimensionality,
+        multichannel=True,
+        retain_aspect_ratio=True,
+    )
+    cleaned_buf = BytesIO()
+    Image.fromarray(cleaned_img).save(cleaned_buf, format="PNG")
+    cleaned_img_base64 = base64.b64encode(cleaned_buf.getvalue()).decode("utf-8")
     return \
     {
         'raw_dicom_metadata': DCM2DictMetadata(ds = raw_dcm),
-        'raw_dicom_img_fp': raw_img_fp,
+        'raw_dicom_img_data': raw_img_base64,
         'cleaned_dicom_metadata': DCM2DictMetadata(ds = cleaned_dcm),
-        'cleaned_dicom_img_fp': cleaned_img_fp,
+        'cleaned_dicom_img_data': cleaned_img_base64,
     }
 
 @app.post('/get_mask_from_file/')
