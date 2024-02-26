@@ -3,10 +3,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 tf.get_logger().setLevel(logging.ERROR)
 from typing import Union
-from tensorflow.keras.models import load_model
-from fastapi import FastAPI, File, UploadFile, Form, Body
+from fastapi import FastAPI, File, UploadFile, Body
 from fastapi.responses import FileResponse
-from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Any
@@ -27,10 +25,8 @@ import time
 import re
 import hashlib
 import base64
-from segment_anything import sam_model_registry
 import torch.nn as nn
 import torch.nn.functional as F
-from copy import deepcopy
 from tiny_vit_sam import TinyViT
 from segment_anything.modeling import MaskDecoder, PromptEncoder, TwoWayTransformer
 import torch
@@ -200,13 +196,14 @@ async def get_files(files: List[UploadFile] = File(...)):
 @app.post('/correct_seg_homogeneity')
 async def correct_seg_homogeneity():
     def SegmentSequenceHomogeneityCheck(fps: list[str]) -> bool:
-        found_classes = []
         for fp in fps:
-            dcm = pydicom.dcmread(fp)
+            try:
+                dcm = pydicom.dcmread(fp)
+            except InvalidDicomError:
+                continue
             try:
                 mask = np.frombuffer(dcm.SegmentSequence[0].PixelData, dtype = np.uint8).reshape((dcm.Rows, dcm.Columns))
-                found_classes.append(dcm.SegmentSequence[0].SegmentDescription)
-
+                found_classes = dcm.SegmentSequence[0].SegmentDescription.split(';')
                 if len(found_classes) != (len(np.unique(mask))):
                     return False
             except:
@@ -214,6 +211,7 @@ async def correct_seg_homogeneity():
         if len(set(found_classes)) > 1 or dcm.SegmentSequence[0].SegmentDescription.split(';')[0] != 'background':
             return False
         return True
+
     with open(file = './tmp/session-data/user-options.json', mode = 'r') as file:
         user_input = json.load(file)
     fps = glob(os.path.join(user_input['output_dcm_dp'], '**', '*.dcm'), recursive = True)
@@ -309,16 +307,7 @@ async def handle_submit_button_click(user_options: user_options_class):
     with open(file = './tmp/session-data/session.json', mode = 'w') as file:
         json.dump(session, file)
     prepare_medsam()
-    initialize_masks()
     return dicom_pair_fps
-
-def initialize_masks():
-    global seg_masks
-    seg_masks = []
-    global classes
-    classes = []
-    for inpIdx in range(len(embeddings)):
-        seg_masks.append(np.zeros(shape = (Hs[idx], Ws[idx]), dtype = np.uint8) for idx in range(len(embeddings)))
 
 class MedSAM_Lite(nn.Module):
     def __init__(
