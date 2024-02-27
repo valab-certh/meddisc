@@ -32,6 +32,7 @@ from segment_anything.modeling import MaskDecoder, PromptEncoder, TwoWayTransfor
 import torch
 from uvicorn import run
 from io import BytesIO
+from functools import lru_cache
 
 class user_options_class(BaseModel):
     clean_image: bool
@@ -123,6 +124,57 @@ app.mount\
 async def get_root():
     clean_all()
     return FileResponse('./templates/index.html')
+
+@lru_cache(maxsize=1)
+def load_model():
+    medsam_lite_image_encoder = TinyViT(
+        img_size=256,
+        in_chans=3,
+        embed_dims=[
+            64,
+            128,
+            160,
+            320
+        ],
+        depths=[2, 2, 6, 2],
+        num_heads=[2, 4, 5, 10],
+        window_sizes=[7, 7, 14, 7],
+        mlp_ratio=4.,
+        drop_rate=0.,
+        drop_path_rate=0.0,
+        use_checkpoint=False,
+        mbconv_expand_ratio=4.0,
+        local_conv_size=3,
+        layer_lr_decay=0.8
+    )
+    medsam_lite_prompt_encoder = PromptEncoder(
+        embed_dim=256,
+        image_embedding_size=(64, 64),
+        input_image_size=(256, 256),
+        mask_in_chans=16
+    )
+    medsam_lite_mask_decoder = MaskDecoder(
+        num_multimask_outputs=3,
+            transformer=TwoWayTransformer(
+                depth=2,
+                embedding_dim=256,
+                mlp_dim=2048,
+                num_heads=8,
+            ),
+            transformer_dim=256,
+            iou_head_depth=3,
+            iou_head_hidden_dim=256,
+    )
+    medsam_model = MedSAM_Lite(
+        image_encoder = medsam_lite_image_encoder,
+        mask_decoder = medsam_lite_mask_decoder,
+        prompt_encoder = medsam_lite_prompt_encoder
+    )
+    medsam_lite_checkpoint = torch.load('./prm/lite_medsam.pth', map_location='cpu')
+    medsam_model.load_state_dict(medsam_lite_checkpoint)
+    medsam_model.to('cpu')
+
+    return medsam_model
 
 @app.post('/conversion_info')
 async def conversion_info(dicom_pair_fp: List[str] = Body(...)):
@@ -276,6 +328,7 @@ async def medsam_estimation(boxdata: BoxData):
     box_256 = bbox[None, :] * 256
     print('Starting segmentation')
     t0 = time.time()
+    medsam_model = load_model()
     temp_dir = './tmp/session-data/embed'
     embedding = torch.load(os.path.join(temp_dir, f'embed_{inpIdx}.pt'))
     Hs = np.load(os.path.join(temp_dir, 'Hs.npy'))
@@ -362,58 +415,7 @@ class MedSAM_Lite(nn.Module):
         return masks
 
 def prepare_medsam():
-    global embeddings
-    embeddings = []
-    global Hs, Ws
-    Hs, Ws = [], []
-    global medsam_model
-    global newh, neww
-    medsam_lite_image_encoder = TinyViT(
-        img_size=256,
-        in_chans=3,
-        embed_dims=[
-            64,
-            128,
-            160,
-            320
-        ],
-        depths=[2, 2, 6, 2],
-        num_heads=[2, 4, 5, 10],
-        window_sizes=[7, 7, 14, 7],
-        mlp_ratio=4.,
-        drop_rate=0.,
-        drop_path_rate=0.0,
-        use_checkpoint=False,
-        mbconv_expand_ratio=4.0,
-        local_conv_size=3,
-        layer_lr_decay=0.8
-    )
-    medsam_lite_prompt_encoder = PromptEncoder(
-        embed_dim=256,
-        image_embedding_size=(64, 64),
-        input_image_size=(256, 256),
-        mask_in_chans=16
-    )
-    medsam_lite_mask_decoder = MaskDecoder(
-        num_multimask_outputs=3,
-            transformer=TwoWayTransformer(
-                depth=2,
-                embedding_dim=256,
-                mlp_dim=2048,
-                num_heads=8,
-            ),
-            transformer_dim=256,
-            iou_head_depth=3,
-            iou_head_hidden_dim=256,
-    )
-    medsam_model = MedSAM_Lite(
-        image_encoder = medsam_lite_image_encoder,
-        mask_decoder = medsam_lite_mask_decoder,
-        prompt_encoder = medsam_lite_prompt_encoder
-    )
-    medsam_lite_checkpoint = torch.load('./prm/lite_medsam.pth', map_location='cpu')
-    medsam_model.load_state_dict(medsam_lite_checkpoint)
-    medsam_model.to('cpu')
+    medsam_model = load_model()
     print('MedSAM model deserialization completed')
     dcm_fps = sorted(glob('./tmp/session-data/raw/*'))
     t0 = time.time()
