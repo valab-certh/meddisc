@@ -346,8 +346,6 @@ async function UpdateDICOMInformation(dcm_idx)
         );
         dicom_pair = await conversion_info_response.json();
         const dicom_metadata_table = table(dicom_pair['raw_dicom_metadata'], dicom_pair['cleaned_dicom_metadata'], DiffEnabled);
-        const raw_dicom_img_fp = dicom_pair['raw_dicom_img_fp'];
-        const cleaned_dicom_img_fp = dicom_pair['cleaned_dicom_img_fp'];
         if (RawImgInner.height !== 0)
         {
             PredeterminedHeight = String(RawImgInner.height) + 'px';
@@ -383,8 +381,8 @@ async function UpdateDICOMInformation(dcm_idx)
         MetadataTable.innerHTML = dicom_metadata_table;
         RawImg.style.minHeight = PredeterminedHeight;
         CleanedImg.style.minHeight = PredeterminedHeight;
-        RawImgInner.src = raw_dicom_img_fp;
-        CleanedImgInner.src = cleaned_dicom_img_fp;
+        RawImgInner.src = `data:image/png;base64,${dicom_pair['raw_dicom_img_data']}`;
+        CleanedImgInner.src = `data:image/png;base64,${dicom_pair['cleaned_dicom_img_data']}`;
         RawImg.style.minHeight = 0;
         CleanedImg.style.minHeight = 0;
         LoadingState = false;
