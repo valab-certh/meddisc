@@ -32,6 +32,7 @@ from segment_anything.modeling import MaskDecoder, PromptEncoder, TwoWayTransfor
 import torch
 from uvicorn import run
 from io import BytesIO
+from functools import lru_cache
 
 class user_options_class(BaseModel):
     clean_image: bool
@@ -123,6 +124,57 @@ app.mount\
 async def get_root():
     clean_all()
     return FileResponse('./templates/index.html')
+
+@lru_cache(maxsize=1)
+def load_model():
+    medsam_lite_image_encoder = TinyViT(
+        img_size=256,
+        in_chans=3,
+        embed_dims=[
+            64,
+            128,
+            160,
+            320
+        ],
+        depths=[2, 2, 6, 2],
+        num_heads=[2, 4, 5, 10],
+        window_sizes=[7, 7, 14, 7],
+        mlp_ratio=4.,
+        drop_rate=0.,
+        drop_path_rate=0.0,
+        use_checkpoint=False,
+        mbconv_expand_ratio=4.0,
+        local_conv_size=3,
+        layer_lr_decay=0.8
+    )
+    medsam_lite_prompt_encoder = PromptEncoder(
+        embed_dim=256,
+        image_embedding_size=(64, 64),
+        input_image_size=(256, 256),
+        mask_in_chans=16
+    )
+    medsam_lite_mask_decoder = MaskDecoder(
+        num_multimask_outputs=3,
+            transformer=TwoWayTransformer(
+                depth=2,
+                embedding_dim=256,
+                mlp_dim=2048,
+                num_heads=8,
+            ),
+            transformer_dim=256,
+            iou_head_depth=3,
+            iou_head_hidden_dim=256,
+    )
+    medsam_model = MedSAM_Lite(
+        image_encoder = medsam_lite_image_encoder,
+        mask_decoder = medsam_lite_mask_decoder,
+        prompt_encoder = medsam_lite_prompt_encoder
+    )
+    medsam_lite_checkpoint = torch.load('./prm/lite_medsam.pth', map_location='cpu')
+    medsam_model.load_state_dict(medsam_lite_checkpoint)
+    medsam_model.to('cpu')
+
+    return medsam_model
 
 @app.post('/conversion_info')
 async def conversion_info(dicom_pair_fp: List[str] = Body(...)):
@@ -276,13 +328,18 @@ async def medsam_estimation(boxdata: BoxData):
     box_256 = bbox[None, :] * 256
     print('Starting segmentation')
     t0 = time.time()
-    medsam_seg = medsam_inference(medsam_model, embeddings[inpIdx], box_256, (newh, neww), (Hs[inpIdx], Ws[inpIdx]))
+    medsam_model = load_model()
+    temp_dir = './tmp/session-data/embed'
+    embedding = torch.load(os.path.join(temp_dir, f'embed_{inpIdx}.pt'))
+    Hs = np.load(os.path.join(temp_dir, 'Hs.npy'))
+    Ws = np.load(os.path.join(temp_dir, 'Ws.npy'))
+    medsam_seg = medsam_inference(medsam_model, embedding, box_256, (256, 256), (Hs[inpIdx], Ws[inpIdx]))
     medsam_seg = (segClass * medsam_seg).astype(np.uint8)
     print('Segmentation completed in %.2f seconds'%(time.time()-t0))
     return \
     {
         'mask': base64.b64encode(medsam_seg).decode('utf-8'),
-        'dimensions': [Ws[inpIdx], Hs[inpIdx]]
+        'dimensions': [int(Ws[inpIdx]), int(Hs[inpIdx])]
     }
 
 @app.post('/submit_button')
@@ -358,63 +415,14 @@ class MedSAM_Lite(nn.Module):
         return masks
 
 def prepare_medsam():
-    global embeddings
-    embeddings = []
-    global Hs, Ws
-    Hs, Ws = [], []
-    global medsam_model
-    global newh, neww
-    medsam_lite_image_encoder = TinyViT(
-        img_size=256,
-        in_chans=3,
-        embed_dims=[
-            64,
-            128,
-            160,
-            320
-        ],
-        depths=[2, 2, 6, 2],
-        num_heads=[2, 4, 5, 10],
-        window_sizes=[7, 7, 14, 7],
-        mlp_ratio=4.,
-        drop_rate=0.,
-        drop_path_rate=0.0,
-        use_checkpoint=False,
-        mbconv_expand_ratio=4.0,
-        local_conv_size=3,
-        layer_lr_decay=0.8
-    )
-    medsam_lite_prompt_encoder = PromptEncoder(
-        embed_dim=256,
-        image_embedding_size=(64, 64),
-        input_image_size=(256, 256),
-        mask_in_chans=16
-    )
-    medsam_lite_mask_decoder = MaskDecoder(
-        num_multimask_outputs=3,
-            transformer=TwoWayTransformer(
-                depth=2,
-                embedding_dim=256,
-                mlp_dim=2048,
-                num_heads=8,
-            ),
-            transformer_dim=256,
-            iou_head_depth=3,
-            iou_head_hidden_dim=256,
-    )
-    medsam_model = MedSAM_Lite(
-        image_encoder = medsam_lite_image_encoder,
-        mask_decoder = medsam_lite_mask_decoder,
-        prompt_encoder = medsam_lite_prompt_encoder
-    )
-    medsam_lite_checkpoint = torch.load('./prm/lite_medsam.pth', map_location='cpu')
-    medsam_model.load_state_dict(medsam_lite_checkpoint)
-    medsam_model.to('cpu')
+    medsam_model = load_model()
     print('MedSAM model deserialization completed')
     dcm_fps = sorted(glob('./tmp/session-data/raw/*'))
     t0 = time.time()
     print('Initializing MedSAM embeddings')
-    for dcm_fp in dcm_fps:
+    temp_dir = './tmp/session-data/embed'
+    Hs, Ws = [], []
+    for idx, dcm_fp in enumerate(dcm_fps):
         img = pydicom.dcmread(dcm_fp).pixel_array
         if len(img.shape) == 2:
             img_3c = np.repeat(img[:, :, None], 3, axis=-1)
@@ -432,7 +440,11 @@ def prepare_medsam():
             torch.tensor(img_256).float().permute(2, 0, 1).unsqueeze(0)
         )
         with torch.no_grad():
-            embeddings.append(medsam_model.image_encoder(img_256_tensor))
+            embedding = medsam_model.image_encoder(img_256_tensor)
+            torch.save(embedding, os.path.join(temp_dir, f'embed_{idx}.pt'))
+
+    np.save(os.path.join(temp_dir, 'Hs.npy'), np.array(Hs))
+    np.save(os.path.join(temp_dir, 'Ws.npy'), np.array(Ws))
     print('Initialization completed - %.2f'%(time.time()-t0))
 def dicom_deidentifier(SESSION_FP: Union[None, str] = None) -> tuple[dict, list[tuple[str]]]:
     GPU = True
@@ -844,4 +856,5 @@ if __name__ == "__main__":
     if(os.getenv("STAGING")):
         os.makedirs('tmp/session-data/raw', exist_ok=True)
         os.makedirs('tmp/session-data/clean', exist_ok=True)
+        os.makedirs('tmp/session-data/embed', exist_ok=True)
         run(app, host="0.0.0.0", port=8000)
