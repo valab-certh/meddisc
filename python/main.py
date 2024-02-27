@@ -276,13 +276,17 @@ async def medsam_estimation(boxdata: BoxData):
     box_256 = bbox[None, :] * 256
     print('Starting segmentation')
     t0 = time.time()
-    medsam_seg = medsam_inference(medsam_model, embeddings[inpIdx], box_256, (newh, neww), (Hs[inpIdx], Ws[inpIdx]))
+    temp_dir = './tmp/session-data/embed'
+    embedding = torch.load(os.path.join(temp_dir, f'embed_{inpIdx}.pt'))
+    Hs = np.load(os.path.join(temp_dir, 'Hs.npy'))
+    Ws = np.load(os.path.join(temp_dir, 'Ws.npy'))
+    medsam_seg = medsam_inference(medsam_model, embedding, box_256, (256, 256), (Hs[inpIdx], Ws[inpIdx]))
     medsam_seg = (segClass * medsam_seg).astype(np.uint8)
     print('Segmentation completed in %.2f seconds'%(time.time()-t0))
     return \
     {
         'mask': base64.b64encode(medsam_seg).decode('utf-8'),
-        'dimensions': [Ws[inpIdx], Hs[inpIdx]]
+        'dimensions': [int(Ws[inpIdx]), int(Hs[inpIdx])]
     }
 
 @app.post('/submit_button')
@@ -414,7 +418,9 @@ def prepare_medsam():
     dcm_fps = sorted(glob('./tmp/session-data/raw/*'))
     t0 = time.time()
     print('Initializing MedSAM embeddings')
-    for dcm_fp in dcm_fps:
+    temp_dir = './tmp/session-data/embed'
+    Hs, Ws = [], []
+    for idx, dcm_fp in enumerate(dcm_fps):
         img = pydicom.dcmread(dcm_fp).pixel_array
         if len(img.shape) == 2:
             img_3c = np.repeat(img[:, :, None], 3, axis=-1)
@@ -432,7 +438,11 @@ def prepare_medsam():
             torch.tensor(img_256).float().permute(2, 0, 1).unsqueeze(0)
         )
         with torch.no_grad():
-            embeddings.append(medsam_model.image_encoder(img_256_tensor))
+            embedding = medsam_model.image_encoder(img_256_tensor)
+            torch.save(embedding, os.path.join(temp_dir, f'embed_{idx}.pt'))
+
+    np.save(os.path.join(temp_dir, 'Hs.npy'), np.array(Hs))
+    np.save(os.path.join(temp_dir, 'Ws.npy'), np.array(Ws))
     print('Initialization completed - %.2f'%(time.time()-t0))
 def dicom_deidentifier(SESSION_FP: Union[None, str] = None) -> tuple[dict, list[tuple[str]]]:
     GPU = True
