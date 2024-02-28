@@ -75,6 +75,28 @@ class BoxData(BaseModel):
     inp_idx: int
 
 
+class BoxDataResponse(BaseModel):
+    mask: str
+    dimensions: list[int]
+
+
+class ConversionInfoResponse(BaseModel):
+    raw_dicom_metadata: dict
+    raw_dicom_img_data: str
+    cleaned_dicom_metadata: dict
+    cleaned_dicom_img_data: str
+
+
+class MaskFromFileResponse(BaseModel):
+    PixelData: str
+    dimensions: list[int]
+
+
+class UploadFilesResponse(BaseModel):
+    n_uploaded_files: int
+    total_size: str
+
+
 def clean_config_session() -> None:
     session_fp = Path("./tmp/session-data/session.json")
     if session_fp.is_file():
@@ -129,19 +151,24 @@ app.mount(path="/static", app=StaticFiles(directory="static"), name="sttc")
 
 
 @app.get("/")
-async def get_root():
+async def get_root() -> FileResponse:
     clean_all()
     return FileResponse("./templates/index.html")
 
 
 class MedsamLite(nn.Module):
-    def __init__(self, image_encoder, mask_decoder, prompt_encoder) -> None:
+    def __init__(
+        self,
+        image_encoder: TinyViT,
+        mask_decoder: MaskDecoder,
+        prompt_encoder: PromptEncoder,
+    ) -> None:
         super().__init__()
         self.image_encoder = image_encoder
         self.mask_decoder = mask_decoder
         self.prompt_encoder = prompt_encoder
 
-    def forward(self, image, box_np):
+    def forward(self, image: torch.Tensor, box_np: torch.Tensor) -> torch.Tensor:
         image_embedding = self.image_encoder(image)
         with torch.no_grad():
             box_torch = torch.as_tensor(box_np, dtype=torch.float32, device="cpu")
@@ -162,7 +189,12 @@ class MedsamLite(nn.Module):
         return low_res_masks
 
     @torch.no_grad()
-    def postprocess_masks(self, masks, new_size, original_size):
+    def postprocess_masks(
+        self,
+        masks: torch.Tensor,
+        new_size: tuple[int, int],
+        original_size: tuple[int, int],
+    ) -> torch.Tensor:
         masks = masks[..., : new_size[0], : new_size[1]]
         return functional.interpolate(
             masks,
@@ -173,7 +205,7 @@ class MedsamLite(nn.Module):
 
 
 @lru_cache(maxsize=1)
-def load_model():
+def load_model() -> MedsamLite:
     medsam_lite_image_encoder = TinyViT(
         img_size=256,
         in_chans=3,
@@ -222,6 +254,7 @@ def load_model():
 def image_preprocessing(
     img: np.ndarray,
     downscale_dimensionality: tuple[int],
+    *,
     multichannel: bool = True,
     retain_aspect_ratio: bool = False,
 ) -> np.ndarray:
@@ -244,7 +277,9 @@ def image_preprocessing(
 
 
 @app.post("/conversion_info")
-async def conversion_info(dicom_pair_fp: list[str] = Body(...)):
+async def conversion_info(
+    dicom_pair_fp: list[str] = Body(...),
+) -> ConversionInfoResponse:
     downscale_dimensionality = 1024
     raw_dcm = pydicom.dcmread(dicom_pair_fp[0])
     raw_img = image_preprocessing(
@@ -275,7 +310,7 @@ async def conversion_info(dicom_pair_fp: list[str] = Body(...)):
 
 
 @app.post("/get_mask_from_file/")
-async def get_mask_from_file(current_dcm_fp: str = Body(...)):
+async def get_mask_from_file(current_dcm_fp: str = Body(...)) -> MaskFromFileResponse:
     current_dcm = pydicom.dcmread(current_dcm_fp)
     return {
         "PixelData": base64.b64encode(current_dcm.SegmentSequence[0].PixelData).decode(
@@ -286,7 +321,7 @@ async def get_mask_from_file(current_dcm_fp: str = Body(...)):
 
 
 @app.post("/modify_dicom/")
-async def modify_dicom(data: DicomData):
+async def modify_dicom(data: DicomData) -> bool:
     pixel_data = base64.b64decode(data.pixel_data)
     filepath = data.filepath
     modified_dcm = pydicom.dcmread(filepath)
@@ -297,7 +332,7 @@ async def modify_dicom(data: DicomData):
 
 
 @app.post("/upload_files/")
-async def get_files(files: list[UploadFile] = File(...)):
+async def get_files(files: list[UploadFile] = File(...)) -> UploadFilesResponse:
     clean_imgs()
     proper_dicom_paths = []
     total_uploaded_file_bytes = 0
@@ -391,7 +426,7 @@ async def correct_seg_homogeneity() -> None:
 
 
 @app.post("/get_batch_classes")
-async def get_batch_classes():
+async def get_batch_classes() -> dict:
     user_fp = Path("./tmp/session-data/user-options.json")
     with user_fp.open() as file:
         user_input = json.load(file)
@@ -434,7 +469,13 @@ async def get_files(config_file: UploadFile = File(...)) -> None:
 
 
 @torch.no_grad()
-def medsam_inference(medsam_model, img_embed, box_256, new_size, original_size):
+def medsam_inference(
+    medsam_model: MedsamLite,
+    img_embed: torch.Tensor,
+    box_256: np.ndarray,
+    new_size: tuple[int, int],
+    original_size: tuple[int, int],
+) -> np.ndarray:
     box_torch = torch.as_tensor(box_256, dtype=torch.float, device=img_embed.device)
     if len(box_torch.shape) == 2:
         box_torch = box_torch[:, None, :]
@@ -461,7 +502,7 @@ def medsam_inference(medsam_model, img_embed, box_256, new_size, original_size):
 
 
 @app.post("/medsam_estimation/")
-async def medsam_estimation(boxdata: BoxData):
+async def medsam_estimation(boxdata: BoxData) -> BoxDataResponse:
     start = boxdata.normalized_start
     end = boxdata.normalized_end
     seg_class = boxdata.seg_class
@@ -961,7 +1002,7 @@ def dicom_deidentifier(
 
 
 @app.post("/submit_button")
-async def handle_submit_button_click(user_options: UserOptionsClass):
+async def handle_submit_button_click(user_options: UserOptionsClass) -> list:
     user_options = dict(user_options)
     dp, _, fps = next(iter(os.walk("./tmp/session-data/raw")))
     if set(fps).issubset({".gitkeep"}):
