@@ -14,6 +14,7 @@ import time
 from functools import lru_cache
 from glob import glob
 from io import BytesIO
+from pathlib import Path
 from typing import Any
 
 import cv2
@@ -75,21 +76,26 @@ class BoxData(BaseModel):
 
 
 def clean_config_session() -> None:
-    if os.path.isfile("./tmp/session-data/session.json"):
-        os.remove("./tmp/session-data/session.json")
-    if os.path.isfile("./tmp/session-data/requested-action-group-dcm.csv"):
-        os.remove("./tmp/session-data/requested-action-group-dcm.csv")
-    if os.path.isfile("./tmp/session-data/custom-config.csv"):
-        os.remove("./tmp/session-data/custom-config.csv")
+    session_fp = Path("./tmp/session-data/session.json")
+    if session_fp.is_file():
+        session_fp.unlink()
+    action_fp = Path("./tmp/session-data/requested-action-group-dcm.csv")
+    if action_fp.is_file():
+        action_fp.unlink()
+    custom_fp = Path("./tmp/session-data/custom-config.csv")
+    if custom_fp.is_file():
+        custom_fp.unlink()
 
 
 def clean_imgs() -> None:
     dp, _, fps = next(iter(os.walk("./tmp/session-data/raw")))
     for fp in fps:
         if fp != ".gitkeep":
-            os.remove(dp + "/" + fp)
-    if os.path.exists("./tmp/session-data/clean/de-identified-files"):
-        shutil.rmtree("./tmp/session-data/clean/de-identified-files")
+            full_fp = Path(dp + "/" + fp)
+            full_fp.unlink()
+    deid_fp = Path("./tmp/session-data/clean/de-identified-files")
+    if deid_fp.exists():
+        shutil.rmtree(deid_fp)
 
 
 def clean_all() -> None:
@@ -297,15 +303,16 @@ async def get_files(files: list[UploadFile] = File(...)):
     total_uploaded_file_bytes = 0
     for file in files:
         contents = await file.read()
-        fp = "./tmp/session-data/raw/" + file.filename.split("/")[-1]
-        with open(file=fp, mode="wb") as f:
+        fp = Path("./tmp/session-data/raw/" + file.filename.split("/")[-1])
+        with fp.open("wb") as f:
             f.write(contents)
         try:
             pydicom.dcmread(fp)
             proper_dicom_paths.append(fp)
             total_uploaded_file_bytes += len(contents)
         except InvalidDicomError:
-            os.remove(fp)
+            inv_fp = Path(fp)
+            inv_fp.unlink()
     total_uploaded_file_megabytes = "%.1f" % (total_uploaded_file_bytes / (10**3) ** 2)
     return {
         "n_uploaded_files": len(proper_dicom_paths),
@@ -369,9 +376,11 @@ async def correct_seg_homogeneity() -> None:
             return False
         return True
 
-    with open(file="./tmp/session-data/user-options.json") as file:
+    user_fp = Path("./tmp/session-data/user-options.json")
+    with user_fp.open() as file:
         user_input = json.load(file)
-    fps = glob(os.path.join(user_input["output_dcm_dp"], "**", "*.dcm"), recursive=True)
+    output_fp = Path(user_input["output_dcm_dp"])
+    fps = list(output_fp.rglob("*.dcm"))
     homogeneity_state = SegmentSequenceHomogeneityCheck(fps)
     if not homogeneity_state:
         renew_segm_seq(fps, ["background"])
@@ -379,9 +388,11 @@ async def correct_seg_homogeneity() -> None:
 
 @app.post("/get_batch_classes")
 async def get_batch_classes():
-    with open(file="./tmp/session-data/user-options.json") as file:
+    user_fp = Path("./tmp/session-data/user-options.json")
+    with user_fp.open() as file:
         user_input = json.load(file)
-    fps = glob(os.path.join(user_input["output_dcm_dp"], "**", "*.dcm"), recursive=True)
+    output_fp = Path(user_input["output_dcm_dp"])
+    fps = list(output_fp.rglob("*.dcm"))
     try:
         found_classes = {
             "classes": pydicom.dcmread(fps[0])
@@ -395,22 +406,26 @@ async def get_batch_classes():
 
 @app.post("/align_classes")
 async def align_classes(classes: list[str]) -> None:
-    with open(file="./tmp/session-data/user-options.json") as file:
+    user_fp = Path("./tmp/session-data/user-options.json")
+    with user_fp.open() as file:
         user_input = json.load(file)
-    fps = glob(os.path.join(user_input["output_dcm_dp"], "**", "*.dcm"), recursive=True)
+    output_fp = Path(user_input["output_dcm_dp"])
+    fps = list(output_fp.rglob("*.dcm"))
     renew_segm_seq(fps, classes)
 
 
 @app.post("/session")
 async def handle_session_button_click(session_dict: dict[str, Any]) -> None:
-    with open(file="./tmp/session-data/session.json", mode="w") as file:
+    session_fp = Path("./tmp/session-data/session.json")
+    with session_fp.open("w") as file:
         json.dump(session_dict, file)
 
 
 @app.post("/custom_config/")
 async def get_files(ConfigFile: UploadFile = File(...)) -> None:
     contents = await ConfigFile.read()
-    with open(file="./tmp/session-data/custom-config.csv", mode="wb") as file:
+    custom_fp = Path("./tmp/session-data/custom-config.csv")
+    with custom_fp.open("wb") as file:
         file.write(contents)
 
 
@@ -458,10 +473,10 @@ async def medsam_estimation(boxdata: BoxData):
     box_256 = bbox[None, :] * 256
     time.time()
     medsam_model = load_model()
-    temp_dir = "./tmp/session-data/embed"
-    embedding = torch.load(os.path.join(temp_dir, f"embed_{inpIdx}.pt"))
-    Hs = np.load(os.path.join(temp_dir, "Hs.npy"))
-    Ws = np.load(os.path.join(temp_dir, "Ws.npy"))
+    temp_dir = Path("./tmp/session-data/embed")
+    embedding = torch.load(temp_dir / f"embed_{inpIdx}.pt")
+    Hs = np.load(temp_dir / "Hs.npy")
+    Ws = np.load(temp_dir / "Ws.npy")
     medsam_seg = medsam_inference(
         medsam_model,
         embedding,
@@ -480,7 +495,7 @@ def prepare_medsam() -> None:
     medsam_model = load_model()
     dcm_fps = sorted(glob("./tmp/session-data/raw/*"))
     time.time()
-    temp_dir = "./tmp/session-data/embed"
+    temp_dir = Path("./tmp/session-data/embed")
     Hs, Ws = [], []
     for idx, dcm_fp in enumerate(dcm_fps):
         img = pydicom.dcmread(dcm_fp).pixel_array
@@ -498,10 +513,10 @@ def prepare_medsam() -> None:
         img_256_tensor = torch.tensor(img_256).float().permute(2, 0, 1).unsqueeze(0)
         with torch.no_grad():
             embedding = medsam_model.image_encoder(img_256_tensor)
-            torch.save(embedding, os.path.join(temp_dir, f"embed_{idx}.pt"))
+            torch.save(embedding, temp_dir / f"embed_{idx}.pt")
 
-    np.save(os.path.join(temp_dir, "Hs.npy"), np.array(Hs))
-    np.save(os.path.join(temp_dir, "Ws.npy"), np.array(Ws))
+    np.save(temp_dir / "Hs.npy", np.array(Hs))
+    np.save(temp_dir / "Ws.npy", np.array(Ws))
 
 
 def deidentification_attributes(
@@ -831,14 +846,16 @@ class rwdcm:
             + "/"
             + str(dcm[0x0020, 0x0011].value)
         )
-        if not os.path.exists(self.clean_dicom_dp):
-            os.makedirs(self.clean_dicom_dp)
+        clean_fp = Path(self.clean_dicom_dp)
+        if not clean_fp.exists():
+            clean_fp.mkdir(parents=True)
         clean_dicom_fp = self.clean_dicom_dp + "/" + self.input_dicom_hash + ".dcm"
         dcm.save_as(clean_dicom_fp)
         self.dicom_pair_fps.append((self.raw_dicom_path, clean_dicom_fp))
 
     def export_session(self, session: dict) -> None:
-        with open(self.clean_data_dp + "/session.json", "w") as file:
+        session_fp = Path(self.clean_data_dp + "/session.json")
+        with session_fp.open("w") as file:
             json.dump(session, file)
 
 
@@ -852,7 +869,8 @@ def dicom_deidentifier(
         pass
     elif tf.config.list_physical_devices("GPU")[0][1] == "GPU":
         pass
-    if os.path.isfile("./tmp/session-data/custom-config.csv"):
+    custom_fp = Path("./tmp/session-data/custom-config.csv")
+    if custom_fp.is_file():
         custom_config_df = pd.read_csv(
             filepath_or_buffer="./tmp/session-data/custom-config.csv",
             index_col=0,
@@ -867,10 +885,12 @@ def dicom_deidentifier(
     if SESSION_FP is None or not os.path.isfile(SESSION_FP):
         session = {}
     else:
-        with open(file="./tmp/session-data/session.json") as file:
+        session_fp = Path("./tmp/session-data/session.json")
+        with session_fp.open() as file:
             session = json.load(file)
-    if os.path.isfile("./tmp/session-data/user-options.json"):
-        with open(file="./tmp/session-data/user-options.json") as file:
+    user_fp = Path("./tmp/session-data/user-options.json")
+    if user_fp.is_file():
+        with user_fp.open() as file:
             user_input = json.load(file)
     else:
         sys.exit("E: No client de-identification configuration was provided")
@@ -950,12 +970,14 @@ async def handle_submit_button_click(user_options: user_options_class):
     }
     user_options["input_dcm_dp"] = default_options["input_dcm_dp"]
     user_options["output_dcm_dp"] = default_options["output_dcm_dp"]
-    with open(file="./tmp/session-data/user-options.json", mode="w") as file:
+    user_fp = Path("./tmp/session-data/user-options.json")
+    with user_fp.open("w") as file:
         json.dump(user_options, file)
     session, dicom_pair_fps = dicom_deidentifier(
         SESSION_FP="./tmp/session-data/session.json",
     )
-    with open(file="./tmp/session-data/session.json", mode="w") as file:
+    session_fp = Path("./tmp/session-data/session.json")
+    with session_fp.open("w") as file:
         json.dump(session, file)
     prepare_medsam()
     return dicom_pair_fps
@@ -967,7 +989,11 @@ def ndarray_size(arr: np.ndarray) -> int:
 
 if __name__ == "__main__":
     if os.getenv("STAGING"):
-        os.makedirs("tmp/session-data/raw", exist_ok=True)
-        os.makedirs("tmp/session-data/clean", exist_ok=True)
-        os.makedirs("tmp/session-data/embed", exist_ok=True)
+        tmp_directories = [
+            Path("tmp/session-data/raw"),
+            Path("tmp/session-data/raw"),
+            Path("tmp/session-data/raw"),
+        ]
+        for directory in tmp_directories:
+            directory.mkdir(parents=True, exist_ok=True)
         run(app, host="0.0.0.0", port=8000)
