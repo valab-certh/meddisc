@@ -467,7 +467,7 @@ async def handle_session_button_click(session_dict: dict[str, Any]) -> None:
 
 
 @app.post("/custom_config/")
-async def get_files(config_file: UploadFile) -> None:
+async def custom_config(config_file: UploadFile) -> None:
     contents = await config_file.read()
     custom_fp = Path("./tmp/session-data/custom-config.csv")
     with custom_fp.open("wb") as file:
@@ -594,7 +594,10 @@ def deidentification_attributes(
     }
     deidentification_code_sequence = "DCM:11310"
     if not set(user_input_lookup_table.keys()).issubset(set(user_input.keys())):
-        msg = "E: Inconsistency with user input keys with lookup de-identification table keys"
+        msg = (
+            "E: Inconsistency with user input keys"
+            "with lookup de-identification table keys"
+        )
         raise KeyError(
             msg,
         )
@@ -778,7 +781,9 @@ def adjust_dicom_metadata(
     seconds_total_offset: int,
 ) -> tuple[pydicom.dataset.FileDataset, dict]:
     def add_date_offset(input_date_str: str, days_total_offset: str) -> str:
-        input_date = datetime.datetime.strptime(input_date_str, "%Y%m%d")
+        input_date = datetime.datetime.strptime(input_date_str, "%Y%m%d").astimezone(
+            datetime.timezone.utc,
+        )
         output_date = input_date + datetime.timedelta(days=days_total_offset)
         return output_date.strftime("%Y%m%d")
 
@@ -848,7 +853,7 @@ def adjust_dicom_metadata(
     return dcm, tag_value_replacements
 
 
-class rwdcm:
+class Rwdcm:
     def __init__(self, in_dp: str, out_dp: str) -> None:
         self.SAFETY_SWITCH = True
         if not self.SAFETY_SWITCH:
@@ -916,7 +921,7 @@ class rwdcm:
 
 
 def dicom_deidentifier(
-    SESSION_FP: None | str = None,
+    session_filepath: None | str = None,
 ) -> tuple[dict, list[tuple[str]]]:
     gpu = True
     if not gpu:
@@ -939,7 +944,7 @@ def dicom_deidentifier(
         filepath_or_buffer="./python/tmp/action-groups-dcm.csv",
         index_col=0,
     )
-    if SESSION_FP is None or not os.path.isfile(SESSION_FP):
+    if session_filepath is None or not Path(session_filepath).is_file():
         session = {}
     else:
         session_fp = Path("./tmp/session-data/session.json")
@@ -952,10 +957,10 @@ def dicom_deidentifier(
     else:
         sys.exit("E: No client de-identification configuration was provided")
     pseudo_patient_ids = []
-    for patient_deidentification_properties in session.values():
-        pseudo_patient_ids.append(
-            int(patient_deidentification_properties["patient_pseudo_id"]),
-        )
+    pseudo_patient_ids = [
+        int(patient_deidentification_properties["patient_pseudo_id"])
+        for patient_deidentification_properties in session.values()
+    ]
     max_pseudo_patient_id = -1 if pseudo_patient_ids == [] else max(pseudo_patient_ids)
     requested_action_group_df = get_action_group(
         user_input=user_input,
@@ -965,7 +970,7 @@ def dicom_deidentifier(
     requested_action_group_df.to_csv(
         "./tmp/session-data/requested-action-group-dcm.csv",
     )
-    rw_obj = rwdcm(in_dp=user_input["input_dcm_dp"], out_dp=user_input["output_dcm_dp"])
+    rw_obj = Rwdcm(in_dp=user_input["input_dcm_dp"], out_dp=user_input["output_dcm_dp"])
     while next(rw_obj):
         dcm = rw_obj.parse_file()
         if dcm is False:
@@ -1033,7 +1038,7 @@ async def handle_submit_button_click(user_options: UserOptionsClass) -> list:
     with user_fp.open("w") as file:
         json.dump(user_options, file)
     session, dicom_pair_fps = dicom_deidentifier(
-        SESSION_FP="./tmp/session-data/session.json",
+        session_filepath="./tmp/session-data/session.json",
     )
     session_fp = Path("./tmp/session-data/session.json")
     with session_fp.open("w") as file:
