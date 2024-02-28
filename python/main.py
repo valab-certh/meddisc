@@ -325,10 +325,14 @@ def attach_segm_data(
     seg_mask: np.array,
     class_names: list[str],
 ) -> pydicom.dataset.FileDataset:
-    assert type(seg_mask[0, 0]) == np.uint8, "E: Incompatible element-wise data type"
+    if type(seg_mask[0, 0]) != np.uint8:
+        msg = "E: Incompatible element-wise data type"
+        raise TypeError(msg)
     seg_dataset = pydicom.dataset.Dataset()
     img = dcm.pixel_array
-    assert len(img.shape) == 2, "E: Incompatible image shape"
+    if len(img.shape) != 2:
+        msg = "E: Incompatible image shape"
+        raise ValueError(msg)
     seg_dataset.Rows, seg_dataset.Columns = img.shape
     seg_dataset.SOPClassUID = "1.2.840.10008.5.1.4.1.1.66.4"
     seg_dataset.BitsAllocated = 8
@@ -536,9 +540,11 @@ def deidentification_attributes(
         "retain_descriptors": "113105",
     }
     DeIdentificationCodeSequence = "DCM:11310"
-    assert set(user_input_lookup_table.keys()).issubset(
-        set(user_input.keys()),
-    ), "E: Inconsistency with user input keys with lookup de-identification table keys"
+    if not set(user_input_lookup_table.keys()).issubset(set(user_input.keys())):
+        msg = "E: Inconsistency with user input keys with lookup de-identification table keys"
+        raise KeyError(
+            msg,
+        )
     for OptionName in user_input_lookup_table:
         choice = user_input[OptionName]
         if OptionName == "date_processing":
@@ -589,9 +595,9 @@ def image_deintentifier(
 ) -> pydicom.dataset.FileDataset:
     min_dim = 50
     downscale_dimensionality = 1024
-    assert (
-        downscale_dimensionality >= min_dim
-    ), "E: Downscale dimensionality is excessively small"
+    if downscale_dimensionality < min_dim:
+        msg = "E: Downscale dimensionality is excessively small"
+        raise ValueError(msg)
     dcm.decompress()
     raw_img_uint16_grayscale = dcm.pixel_array
     if min(raw_img_uint16_grayscale.shape) < min_dim:
@@ -752,10 +758,12 @@ def adjust_dicom_metadata(
                     )
             elif action_attr_tag_idx == ds_tag_idx:
                 if action == "Z":
-                    assert (
-                        ds_tag_idx in ["00100010", "00100020"]
-                    ), "E: Cannot apply action code `Z` in any other attribute besides Patient ID and Patient Name; the issue is likely on the action group config object"
-                    ds[ds_tag_idx].value = patient_pseudo_id
+                    # Check if ds_tag_idx is not one of the specified tags
+                    if ds_tag_idx not in ["00100010", "00100020"]:
+                        msg = "E: Cannot apply action code `Z` in any other attribute besides Patient ID and Patient Name; the issue is likely on the action group config object"
+                        raise ValueError(
+                            msg,
+                        )
                 elif action == "X":
                     ds[ds_tag_idx].value = ""
                 elif action == "C":
@@ -914,9 +922,9 @@ def dicom_deidentifier(
         if dcm is False:
             continue
         date_processing_choices = {"keep", "offset", "remove"}
-        assert (
-            user_input["date_processing"] in date_processing_choices
-        ), "E: Invalid date processing input"
+        if user_input["date_processing"] not in date_processing_choices:
+            msg = "E: Invalid date processing input"
+            raise ValueError(msg)
         real_patient_id = dcm[0x0010, 0x0020].value
         patient_deidentification_properties = session.get(real_patient_id, False)
         if not patient_deidentification_properties:
