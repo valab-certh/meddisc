@@ -297,7 +297,7 @@ label.normal-label
     position: relative;
 }
 
-#CleanedImgInner, #OverlayCanvas, #BoxCanvas {
+#OverlayCanvas, #BoxCanvas {
     position: absolute;
     top: 10px;       
     left: 10px;      

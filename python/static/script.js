@@ -4,7 +4,6 @@ var MetadataTable = document.getElementById('MetadataTable');
 var DICOMOverview = document.getElementById('DICOMOverview');
 var RawImg = document.getElementById('RawImg');
 var CleanedImg = document.getElementById('CleanedImg');
-var RawImgInner = document.getElementById('RawImgInner');
 var CleanedImgInner = document.getElementById('CleanedImgInner');
 var DICOMSlider = document.getElementById('DICOMSlider');
 var ConversionResult = document.getElementById('ConversionResult');
@@ -323,7 +322,6 @@ async function UpdateDICOMInformation(dcm_idx)
             Total number of altered tags (excluding the pixel data): ${total_altered_dicom_tags}
         `;
         MetadataTable.innerHTML = dicom_metadata_table;
-        RawImgInner.src = `data:image/png;base64,${dicom_pair['raw_dicom_img_data']}`;
         CleanedImgInner.src = `data:image/png;base64,${dicom_pair['cleaned_dicom_img_data']}`;
         LoadingState = false;
     }
