@@ -6,8 +6,8 @@ import datetime
 import hashlib
 import json
 import os
-import random
 import re
+import secrets
 import shutil
 import sys
 import time
@@ -924,8 +924,10 @@ def dicom_deidentifier(
             session[real_patient_id] = {
                 "patientPseudoId": "%.6d" % max_pseudo_patient_id,
             }
-            days_total_offset = round(random.uniform(10 * 365, (2 * 10) * 365))
-            seconds_total_offset = round(random.uniform(0, 24 * 60 * 60))
+            days_total_offset = secrets.randbelow((2 * 10 * 365) - (10 * 365) + 1) + (
+                10 * 365
+            )
+            seconds_total_offset = secrets.randbelow(24 * 60 * 60)
         else:
             days_total_offset = session[real_patient_id]["daysOffset"]
             seconds_total_offset = session[real_patient_id]["secondsOffset"]
