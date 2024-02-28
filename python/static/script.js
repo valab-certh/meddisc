@@ -83,7 +83,6 @@ var pending_dcm_idx = 0;
 var dicom_pair;
 var total_altered_dicom_tags = '-';
 var LoadingState = false;
-var PredeterminedHeight = '37vw';
 var masks = '';
 var modal = document.querySelector('#modal');
 var openModal = document.querySelector('#open-button');
@@ -134,7 +133,7 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
             const raw_value = RawDCMMetadataObjectLvN[tagID].value;
             let cleaned_value;
             let tag_dropped;
-            let cell_style;
+            let left_col_style;
             CurrentNodeIdx[CurrentNodeIdx.length - 1] += 1;
             if (CleanedDCMMetadataObjectLvN.hasOwnProperty(tagID))
             {
@@ -148,18 +147,18 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
             }
             if (tag_dropped)
             {
-                cell_style = ' style="background-color: rgba(0, 255, 255, 10%);"';
+                left_col_style = ' style="background-color: rgba(0, 255, 255, 10%);"';
             }
             else
             {
                 if (JSON.stringify(cleaned_value) !== JSON.stringify(raw_value))
                 {
                     total_altered_dicom_tags += 1;
-                    cell_style = ' style="background-color: rgba(0, 255, 255, 10%);"';
+                    left_col_style = ' style="background-color: rgba(0, 255, 255, 10%);"';
                 }
                 else
                 {
-                    cell_style = ' style="background-color: rgba(100, 100, 110, 10%);"';
+                    left_col_style = ' style="background-color: rgba(100, 100, 110, 10%);"';
                     if (DiffEnabled)
                     {
                         continue;
@@ -175,9 +174,9 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
                         <div class="inner-table">
                             <div class="table-row">
                                 ${indentation_block}
-                                <div class="cell-expand-row" id="${JSON.stringify(CurrentNodeIdx)}_expand_row"${cell_style}>+</div>
-                                <div class="cell-dcmtag-name"${cell_style}>${name}</div>
-                                <div class="cell-dcmtag-value"${cell_style}></div>
+                                <div class="cell-expand-row" id="${JSON.stringify(CurrentNodeIdx)}_expand_row"${left_col_style}>+</div>
+                                <div class="cell-dcmtag-name"${left_col_style}>${name}</div>
+                                <div class="cell-dcmtag-value"${left_col_style}></div>
                             </div>
                         </div>
                     </div>
@@ -225,9 +224,9 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
                         <div class="inner-table">
                             <div class="table-row">
                                 ${indentation_block}
-                                <div class="cell-expand-row"${cell_style}></div>
-                                <div class="cell-dcmtag-name"${cell_style}>${name}</div>
-                                <div class="cell-dcmtag-value"${cell_style}>${raw_value}</div>
+                                <div class="cell-expand-row"${left_col_style}></div>
+                                <div class="cell-dcmtag-name"${left_col_style}>${name}</div>
+                                <div class="cell-dcmtag-value"${left_col_style}>${raw_value}</div>
                             </div>
                         </div>
                     </div>
@@ -295,10 +294,6 @@ async function UpdateDICOMInformation(dcm_idx)
         );
         dicom_pair = await conversion_info_response.json();
         const dicom_metadata_table = table(dicom_pair['raw_dicom_metadata'], dicom_pair['cleaned_dicom_metadata'], DiffEnabled);
-        if (RawImgInner.height !== 0)
-        {
-            PredeterminedHeight = String(RawImgInner.height) + 'px';
-        }
         try
         {
             modality = dicom_pair['raw_dicom_metadata']['00080060'].value;
@@ -328,12 +323,8 @@ async function UpdateDICOMInformation(dcm_idx)
             Total number of altered tags (excluding the pixel data): ${total_altered_dicom_tags}
         `;
         MetadataTable.innerHTML = dicom_metadata_table;
-        RawImg.style.minHeight = PredeterminedHeight;
-        CleanedImg.style.minHeight = PredeterminedHeight;
         RawImgInner.src = `data:image/png;base64,${dicom_pair['raw_dicom_img_data']}`;
         CleanedImgInner.src = `data:image/png;base64,${dicom_pair['cleaned_dicom_img_data']}`;
-        RawImg.style.minHeight = 0;
-        CleanedImg.style.minHeight = 0;
         LoadingState = false;
     }
     else
