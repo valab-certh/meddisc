@@ -37,7 +37,7 @@ from torch.nn import functional
 from uvicorn import run
 
 
-class user_options_class(BaseModel):
+class UserOptionsClass(BaseModel):
     clean_image: bool
     retain_safe_private: bool
     retain_uids: bool
@@ -48,14 +48,14 @@ class user_options_class(BaseModel):
     patient_pseudo_id_prefix: str
 
 
-class session_patient_instance_class(BaseModel):
-    patientPseudoId: str
-    daysOffset: float
-    secondsOffset: int
+class SessionPatientInstanceClass(BaseModel):
+    patient_pseudo_id: str
+    days_offset: float
+    seconds_offset: int
 
 
-class session_class(BaseModel):
-    patients: dict[str, session_patient_instance_class]
+class SessionClass(BaseModel):
+    patients: dict[str, SessionPatientInstanceClass]
 
 
 class ResponseModel(BaseModel):
@@ -63,16 +63,16 @@ class ResponseModel(BaseModel):
 
 
 class DicomData(BaseModel):
-    pixelData: str
+    pixel_data: str
     filepath: str
     classes: list
 
 
 class BoxData(BaseModel):
-    normalizedStart: dict
-    normalizedEnd: dict
-    segClass: int
-    inpIdx: int
+    normalized_start: dict
+    normalized_end: dict
+    seg_class: int
+    inp_idx: int
 
 
 def clean_config_session() -> None:
@@ -103,7 +103,7 @@ def clean_all() -> None:
     clean_imgs()
 
 
-def DCM2DictMetadata(ds: pydicom.dataset.Dataset) -> dict:
+def dcm2dictmetadata(ds: pydicom.dataset.Dataset) -> dict:
     ds_metadata_dict = {}
     for ds_attr in ds:
         ds_tag_idx = re.sub("[(,) ]", "", str(ds_attr.tag))
@@ -114,7 +114,7 @@ def DCM2DictMetadata(ds: pydicom.dataset.Dataset) -> dict:
         else:
             value = []
             for inner_ds_idx in range(ds[ds_tag_idx].VM):
-                value.append(DCM2DictMetadata(ds=ds[ds_tag_idx][inner_ds_idx]))
+                value.append(dcm2dictmetadata(ds=ds[ds_tag_idx][inner_ds_idx]))
 
         ds_metadata_dict[ds_tag_idx] = {
             "vr": ds_attr.VR,
@@ -134,7 +134,7 @@ async def get_root():
     return FileResponse("./templates/index.html")
 
 
-class MedSAM_Lite(nn.Module):
+class MedsamLite(nn.Module):
     def __init__(self, image_encoder, mask_decoder, prompt_encoder) -> None:
         super().__init__()
         self.image_encoder = image_encoder
@@ -207,7 +207,7 @@ def load_model():
         iou_head_depth=3,
         iou_head_hidden_dim=256,
     )
-    medsam_model = MedSAM_Lite(
+    medsam_model = MedsamLite(
         image_encoder=medsam_lite_image_encoder,
         mask_decoder=medsam_lite_mask_decoder,
         prompt_encoder=medsam_lite_prompt_encoder,
@@ -229,9 +229,9 @@ def image_preprocessing(
     if downscale_dimensionality:
         if retain_aspect_ratio:
             aspr = img.shape[1] / img.shape[0]
-            H = min([downscale_dimensionality, img.shape[0], img.shape[1]])
-            W = int(H * aspr)
-            new_shape = (H, W)
+            h = min([downscale_dimensionality, img.shape[0], img.shape[1]])
+            w = int(h * aspr)
+            new_shape = (h, w)
         else:
             new_shape = (
                 min([downscale_dimensionality, img.shape[0]]),
@@ -267,9 +267,9 @@ async def conversion_info(dicom_pair_fp: list[str] = Body(...)):
     Image.fromarray(cleaned_img).save(cleaned_buf, format="PNG")
     cleaned_img_base64 = base64.b64encode(cleaned_buf.getvalue()).decode("utf-8")
     return {
-        "raw_dicom_metadata": DCM2DictMetadata(ds=raw_dcm),
+        "raw_dicom_metadata": dcm2dictmetadata(ds=raw_dcm),
         "raw_dicom_img_data": raw_img_base64,
-        "cleaned_dicom_metadata": DCM2DictMetadata(ds=cleaned_dcm),
+        "cleaned_dicom_metadata": dcm2dictmetadata(ds=cleaned_dcm),
         "cleaned_dicom_img_data": cleaned_img_base64,
     }
 
@@ -287,10 +287,10 @@ async def get_mask_from_file(current_dcm_fp: str = Body(...)):
 
 @app.post("/modify_dicom/")
 async def modify_dicom(data: DicomData):
-    pixelData = base64.b64decode(data.pixelData)
+    pixel_data = base64.b64decode(data.pixel_data)
     filepath = data.filepath
     modified_dcm = pydicom.dcmread(filepath)
-    modified_dcm.SegmentSequence[0].PixelData = pixelData
+    modified_dcm.SegmentSequence[0].PixelData = pixel_data
     modified_dcm.SegmentSequence[0].SegmentDescription = ";".join(data.classes)
     modified_dcm.save_as(filepath)
     return {"success": True}
@@ -357,7 +357,7 @@ def renew_segm_seq(fps: list[str], classes: list[str]) -> None:
 
 @app.post("/correct_seg_homogeneity")
 async def correct_seg_homogeneity() -> None:
-    def SegmentSequenceHomogeneityCheck(fps: list[str]) -> bool:
+    def segment_sequence_homogeneity_check(fps: list[str]) -> bool:
         for fp in fps:
             try:
                 dcm = pydicom.dcmread(fp)
@@ -385,7 +385,7 @@ async def correct_seg_homogeneity() -> None:
         user_input = json.load(file)
     output_fp = Path(user_input["output_dcm_dp"])
     fps = list(output_fp.rglob("*.dcm"))
-    homogeneity_state = SegmentSequenceHomogeneityCheck(fps)
+    homogeneity_state = segment_sequence_homogeneity_check(fps)
     if not homogeneity_state:
         renew_segm_seq(fps, ["background"])
 
@@ -426,8 +426,8 @@ async def handle_session_button_click(session_dict: dict[str, Any]) -> None:
 
 
 @app.post("/custom_config/")
-async def get_files(ConfigFile: UploadFile = File(...)) -> None:
-    contents = await ConfigFile.read()
+async def get_files(config_file: UploadFile = File(...)) -> None:
+    contents = await config_file.read()
     custom_fp = Path("./tmp/session-data/custom-config.csv")
     with custom_fp.open("wb") as file:
         file.write(contents)
@@ -462,10 +462,10 @@ def medsam_inference(medsam_model, img_embed, box_256, new_size, original_size):
 
 @app.post("/medsam_estimation/")
 async def medsam_estimation(boxdata: BoxData):
-    start = boxdata.normalizedStart
-    end = boxdata.normalizedEnd
-    segClass = boxdata.segClass
-    inpIdx = boxdata.inpIdx
+    start = boxdata.normalized_start
+    end = boxdata.normalized_end
+    seg_class = boxdata.seg_class
+    inp_idx = boxdata.inp_idx
     bbox = np.array(
         [
             min(start["x"], end["x"]),
@@ -478,20 +478,20 @@ async def medsam_estimation(boxdata: BoxData):
     time.time()
     medsam_model = load_model()
     temp_dir = Path("./tmp/session-data/embed")
-    embedding = torch.load(temp_dir / f"embed_{inpIdx}.pt")
-    Hs = np.load(temp_dir / "Hs.npy")
-    Ws = np.load(temp_dir / "Ws.npy")
+    embedding = torch.load(temp_dir / f"embed_{inp_idx}.pt")
+    hs = np.load(temp_dir / "Hs.npy")
+    ws = np.load(temp_dir / "Ws.npy")
     medsam_seg = medsam_inference(
         medsam_model,
         embedding,
         box_256,
         (256, 256),
-        (Hs[inpIdx], Ws[inpIdx]),
+        (hs[inp_idx], ws[inp_idx]),
     )
-    medsam_seg = (segClass * medsam_seg).astype(np.uint8)
+    medsam_seg = (seg_class * medsam_seg).astype(np.uint8)
     return {
         "mask": base64.b64encode(medsam_seg).decode("utf-8"),
-        "dimensions": [int(Ws[inpIdx]), int(Hs[inpIdx])],
+        "dimensions": [int(ws[inp_idx]), int(hs[inp_idx])],
     }
 
 
@@ -500,13 +500,13 @@ def prepare_medsam() -> None:
     dcm_fps = sorted(glob("./tmp/session-data/raw/*"))
     time.time()
     temp_dir = Path("./tmp/session-data/embed")
-    Hs, Ws = [], []
+    hs, ws = [], []
     for idx, dcm_fp in enumerate(dcm_fps):
         img = pydicom.dcmread(dcm_fp).pixel_array
         img_3c = np.repeat(img[:, :, None], 3, axis=-1) if len(img.shape) == 2 else img
-        H, W, _ = img_3c.shape
-        Hs.append(H)
-        Ws.append(W)
+        h, w, _ = img_3c.shape
+        hs.append(h)
+        ws.append(w)
         img_256 = cv2.resize(src=img_3c, dsize=(256, 256)).astype(np.float32)
         newh, neww = img_256.shape[:2]
         img_256 = (img_256 - img_256.min()) / np.clip(
@@ -519,8 +519,8 @@ def prepare_medsam() -> None:
             embedding = medsam_model.image_encoder(img_256_tensor)
             torch.save(embedding, temp_dir / f"embed_{idx}.pt")
 
-    np.save(temp_dir / "Hs.npy", np.array(Hs))
-    np.save(temp_dir / "Ws.npy", np.array(Ws))
+    np.save(temp_dir / "Hs.npy", np.array(hs))
+    np.save(temp_dir / "Ws.npy", np.array(ws))
 
 
 def deidentification_attributes(
@@ -539,26 +539,26 @@ def deidentification_attributes(
         },
         "retain_descriptors": "113105",
     }
-    DeIdentificationCodeSequence = "DCM:11310"
+    deidentification_code_sequence = "DCM:11310"
     if not set(user_input_lookup_table.keys()).issubset(set(user_input.keys())):
         msg = "E: Inconsistency with user input keys with lookup de-identification table keys"
         raise KeyError(
             msg,
         )
-    for OptionName in user_input_lookup_table:
-        choice = user_input[OptionName]
-        if OptionName == "date_processing":
+    for option_name in user_input_lookup_table:
+        choice = user_input[option_name]
+        if option_name == "date_processing":
             if choice in user_input_lookup_table["date_processing"]:
-                DeIdentificationCodeSequence += (
+                deidentification_code_sequence += (
                     "/" + user_input_lookup_table["date_processing"][choice]
                 )
         else:
             if choice:
-                DeIdentificationCodeSequence += (
-                    "/" + user_input_lookup_table[OptionName]
+                deidentification_code_sequence += (
+                    "/" + user_input_lookup_table[option_name]
                 )
     dcm.add_new(tag=(0x0012, 0x0062), VR="LO", value="YES")
-    dcm.add_new(tag=(0x0012, 0x0063), VR="LO", value=DeIdentificationCodeSequence)
+    dcm.add_new(tag=(0x0012, 0x0063), VR="LO", value=deidentification_code_sequence)
     if user_input["clean_image"]:
         dcm.add_new(tag=(0x0028, 0x0301), VR="LO", value="NO")
     return dcm
@@ -637,11 +637,11 @@ def get_action_group(
 ) -> pd.core.frame.DataFrame:
     def merge_action(
         primary_srs: pd.core.series.Series,
-        Action2BeAssigned_srs: pd.core.series.Series,
+        action2beassigned_srs: pd.core.series.Series,
     ) -> pd.core.series.Series:
         return primary_srs.where(
-            cond=Action2BeAssigned_srs.isna(),
-            other=Action2BeAssigned_srs,
+            cond=action2beassigned_srs.isna(),
+            other=action2beassigned_srs,
             axis=0,
             inplace=False,
         )
@@ -675,42 +675,42 @@ def get_action_group(
     if user_input["retain_safe_private"]:
         requested_action_group_df["Requested Action Group"] = merge_action(
             primary_srs=requested_action_group_df["Requested Action Group"],
-            Action2BeAssigned_srs=action_groups_df["Rtn. Safe Priv. Opt."],
+            action2beassigned_srs=action_groups_df["Rtn. Safe Priv. Opt."],
         )
     if user_input["retain_uids"]:
         requested_action_group_df["Requested Action Group"] = merge_action(
             primary_srs=requested_action_group_df["Requested Action Group"],
-            Action2BeAssigned_srs=action_groups_df["Rtn. UIDs Opt."],
+            action2beassigned_srs=action_groups_df["Rtn. UIDs Opt."],
         )
     if user_input["retain_device_identity"]:
         requested_action_group_df["Requested Action Group"] = merge_action(
             primary_srs=requested_action_group_df["Requested Action Group"],
-            Action2BeAssigned_srs=action_groups_df["Rtn. Dev. Id. Opt."],
+            action2beassigned_srs=action_groups_df["Rtn. Dev. Id. Opt."],
         )
     if user_input["retain_patient_characteristics"]:
         requested_action_group_df["Requested Action Group"] = merge_action(
             primary_srs=requested_action_group_df["Requested Action Group"],
-            Action2BeAssigned_srs=action_groups_df["Rtn. Pat. Chars. Opt."],
+            action2beassigned_srs=action_groups_df["Rtn. Pat. Chars. Opt."],
         )
     if user_input["date_processing"] == "keep":
         requested_action_group_df["Requested Action Group"] = merge_action(
             primary_srs=requested_action_group_df["Requested Action Group"],
-            Action2BeAssigned_srs=action_groups_df["Rtn. Long. Modif. Dates Opt."],
+            action2beassigned_srs=action_groups_df["Rtn. Long. Modif. Dates Opt."],
         )
     elif user_input["date_processing"] == "offset":
         requested_action_group_df["Requested Action Group"] = merge_action(
             primary_srs=requested_action_group_df["Requested Action Group"],
-            Action2BeAssigned_srs=action_groups_df["Offset Long. Modif. Dates Opt."],
+            action2beassigned_srs=action_groups_df["Offset Long. Modif. Dates Opt."],
         )
     elif user_input["date_processing"] == "remove":
         requested_action_group_df["Requested Action Group"] = merge_action(
             primary_srs=requested_action_group_df["Requested Action Group"],
-            Action2BeAssigned_srs=action_groups_df["Remove Long. Modif. Dates Opt."],
+            action2beassigned_srs=action_groups_df["Remove Long. Modif. Dates Opt."],
         )
     if user_input["retain_descriptors"]:
         requested_action_group_df["Requested Action Group"] = merge_action(
             primary_srs=requested_action_group_df["Requested Action Group"],
-            Action2BeAssigned_srs=action_groups_df["Rtn. Desc. Opt."],
+            action2beassigned_srs=action_groups_df["Rtn. Desc. Opt."],
         )
     if type(custom_config_df) == pd.core.frame.DataFrame:
         requested_action_group_df = merge_with_custom_user_config_file(
@@ -742,7 +742,7 @@ def adjust_dicom_metadata(
             output_seconds,
         )
 
-    def recursive_SQ_cleaner(
+    def recursive_sq_cleaner(
         ds: pydicom.dataset.FileDataset,
         action: str,
         action_attr_tag_idx: str,
@@ -751,7 +751,7 @@ def adjust_dicom_metadata(
             ds_tag_idx = re.sub("[(,) ]", "", str(ds_attr.tag))
             if ds[ds_tag_idx].VR == "SQ":
                 for inner_ds_idx in range(ds[ds_tag_idx].VM):
-                    ds[ds_tag_idx].value[inner_ds_idx] = recursive_SQ_cleaner(
+                    ds[ds_tag_idx].value[inner_ds_idx] = recursive_sq_cleaner(
                         ds=ds[ds_tag_idx][inner_ds_idx],
                         action=action,
                         action_attr_tag_idx=action_attr_tag_idx,
@@ -790,7 +790,7 @@ def adjust_dicom_metadata(
     tag_value_replacements["seconds_total_offset"] = 0
     for action_attr_tag_idx in action_group_df.index:
         action = action_group_df.loc[action_attr_tag_idx].iloc[1]
-        dcm = recursive_SQ_cleaner(
+        dcm = recursive_sq_cleaner(
             ds=dcm,
             action=action,
             action_attr_tag_idx=action_attr_tag_idx,
@@ -870,8 +870,8 @@ class rwdcm:
 def dicom_deidentifier(
     SESSION_FP: None | str = None,
 ) -> tuple[dict, list[tuple[str]]]:
-    GPU = True
-    if not GPU:
+    gpu = True
+    if not gpu:
         tf.config.set_visible_devices([], "GPU")
     elif len(tf.config.list_physical_devices("GPU")) == 0:
         pass
@@ -905,7 +905,7 @@ def dicom_deidentifier(
     pseudo_patient_ids = []
     for patient_deidentification_properties in session.values():
         pseudo_patient_ids.append(
-            int(patient_deidentification_properties["patientPseudoId"]),
+            int(patient_deidentification_properties["patient_pseudo_id"]),
         )
     max_pseudo_patient_id = -1 if pseudo_patient_ids == [] else max(pseudo_patient_ids)
     requested_action_group_df = get_action_group(
@@ -930,26 +930,26 @@ def dicom_deidentifier(
         if not patient_deidentification_properties:
             max_pseudo_patient_id += 1
             session[real_patient_id] = {
-                "patientPseudoId": "%.6d" % max_pseudo_patient_id,
+                "patient_pseudo_id": "%.6d" % max_pseudo_patient_id,
             }
             days_total_offset = secrets.randbelow((2 * 10 * 365) - (10 * 365) + 1) + (
                 10 * 365
             )
             seconds_total_offset = secrets.randbelow(24 * 60 * 60)
         else:
-            days_total_offset = session[real_patient_id]["daysOffset"]
-            seconds_total_offset = session[real_patient_id]["secondsOffset"]
+            days_total_offset = session[real_patient_id]["days_offset"]
+            seconds_total_offset = session[real_patient_id]["seconds_offset"]
         dcm, tag_value_replacements = adjust_dicom_metadata(
             dcm=dcm,
             action_group_fp="./tmp/session-data/requested-action-group-dcm.csv",
-            patient_pseudo_id=session[real_patient_id]["patientPseudoId"],
+            patient_pseudo_id=session[real_patient_id]["patient_pseudo_id"],
             days_total_offset=days_total_offset,
             seconds_total_offset=seconds_total_offset,
         )
-        session[real_patient_id]["daysOffset"] = tag_value_replacements[
+        session[real_patient_id]["days_offset"] = tag_value_replacements[
             "days_total_offset"
         ]
-        session[real_patient_id]["secondsOffset"] = tag_value_replacements[
+        session[real_patient_id]["seconds_offset"] = tag_value_replacements[
             "seconds_total_offset"
         ]
         dcm = deidentification_attributes(user_input=user_input, dcm=dcm)
@@ -961,7 +961,7 @@ def dicom_deidentifier(
 
 
 @app.post("/submit_button")
-async def handle_submit_button_click(user_options: user_options_class):
+async def handle_submit_button_click(user_options: UserOptionsClass):
     user_options = dict(user_options)
     dp, _, fps = next(iter(os.walk("./tmp/session-data/raw")))
     if set(fps).issubset({".gitkeep"}):

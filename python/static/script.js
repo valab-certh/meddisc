@@ -612,7 +612,7 @@ async function get_mask_from_file() {
 
 async function modify_dicom() {
     const requestBody = {
-        pixelData: canvastobase64(),
+        pixel_data: canvastobase64(),
         filepath: dicom_pair_fps[dcm_idx_][1],
         classes: classesMap
     }; 
@@ -755,10 +755,10 @@ function clearBoundingBox() {
 async function medsam_estimation(normalizedStart,normalizedEnd) {
     if (editMode !== 'boundingBox' || !BoxStart || !BoxEnd) return;
     const boxRequest = {
-        normalizedStart: normalizedStart,
-        normalizedEnd: normalizedEnd,
-        segClass: classesMap.indexOf(BrushSelect.value),
-        inpIdx: dcm_idx_
+        normalized_start: normalizedStart,
+        normalized_end: normalizedEnd,
+        seg_class: classesMap.indexOf(BrushSelect.value),
+        inp_idx: dcm_idx_
     };
     const box_response = await fetch(
         '/medsam_estimation/',
