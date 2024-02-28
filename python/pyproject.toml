@@ -8,7 +8,9 @@ dependencies = [
   "tensorflow==2.15.0.post1",
   "torch@https://download.pytorch.org/whl/cpu/torch-2.2.0%2Bcpu-cp39-cp39-linux_x86_64.whl",
   "torchvision@https://download.pytorch.org/whl/cpu/torchvision-0.17.0%2Bcpu-cp39-cp39-linux_x86_64.whl",
-  "uvicorn==0.26.0"
+  "uvicorn==0.26.0",
+  "pylibjpeg-libjpeg==2.0.0",
+  "pylibjpeg==2.0.0"
 ]
 name = "UNKNOWN"
 version = "0.0.0"
