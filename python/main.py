@@ -557,21 +557,29 @@ def bbox_area_remover(
     reducted_region_color = np.mean(img).astype(np.uint16)
     multiplicative_mask = np.ones(downscaled_array_shape, dtype=np.uint8)
     additive_mask = np.zeros(initial_array_shape, dtype=np.uint8)
+    bbox_mask = np.zeros(downscaled_array_shape, dtype=np.uint8)
     for bbox in bboxes:
         x0, y0 = bbox[0, 0 : (1 + 1)]
         x1, y1 = bbox[1, 0 : (1 + 1)]
         x2, y2 = bbox[2, 0 : (1 + 1)]
         x3, y3 = bbox[3, 0 : (1 + 1)]
         rectangle = np.array([[[x0, y0], [x1, y1], [x2, y2], [x3, y3]]], dtype=np.int32)
+        cv2.polylines(bbox_mask, rectangle, True, 1, 2)
         cv2.fillPoly(multiplicative_mask, rectangle, 0)
     multiplicative_mask = cv2.resize(
         multiplicative_mask,
         (initial_array_shape[1], initial_array_shape[0]),
         interpolation=cv2.INTER_NEAREST,
     )
+    bbox_mask = cv2.resize(
+        bbox_mask,
+        (initial_array_shape[1], initial_array_shape[0]),
+        interpolation=cv2.INTER_NEAREST,
+    )
     additive_mask = reducted_region_color * (multiplicative_mask == 0)
-    img_ = img.copy()
-    return img_ * multiplicative_mask + additive_mask
+    cleaned_img = img * multiplicative_mask + additive_mask
+    bbox_img = np.maximum(bbox_mask * np.max(img), img)
+    return cleaned_img, bbox_img
 
 
 def image_deintentifier(
@@ -601,8 +609,9 @@ def image_deintentifier(
     bboxes = pipeline.detect([raw_img_uint8_rgb])[0]
     initial_array_shape = raw_img_uint16_grayscale.shape
     downscaled_array_shape = raw_img_uint8_rgb.shape[:-1]
+    bbox_img = raw_img_uint16_grayscale.copy()
     if np.size(bboxes) != 0:
-        cleaned_img = bbox_area_remover(
+        cleaned_img, bbox_img = bbox_area_remover(
             img=raw_img_uint16_grayscale,
             bboxes=bboxes,
             initial_array_shape=initial_array_shape,
@@ -611,7 +620,7 @@ def image_deintentifier(
         dcm.PixelData = cleaned_img.tobytes()
     else:
         pass
-    return dcm
+    return dcm, bbox_img
 
 
 def get_action_group(
@@ -827,7 +836,7 @@ class rwdcm:
         else:
             return pydicom.dcmread(self.raw_dicom_path)
 
-    def export_processed_file(self, dcm: pydicom.dataset.FileDataset) -> None:
+    def export_processed_files(self, dcm: pydicom.dataset.FileDataset, bbox_img: np.ndarray) -> None:
         self.clean_dicom_dp = (
             self.clean_data_dp
             + str(dcm[0x0010, 0x0020].value)
@@ -839,7 +848,9 @@ class rwdcm:
         if not os.path.exists(self.clean_dicom_dp):
             os.makedirs(self.clean_dicom_dp)
         clean_dicom_fp = self.clean_dicom_dp + "/" + self.input_dicom_hash + ".dcm"
+        bbox_img_fp = self.clean_data_dp + "/" + self.input_dicom_hash + "_bbox" + ".png"
         dcm.save_as(clean_dicom_fp)
+        Image.fromarray(bbox_img).save(bbox_img_fp)
         self.dicom_pair_fps.append((self.raw_dicom_path, clean_dicom_fp))
 
     def export_session(self, session: dict) -> None:
@@ -929,8 +940,9 @@ def dicom_deidentifier(
         ]
         dcm = deidentification_attributes(user_input=user_input, dcm=dcm)
         if user_input["clean_image"]:
-            dcm = image_deintentifier(dcm=dcm)
-        rw_obj.export_processed_file(dcm=dcm)
+            dcm, bbox_img = image_deintentifier(dcm=dcm)
+        bbox_img = image_preprocessing(bbox_img, downscale_dimensionality=max(bbox_img.shape), multichannel=True, retain_aspect_ratio=True)
+        rw_obj.export_processed_files(dcm=dcm, bbox_img=bbox_img)
         rw_obj.export_session(session=session)
     return session, rw_obj.dicom_pair_fps
 
