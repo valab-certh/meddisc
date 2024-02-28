@@ -1,13 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import logging
-import os
-
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-import tensorflow as tf
-
-tf.get_logger().setLevel(logging.ERROR)
 import base64
 import datetime
 import hashlib
@@ -28,8 +21,8 @@ import keras_ocr
 import numpy as np
 import pandas as pd
 import pydicom
+import tensorflow as tf
 import torch
-import torch.nn.functional as F
 from fastapi import Body, FastAPI, File, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -39,6 +32,7 @@ from pydicom.errors import InvalidDicomError
 from segment_anything.modeling import MaskDecoder, PromptEncoder, TwoWayTransformer
 from tiny_vit_sam import TinyViT
 from torch import nn
+from torch.nn import functional
 from uvicorn import run
 
 
@@ -164,7 +158,7 @@ class MedSAM_Lite(nn.Module):
     @torch.no_grad()
     def postprocess_masks(self, masks, new_size, original_size):
         masks = masks[..., : new_size[0], : new_size[1]]
-        return F.interpolate(
+        return functional.interpolate(
             masks,
             size=(original_size[0], original_size[1]),
             mode="bilinear",
