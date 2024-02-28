@@ -444,7 +444,7 @@ async def get_batch_classes() -> dict:
             .SegmentSequence[0]
             .SegmentDescription.split(";"),
         }
-    except:
+    except AttributeError:
         sys.exit("E: Fatal Error; corrupted segmentation sequence attribute detected")
     return found_classes
 
@@ -818,7 +818,12 @@ def adjust_dicom_metadata(
                 if action == "Z":
                     # Check if ds_tag_idx is not one of the specified tags
                     if ds_tag_idx not in ["00100010", "00100020"]:
-                        msg = "E: Cannot apply action code `Z` in any other attribute besides Patient ID and Patient Name; the issue is likely on the action group config object"
+                        msg = (
+                            "E: Cannot apply action code `Z` in any"
+                            "other attribute besides Patient ID and"
+                            "Patient Name; the issue is likely on "
+                            "the action group config object"
+                        )
                         raise ValueError(
                             msg,
                         )
