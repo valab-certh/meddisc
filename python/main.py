@@ -172,7 +172,8 @@ class MedsamLite(nn.Module):
         image_embedding = self.image_encoder(image)
         with torch.no_grad():
             box_torch = torch.as_tensor(box_np, dtype=torch.float32, device="cpu")
-            if len(box_torch.shape) == 2:
+            two_d = 2
+            if len(box_torch.shape) == two_d:
                 box_torch = box_torch[:, None, :]
         sparse_embeddings, dense_embeddings = self.prompt_encoder(
             points=None,
@@ -271,7 +272,8 @@ def image_preprocessing(
                 min([downscale_dimensionality, img.shape[1]]),
             )
         img = cv2.resize(img, (new_shape[1], new_shape[0]))
-    if (multichannel) and (len(img.shape) == 2):
+    two_d = 2
+    if (multichannel) and (len(img.shape) == two_d):
         img = np.stack(3 * [img], axis=-1)
     return img
 
@@ -365,7 +367,8 @@ def attach_segm_data(
         raise TypeError(msg)
     seg_dataset = pydicom.dataset.Dataset()
     img = dcm.pixel_array
-    if len(img.shape) != 2:
+    two_d = 2
+    if len(img.shape) != two_d:
         msg = "E: Incompatible image shape"
         raise ValueError(msg)
     seg_dataset.Rows, seg_dataset.Columns = img.shape
@@ -477,7 +480,8 @@ def medsam_inference(
     original_size: tuple[int, int],
 ) -> np.ndarray:
     box_torch = torch.as_tensor(box_256, dtype=torch.float, device=img_embed.device)
-    if len(box_torch.shape) == 2:
+    two_d = 2
+    if len(box_torch.shape) == two_d:
         box_torch = box_torch[:, None, :]
     sparse_embeddings, dense_embeddings = medsam_model.prompt_encoder(
         points=None,
@@ -498,7 +502,8 @@ def medsam_inference(
     )
     low_res_pred = torch.sigmoid(low_res_pred)
     low_res_pred = low_res_pred.squeeze().cpu().numpy()
-    return (low_res_pred > 0.5).astype(np.uint8)
+    pred_threshold = 0.5
+    return (low_res_pred > pred_threshold).astype(np.uint8)
 
 
 @app.post("/medsam_estimation/")
@@ -544,7 +549,10 @@ def prepare_medsam() -> None:
     hs, ws = [], []
     for idx, dcm_fp in enumerate(dcm_fps):
         img = pydicom.dcmread(dcm_fp).pixel_array
-        img_3c = np.repeat(img[:, :, None], 3, axis=-1) if len(img.shape) == 2 else img
+        two_d = 2
+        img_3c = (
+            np.repeat(img[:, :, None], 3, axis=-1) if len(img.shape) == two_d else img
+        )
         h, w, _ = img_3c.shape
         hs.append(h)
         ws.append(w)
