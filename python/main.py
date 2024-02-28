@@ -699,7 +699,10 @@ def get_action_group(
             inplace=False,
         )
 
-    def merge_with_custom_user_config_file(requested_action_group_df, custom_config_df):
+    def merge_with_custom_user_config_file(
+        requested_action_group_df: pd.core.frame.DataFrame,
+        custom_config_df: pd.core.frame.DataFrame,
+    ) -> pd.core.frame.DataFrame:
         valid_actions = {"X", "K", "C"}
         if not set(custom_config_df["Action"]).issubset(valid_actions):
             sys.exit()
