@@ -24,7 +24,7 @@ import pandas as pd
 import pydicom
 import tensorflow as tf
 import torch
-from fastapi import Body, FastAPI, File, UploadFile
+from fastapi import Body, FastAPI, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
@@ -280,7 +280,7 @@ def image_preprocessing(
 
 @app.post("/conversion_info")
 async def conversion_info(
-    dicom_pair_fp: list[str] = Body(...),
+    dicom_pair_fp: list[str],
 ) -> ConversionInfoResponse:
     downscale_dimensionality = 1024
     raw_dcm = pydicom.dcmread(dicom_pair_fp[0])
@@ -334,7 +334,7 @@ async def modify_dicom(data: DicomData) -> bool:
 
 
 @app.post("/upload_files/")
-async def get_files(files: list[UploadFile] = File(...)) -> UploadFilesResponse:
+async def get_files(files: list[UploadFile]) -> UploadFilesResponse:
     clean_imgs()
     proper_dicom_paths = []
     total_uploaded_file_bytes = 0
@@ -464,7 +464,7 @@ async def handle_session_button_click(session_dict: dict[str, Any]) -> None:
 
 
 @app.post("/custom_config/")
-async def get_files(config_file: UploadFile = File(...)) -> None:
+async def get_files(config_file: UploadFile) -> None:
     contents = await config_file.read()
     custom_fp = Path("./tmp/session-data/custom-config.csv")
     with custom_fp.open("wb") as file:
