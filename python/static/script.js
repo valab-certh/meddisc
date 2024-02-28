@@ -89,10 +89,22 @@ var overrideMasks = document.querySelector('#overrideMasks');
 var useBatchMasks = document.querySelector('#useBatchMasks');
 var classes_submitted_state = false;
 
-function ShowDiff(ToggleValue)
+function ShowDiffTable(ToggleValue)
 {
     DiffEnabled = ToggleValue;
     MetadataTable.innerHTML = table(dicom_pair['raw_dicom_metadata'], dicom_pair['cleaned_dicom_metadata'], DiffEnabled);
+}
+
+function ShowCleanedImg(ToggleValue)
+{
+    if (ToggleValue)
+    {
+        CleanedImgInner.src = `data:image/png;base64,${dicom_pair['cleaned_dicom_img_data']}`;
+    }
+    else
+    {
+        CleanedImgInner.src = `data:image/png;base64,${dicom_pair['raw_dicom_img_data']}`;
+    }
 }
 
 function HideSequence(SequenceID)

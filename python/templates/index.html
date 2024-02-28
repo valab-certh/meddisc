@@ -119,12 +119,22 @@
                 </br>
                 <center>
                     <div style="padding: 5px;">
-                        Header Attributes Display Mode
+                        Metadata Attributes Display Mode
                     </div>
-                    <input type="checkbox" id="ToggleDiff" class="toggleCheckbox" oninput="ShowDiff(this.checked)">
-                    <label for="ToggleDiff" class="toggleContainer" title="All: Shows all tags; Only Altered: Shows only altered tags" >
+                    <input type="checkbox" id="ToggleDiff0" class="toggleCheckbox" oninput="ShowDiffTable(this.checked)">
+                    <label for="ToggleDiff0" class="toggleContainer" title="All: Shows all tags; Only Altered: Shows only altered tags">
                         <div>All</div>
                         <div>Only Altered</div> 
+                    </label>
+                </center>
+                <center>
+                    <div style="padding: 5px;">
+                        Show Cleaned Pixel Data
+                    </div>
+                    <input type="checkbox" id="ToggleDiff1" class="toggleCheckbox" checked oninput="ShowCleanedImg(this.checked)">
+                    <label for="ToggleDiff1" class="toggleContainer" title="No: Shows raw pixel data; Yes: Shows cleaned pixel data">
+                        <div>No</div>
+                        <div>Yes</div> 
                     </label>
                 </center>
                 </br>
