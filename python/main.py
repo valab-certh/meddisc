@@ -319,7 +319,9 @@ async def get_files(files: list[UploadFile] = File(...)):
 
 
 def attach_segm_data(
-    dcm: pydicom.dataset.FileDataset, seg_mask: np.array, class_names: list[str],
+    dcm: pydicom.dataset.FileDataset,
+    seg_mask: np.array,
+    class_names: list[str],
 ) -> pydicom.dataset.FileDataset:
     assert type(seg_mask[0, 0]) == np.uint8, "E: Incompatible element-wise data type"
     seg_dataset = pydicom.dataset.Dataset()
@@ -357,7 +359,8 @@ async def correct_seg_homogeneity() -> None:
                 continue
             try:
                 mask = np.frombuffer(
-                    dcm.SegmentSequence[0].PixelData, dtype=np.uint8,
+                    dcm.SegmentSequence[0].PixelData,
+                    dtype=np.uint8,
                 ).reshape((dcm.Rows, dcm.Columns))
                 found_classes = dcm.SegmentSequence[0].SegmentDescription.split(";")
                 if len(found_classes) != (len(np.unique(mask))):
@@ -434,7 +437,9 @@ def medsam_inference(medsam_model, img_embed, box_256, new_size, original_size):
         multimask_output=False,
     )
     low_res_pred = medsam_model.postprocess_masks(
-        low_res_logits, new_size, original_size,
+        low_res_logits,
+        new_size,
+        original_size,
     )
     low_res_pred = torch.sigmoid(low_res_pred)
     low_res_pred = low_res_pred.squeeze().cpu().numpy()
@@ -463,7 +468,11 @@ async def medsam_estimation(boxdata: BoxData):
     Hs = np.load(os.path.join(temp_dir, "Hs.npy"))
     Ws = np.load(os.path.join(temp_dir, "Ws.npy"))
     medsam_seg = medsam_inference(
-        medsam_model, embedding, box_256, (256, 256), (Hs[inpIdx], Ws[inpIdx]),
+        medsam_model,
+        embedding,
+        box_256,
+        (256, 256),
+        (Hs[inpIdx], Ws[inpIdx]),
     )
     medsam_seg = (segClass * medsam_seg).astype(np.uint8)
     return {
@@ -487,7 +496,9 @@ def prepare_medsam() -> None:
         img_256 = cv2.resize(src=img_3c, dsize=(256, 256)).astype(np.float32)
         newh, neww = img_256.shape[:2]
         img_256 = (img_256 - img_256.min()) / np.clip(
-            img_256.max() - img_256.min(), a_min=1e-8, a_max=None,
+            img_256.max() - img_256.min(),
+            a_min=1e-8,
+            a_max=None,
         )
         img_256_tensor = torch.tensor(img_256).float().permute(2, 0, 1).unsqueeze(0)
         with torch.no_grad():
@@ -499,7 +510,8 @@ def prepare_medsam() -> None:
 
 
 def deidentification_attributes(
-    user_input: dict, dcm: pydicom.dataset.FileDataset,
+    user_input: dict,
+    dcm: pydicom.dataset.FileDataset,
 ) -> pydicom.dataset.FileDataset:
     user_input_lookup_table = {
         "clean_image": "113101",
@@ -575,12 +587,14 @@ def image_deintentifier(
     if min(raw_img_uint16_grayscale.shape) < min_dim:
         return dcm
     if downscale_dimensionality < max(
-        raw_img_uint16_grayscale.shape[0], raw_img_uint16_grayscale.shape[1],
+        raw_img_uint16_grayscale.shape[0],
+        raw_img_uint16_grayscale.shape[1],
     ):
         pass
 
     raw_img_uint8_rgb = image_preprocessing(
-        img=raw_img_uint16_grayscale, downscale_dimensionality=downscale_dimensionality,
+        img=raw_img_uint16_grayscale,
+        downscale_dimensionality=downscale_dimensionality,
     )
 
     pipeline = keras_ocr.detection.Detector()
@@ -606,7 +620,8 @@ def get_action_group(
     custom_config_df: pd.core.frame.DataFrame | None,
 ) -> pd.core.frame.DataFrame:
     def merge_action(
-        primary_srs: pd.core.series.Series, Action2BeAssigned_srs: pd.core.series.Series,
+        primary_srs: pd.core.series.Series,
+        Action2BeAssigned_srs: pd.core.series.Series,
     ) -> pd.core.series.Series:
         return primary_srs.where(
             cond=Action2BeAssigned_srs.isna(),
@@ -620,7 +635,10 @@ def get_action_group(
         if not set(custom_config_df["Action"]).issubset(valid_actions):
             sys.exit()
         requested_action_group_df = requested_action_group_df.merge(
-            custom_config_df[["Action"]], left_index=True, right_index=True, how="left",
+            custom_config_df[["Action"]],
+            left_index=True,
+            right_index=True,
+            how="left",
         )
         requested_action_group_df.loc[
             requested_action_group_df["Action"].isin(["X", "K", "C"]),
@@ -680,7 +698,8 @@ def get_action_group(
         )
     if type(custom_config_df) == pd.core.frame.DataFrame:
         requested_action_group_df = merge_with_custom_user_config_file(
-            requested_action_group_df, custom_config_df,
+            requested_action_group_df,
+            custom_config_df,
         )
     return requested_action_group_df
 
@@ -708,7 +727,9 @@ def adjust_dicom_metadata(
         )
 
     def recursive_SQ_cleaner(
-        ds: pydicom.dataset.FileDataset, action: str, action_attr_tag_idx: str,
+        ds: pydicom.dataset.FileDataset,
+        action: str,
+        action_attr_tag_idx: str,
     ) -> pydicom.dataset.FileDataset:
         for ds_attr in ds:
             ds_tag_idx = re.sub("[(,) ]", "", str(ds_attr.tag))
@@ -752,7 +773,9 @@ def adjust_dicom_metadata(
     for action_attr_tag_idx in action_group_df.index:
         action = action_group_df.loc[action_attr_tag_idx].iloc[1]
         dcm = recursive_SQ_cleaner(
-            ds=dcm, action=action, action_attr_tag_idx=action_attr_tag_idx,
+            ds=dcm,
+            action=action,
+            action_attr_tag_idx=action_attr_tag_idx,
         )
     return dcm, tag_value_replacements
 
@@ -836,13 +859,15 @@ def dicom_deidentifier(
         pass
     if os.path.isfile("./tmp/session-data/custom-config.csv"):
         custom_config_df = pd.read_csv(
-            filepath_or_buffer="./tmp/session-data/custom-config.csv", index_col=0,
+            filepath_or_buffer="./tmp/session-data/custom-config.csv",
+            index_col=0,
         )
         custom_config_df.index = custom_config_df.index.str.strip("'")
     else:
         custom_config_df = None
     action_groups_df = pd.read_csv(
-        filepath_or_buffer="./python/tmp/action-groups-dcm.csv", index_col=0,
+        filepath_or_buffer="./python/tmp/action-groups-dcm.csv",
+        index_col=0,
     )
     if SESSION_FP is None or not os.path.isfile(SESSION_FP):
         session = {}
