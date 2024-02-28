@@ -129,17 +129,12 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
         CurrentNodeIdx.push(-1);
         for (let tagID in RawDCMMetadataObjectLvN)
         {
-            let tagID_part1 = tagID.substring(0, 4);
-            let tagID_part2 = tagID.substring(4);
-            let tagID_ = `(${tagID_part1},${tagID_part2})`;
             const vr = RawDCMMetadataObjectLvN[tagID].vr;
             const name = RawDCMMetadataObjectLvN[tagID].name;
             const raw_value = RawDCMMetadataObjectLvN[tagID].value;
             let cleaned_value;
             let tag_dropped;
-            let right_row_contents;
-            let left_col_style;
-            let right_col_style;
+            let cell_style;
             CurrentNodeIdx[CurrentNodeIdx.length - 1] += 1;
             if (CleanedDCMMetadataObjectLvN.hasOwnProperty(tagID))
             {
@@ -153,36 +148,23 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
             }
             if (tag_dropped)
             {
-                left_col_style = ' style="background-color: rgba(0, 255, 255, 10%);"';
-                right_col_style = ' style="background-color: rgba(47, 47, 51, 255);"';
-                right_row_contents = 
-                `
-                `;
+                cell_style = ' style="background-color: rgba(0, 255, 255, 10%);"';
             }
             else
             {
                 if (JSON.stringify(cleaned_value) !== JSON.stringify(raw_value))
                 {
                     total_altered_dicom_tags += 1;
-                    left_col_style = ' style="background-color: rgba(0, 255, 255, 10%);"';
-                    right_col_style = left_col_style;
+                    cell_style = ' style="background-color: rgba(0, 255, 255, 10%);"';
                 }
                 else
                 {
-                    left_col_style = ' style="background-color: rgba(100, 100, 110, 10%);"';
-                    right_col_style = left_col_style;
+                    cell_style = ' style="background-color: rgba(100, 100, 110, 10%);"';
                     if (DiffEnabled)
                     {
                         continue;
                     }
                 }
-                right_row_contents = 
-                `
-                    <div class="cell-dcmtag-id"${right_col_style}>${tagID_}</div>
-                    <div class="cell-dcmtag-vr"${right_col_style}>${vr}</div>
-                    <div class="cell-dcmtag-value"${right_col_style}>${cleaned_value}</div>
-                    <div class="cell-dcmtag-name"${right_col_style}>${name}</div>
-                `;
             }
             if (vr === 'SQ')
             {
@@ -190,22 +172,12 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
                 MetadataTable += 
                 `
                     <div class="outer-row" onclick="HideSequence(${JSON.stringify(CurrentNodeIdx)})" style="cursor: pointer;">
-                        <div class="inner-row">
-                            <div class="left-row">
+                        <div class="inner-table">
+                            <div class="table-row">
                                 ${indentation_block}
-                                <div class="cell-expand-row" id="${JSON.stringify(CurrentNodeIdx)}_expand_row"${left_col_style}>+</div>
-                                <div class="cell-dcmtag-id"${left_col_style}>${tagID_}</div>
-                                <div class="cell-dcmtag-vr"${left_col_style}>${vr}</div>
-                                <div class="cell-dcmtag-value"${left_col_style}></div>
-                                <div class="cell-dcmtag-name"${left_col_style}>${name}</div>
-                            </div>
-                            <div class="cell-vertical-separator"></div>
-                            <div class="right-row">
-                                ${indentation_block}
-                                <div class="cell-dcmtag-id"${right_col_style}>${tagID_}</div>
-                                <div class="cell-dcmtag-vr"${right_col_style}>${vr}</div>
-                                <div class="cell-dcmtag-value"${right_col_style}></div>
-                                <div class="cell-dcmtag-name"${right_col_style}>${name}</div>
+                                <div class="cell-expand-row" id="${JSON.stringify(CurrentNodeIdx)}_expand_row"${cell_style}>+</div>
+                                <div class="cell-dcmtag-name"${cell_style}>${name}</div>
+                                <div class="cell-dcmtag-value"${cell_style}></div>
                             </div>
                         </div>
                     </div>
@@ -223,15 +195,8 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
                     MetadataTable += 
                     `
                         <div class="outer-row">
-                            <div class="inner-row">
-                                <div class="left-row">
-                                    ${indentation_block}
-                                    <div class="cell-dataset">
-                                        Dataset ${ds_idx}
-                                    </div>
-                                </div>
-                                <div class="cell-vertical-separator"></div>
-                                <div class="right-row">
+                            <div class="inner-table">
+                                <div class="table-row">
                                     ${indentation_block}
                                     <div class="cell-dataset">
                                         Dataset ${ds_idx}
@@ -257,19 +222,12 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
                 MetadataTable += 
                 `
                     <div class="outer-row">
-                        <div class="inner-row">
-                            <div class="left-row">
+                        <div class="inner-table">
+                            <div class="table-row">
                                 ${indentation_block}
-                                <div class="cell-expand-row"${left_col_style}></div>
-                                <div class="cell-dcmtag-id"${left_col_style}>${tagID_}</div>
-                                <div class="cell-dcmtag-vr"${left_col_style}>${vr}</div>
-                                <div class="cell-dcmtag-value"${left_col_style}>${raw_value}</div>
-                                <div class="cell-dcmtag-name"${left_col_style}>${name}</div>
-                            </div>
-                            <div class="cell-vertical-separator"></div>
-                            <div class="right-row">
-                                ${indentation_block}
-                                ${right_row_contents}
+                                <div class="cell-expand-row"${cell_style}></div>
+                                <div class="cell-dcmtag-name"${cell_style}>${name}</div>
+                                <div class="cell-dcmtag-value"${cell_style}>${raw_value}</div>
                             </div>
                         </div>
                     </div>
@@ -283,20 +241,11 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
     let MetadataTable = 
     `
         <div class="outer-row">
-            <div class="inner-row-column-names">
-                <div class="left-row">
+            <div class="inner-table-column-names">
+                <div class="table-row">
                     <div class="cell-expand-row"></div>
-                    <div class="cell-dcmtag-id"${UppermostRowStyle}><b>Tag ID</b></div>
-                    <div class="cell-dcmtag-vr"${UppermostRowStyle}><b>VR</b></div>
-                    <div class="cell-dcmtag-value"${UppermostRowStyle}><b>Tag Value</b></div>
                     <div class="cell-dcmtag-name"${UppermostRowStyle}><b>Tag Name</b></div>
-                </div>
-                <div class="cell-vertical-separator"></div>
-                <div class="right-row">
-                    <div class="cell-dcmtag-id"${UppermostRowStyle}><b>Tag ID</b></div>
-                    <div class="cell-dcmtag-vr"${UppermostRowStyle}><b>VR</b></div>
                     <div class="cell-dcmtag-value"${UppermostRowStyle}><b>Tag Value</b></div>
-                    <div class="cell-dcmtag-name"${UppermostRowStyle}><b>Tag Name</b></div>
                 </div>
             </div>
         </div>
