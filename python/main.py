@@ -991,8 +991,8 @@ if __name__ == "__main__":
     if os.getenv("STAGING"):
         tmp_directories = [
             Path("tmp/session-data/raw"),
-            Path("tmp/session-data/raw"),
-            Path("tmp/session-data/raw"),
+            Path("tmp/session-data/clean"),
+            Path("tmp/session-data/embed"),
         ]
         for directory in tmp_directories:
             directory.mkdir(parents=True, exist_ok=True)
