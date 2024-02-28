@@ -91,6 +91,8 @@ class MaskFromFileResponse(BaseModel):
     PixelData: str
     dimensions: list[int]
 
+class ModifyResponse(BaseModel):
+    success: bool
 
 class UploadFilesResponse(BaseModel):
     n_uploaded_files: int
@@ -323,7 +325,7 @@ async def get_mask_from_file(current_dcm_fp: str = Body(...)) -> MaskFromFileRes
 
 
 @app.post("/modify_dicom/")
-async def modify_dicom(data: DicomData) -> bool:
+async def modify_dicom(data: DicomData) -> ModifyResponse:
     pixel_data = base64.b64decode(data.pixel_data)
     filepath = data.filepath
     modified_dcm = pydicom.dcmread(filepath)
