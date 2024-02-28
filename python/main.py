@@ -601,11 +601,8 @@ def deidentification_attributes(
                 deidentification_code_sequence += (
                     "/" + user_input_lookup_table["date_processing"][choice]
                 )
-        else:
-            if choice:
-                deidentification_code_sequence += (
-                    "/" + user_input_lookup_table[option_name]
-                )
+        elif choice:
+            deidentification_code_sequence += "/" + user_input_lookup_table[option_name]
     dcm.add_new(tag=(0x0012, 0x0062), VR="LO", value="YES")
     dcm.add_new(tag=(0x0012, 0x0063), VR="LO", value=deidentification_code_sequence)
     if user_input["clean_image"]:
@@ -871,8 +868,7 @@ class rwdcm:
         if self.n_dicom_files - 1 >= self.DICOM_IDX:
             self.raw_dicom_path = self.raw_dicom_paths[self.DICOM_IDX]
             return True
-        else:
-            return False
+        return False
 
     def get_dicom_paths(self, data_dp: str) -> list:
         dicom_paths = glob(pathname=data_dp + "*", recursive=True)
@@ -891,8 +887,7 @@ class rwdcm:
         ).hexdigest()
         if self.input_dicom_hash in self.hashes_of_already_converted_files:
             return False
-        else:
-            return pydicom.dcmread(self.raw_dicom_path)
+        return pydicom.dcmread(self.raw_dicom_path)
 
     def export_processed_file(self, dcm: pydicom.dataset.FileDataset) -> None:
         self.clean_dicom_dp = (
@@ -922,9 +917,10 @@ def dicom_deidentifier(
     gpu = True
     if not gpu:
         tf.config.set_visible_devices([], "GPU")
-    elif len(tf.config.list_physical_devices("GPU")) == 0:
-        pass
-    elif tf.config.list_physical_devices("GPU")[0][1] == "GPU":
+    elif (
+        len(tf.config.list_physical_devices("GPU")) == 0
+        or tf.config.list_physical_devices("GPU")[0][1] == "GPU"
+    ):
         pass
     custom_fp = Path("./tmp/session-data/custom-config.csv")
     if custom_fp.is_file():
