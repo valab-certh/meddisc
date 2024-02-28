@@ -12,7 +12,6 @@ import shutil
 import sys
 import time
 from functools import lru_cache
-from glob import glob
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -91,8 +90,10 @@ class MaskFromFileResponse(BaseModel):
     PixelData: str
     dimensions: list[int]
 
+
 class ModifyResponse(BaseModel):
     success: bool
+
 
 class UploadFilesResponse(BaseModel):
     n_uploaded_files: int
@@ -545,7 +546,8 @@ async def medsam_estimation(boxdata: BoxData) -> BoxDataResponse:
 
 def prepare_medsam() -> None:
     medsam_model = load_model()
-    dcm_fps = sorted(glob("./tmp/session-data/raw/*"))
+    raw_fp = Path("./tmp/session-data/raw")
+    dcm_fps = sorted(raw_fp.glob("*"))
     time.time()
     temp_dir = Path("./tmp/session-data/embed")
     hs, ws = [], []
@@ -873,7 +875,7 @@ class rwdcm:
         return False
 
     def get_dicom_paths(self, data_dp: str) -> list:
-        dicom_paths = glob(pathname=data_dp + "*", recursive=True)
+        dicom_paths = list(Path(data_dp).rglob("*"))
         proper_dicom_paths = []
         for dicom_path in dicom_paths:
             try:
@@ -885,7 +887,7 @@ class rwdcm:
 
     def parse_file(self) -> pydicom.dataset.FileDataset | bool:
         self.input_dicom_hash = hashlib.sha256(
-            self.raw_dicom_path.encode("UTF-8"),
+            str(self.raw_dicom_path).encode("UTF-8"),
         ).hexdigest()
         if self.input_dicom_hash in self.hashes_of_already_converted_files:
             return False
