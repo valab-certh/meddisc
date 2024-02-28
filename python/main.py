@@ -548,7 +548,7 @@ def deidentification_attributes(
     return dcm
 
 
-def bbox_area_distorter(
+def bbox_area_remover(
     img: np.ndarray,
     bboxes: np.ndarray,
     initial_array_shape: tuple[int],
@@ -602,7 +602,7 @@ def image_deintentifier(
     initial_array_shape = raw_img_uint16_grayscale.shape
     downscaled_array_shape = raw_img_uint8_rgb.shape[:-1]
     if np.size(bboxes) != 0:
-        cleaned_img = bbox_area_distorter(
+        cleaned_img = bbox_area_remover(
             img=raw_img_uint16_grayscale,
             bboxes=bboxes,
             initial_array_shape=initial_array_shape,
