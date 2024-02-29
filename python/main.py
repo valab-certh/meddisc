@@ -140,9 +140,9 @@ def dcm2dictmetadata(ds: pydicom.dataset.Dataset) -> dict[str, dict[str, str]]:
         if ds_attr.VR != "SQ":
             value = str(ds_attr.value)
         else:
-            value = []
+            value = []  # type: ignore[assignment]
             for inner_ds_idx in range(ds[ds_tag_idx].VM):
-                value.append(dcm2dictmetadata(ds=ds[ds_tag_idx][inner_ds_idx]))
+                value.append(dcm2dictmetadata(ds=ds[ds_tag_idx][inner_ds_idx]))  # type: ignore[attr-defined]
 
         ds_metadata_dict[ds_tag_idx] = {
             "vr": ds_attr.VR,
@@ -197,7 +197,7 @@ class MedsamLite(nn.Module):
             dense_prompt_embeddings=dense_embeddings,
             multimask_output=False,
         )
-        return low_res_masks
+        return low_res_masks  # type: ignore[no-any-return]
 
     @torch.no_grad()
     def postprocess_masks(
@@ -207,7 +207,7 @@ class MedsamLite(nn.Module):
         original_size: tuple[int, int],
     ) -> torch.Tensor:
         masks = masks[..., : new_size[0], : new_size[1]]
-        return functional.interpolate(
+        return functional.interpolate(  # type: ignore[no-any-return]
             masks,
             size=(original_size[0], original_size[1]),
             mode="bilinear",
@@ -350,7 +350,7 @@ async def get_files(files: list[UploadFile]) -> UploadFilesResponse:
     total_uploaded_file_bytes = 0
     for file in files:
         contents = await file.read()
-        fp = Path("./tmp/session-data/raw/" + file.filename.split("/")[-1])
+        fp = Path("./tmp/session-data/raw/" + file.filename.split("/")[-1])  # type: ignore[union-attr]
         with fp.open("wb") as f:
             f.write(contents)
         try:
@@ -369,10 +369,10 @@ async def get_files(files: list[UploadFile]) -> UploadFilesResponse:
 
 def attach_segm_data(
     dcm: pydicom.dataset.FileDataset,
-    seg_mask: np.array,
+    seg_mask: np.array,  # type: ignore[valid-type]
     class_names: list[str],
 ) -> pydicom.dataset.FileDataset:
-    if type(seg_mask[0, 0]) != np.uint8:
+    if type(seg_mask[0, 0]) != np.uint8:  # type: ignore[index]
         msg = "E: Incompatible element-wise data type"
         raise TypeError(msg)
     seg_dataset = pydicom.dataset.Dataset()
@@ -385,7 +385,7 @@ def attach_segm_data(
     seg_dataset.SOPClassUID = "1.2.840.10008.5.1.4.1.1.66.4"
     seg_dataset.BitsAllocated = 8
     seg_dataset.SegmentDescription = ";".join(class_names)
-    seg_dataset.PixelData = seg_mask.tobytes()
+    seg_dataset.PixelData = seg_mask.tobytes()  # type: ignore[attr-defined]
     dcm.SegmentSequence = pydicom.sequence.Sequence([seg_dataset])
     return dcm
 
@@ -433,9 +433,9 @@ async def correct_seg_homogeneity() -> None:
         user_input = json.load(file)
     output_fp = Path(user_input["output_dcm_dp"])
     fps = list(output_fp.rglob("*.dcm"))
-    homogeneity_state = segment_sequence_homogeneity_check(fps)
+    homogeneity_state = segment_sequence_homogeneity_check(fps)  # type: ignore[arg-type]
     if not homogeneity_state:
-        renew_segm_seq(fps, ["background"])
+        renew_segm_seq(fps, ["background"])  # type: ignore[arg-type]
 
 
 @app.post("/get_batch_classes")
@@ -463,7 +463,7 @@ async def align_classes(classes: list[str]) -> None:
         user_input = json.load(file)
     output_fp = Path(user_input["output_dcm_dp"])
     fps = list(output_fp.rglob("*.dcm"))
-    renew_segm_seq(fps, classes)
+    renew_segm_seq(fps, classes)  # type: ignore[arg-type]
 
 
 @app.post("/session")
@@ -513,7 +513,7 @@ def medsam_inference(
     low_res_pred = torch.sigmoid(low_res_pred)
     low_res_pred = low_res_pred.squeeze().cpu().numpy()
     pred_threshold = 0.5
-    return (low_res_pred > pred_threshold).astype(np.uint8)
+    return (low_res_pred > pred_threshold).astype(np.uint8)  # type: ignore[no-any-return, attr-defined]
 
 
 @app.post("/medsam_estimation/")
@@ -546,7 +546,7 @@ async def medsam_estimation(boxdata: BoxData) -> BoxDataResponse:
     )
     medsam_seg = (seg_class * medsam_seg).astype(np.uint8)
     return BoxDataResponse(
-        mask=base64.b64encode(medsam_seg).decode("utf-8"),
+        mask=base64.b64encode(medsam_seg).decode("utf-8"),  # type: ignore[arg-type]
         dimensions=[int(ws[inp_idx]), int(hs[inp_idx])],
     )
 
@@ -613,10 +613,10 @@ def deidentification_attributes(
         if option_name == "date_processing":
             if choice in user_input_lookup_table["date_processing"]:
                 deidentification_code_sequence += (
-                    "/" + user_input_lookup_table["date_processing"][choice]
+                    "/" + user_input_lookup_table["date_processing"][choice]  # type: ignore[index]
                 )
         elif choice:
-            deidentification_code_sequence += "/" + user_input_lookup_table[option_name]
+            deidentification_code_sequence += "/" + user_input_lookup_table[option_name]  # type: ignore[operator]
     dcm.add_new(tag=(0x0012, 0x0062), VR="LO", value="YES")
     dcm.add_new(tag=(0x0012, 0x0063), VR="LO", value=deidentification_code_sequence)
     if user_input["clean_image"]:
@@ -639,10 +639,10 @@ def bbox_area_distorter(
         x2, y2 = bbox[2, 0 : (1 + 1)]
         x3, y3 = bbox[3, 0 : (1 + 1)]
         rectangle = np.array([[[x0, y0], [x1, y1], [x2, y2], [x3, y3]]], dtype=np.int32)
-        cv2.fillPoly(multiplicative_mask, rectangle, 0)
-    multiplicative_mask = cv2.resize(
+        cv2.fillPoly(multiplicative_mask, rectangle, 0)  # type: ignore[call-overload]
+    multiplicative_mask = cv2.resize(  # type: ignore[assignment]
         multiplicative_mask,
-        (initial_array_shape[1], initial_array_shape[0]),
+        (initial_array_shape[1], initial_array_shape[0]),  # type: ignore[misc]
         interpolation=cv2.INTER_NEAREST,
     )
     additive_mask = reducted_region_color * (multiplicative_mask == 0)
@@ -681,8 +681,8 @@ def image_deintentifier(
         cleaned_img = bbox_area_distorter(
             img=raw_img_uint16_grayscale,
             bboxes=bboxes,
-            initial_array_shape=initial_array_shape,
-            downscaled_array_shape=downscaled_array_shape,
+            initial_array_shape=initial_array_shape,  # type: ignore[arg-type]
+            downscaled_array_shape=downscaled_array_shape,  # type: ignore[arg-type]
         )
         dcm.PixelData = cleaned_img.tobytes()
     else:
@@ -794,8 +794,8 @@ def adjust_dicom_metadata(  # noqa: C901
         input_date = datetime.datetime.strptime(input_date_str, "%Y%m%d").astimezone(
             datetime.timezone.utc,
         )
-        output_date = input_date + datetime.timedelta(days=days_total_offset)
-        return output_date.strftime("%Y%m%d")
+        output_date = input_date + datetime.timedelta(days=days_total_offset)  # type: ignore[arg-type]
+        return output_date.strftime("%Y%m%d")  # type: ignore[no-any-return]
 
     def seconds2daytime(seconds_total_offset: int) -> str:
         output_hours = seconds_total_offset // 3600
@@ -841,7 +841,7 @@ def adjust_dicom_metadata(  # noqa: C901
                         tag_value_replacements["days_total_offset"] = days_total_offset
                         ds[ds_tag_idx].value = add_date_offset(
                             input_date_str=ds[ds_tag_idx].value,
-                            days_total_offset=days_total_offset,
+                            days_total_offset=days_total_offset,  # type: ignore[arg-type]
                         )
                     elif ds[ds_tag_idx].VR == "TM":
                         tag_value_replacements[
@@ -881,7 +881,7 @@ class Rwdcm:
             in_dp = in_dp + "/"
         self.raw_data_dp = in_dp
         self.raw_dicom_paths = sorted(self.get_dicom_paths(data_dp=self.raw_data_dp))
-        self.dicom_pair_fps = []
+        self.dicom_pair_fps = []  # type: ignore[var-annotated]
         self.clean_data_dp = out_dp + "/" + "de-identified-files/"
         already_cleaned_dicom_paths = str(
             self.get_dicom_paths(data_dp=self.clean_data_dp),
@@ -1013,7 +1013,7 @@ def dicom_deidentifier(  # noqa: C901, PLR0912, PLR0915
         if user_input["date_processing"] not in date_processing_choices:
             msg = "E: Invalid date processing input"
             raise ValueError(msg)
-        real_patient_id = dcm[0x0010, 0x0020].value
+        real_patient_id = dcm[0x0010, 0x0020].value  # type: ignore[index]
         patient_deidentification_properties = session.get(real_patient_id, False)
         if not patient_deidentification_properties:
             max_pseudo_patient_id += 1
@@ -1028,7 +1028,7 @@ def dicom_deidentifier(  # noqa: C901, PLR0912, PLR0915
             days_total_offset = session[real_patient_id]["days_offset"]
             seconds_total_offset = session[real_patient_id]["seconds_offset"]
         dcm, tag_value_replacements = adjust_dicom_metadata(
-            dcm=dcm,
+            dcm=dcm,  # type: ignore[arg-type]
             action_group_fp="./tmp/session-data/requested-action-group-dcm.csv",
             patient_pseudo_id=session[real_patient_id]["patient_pseudo_id"],
             days_total_offset=days_total_offset,
@@ -1050,10 +1050,10 @@ def dicom_deidentifier(  # noqa: C901, PLR0912, PLR0915
 
 @app.post("/submit_button")
 async def handle_submit_button_click(user_options: UserOptionsClass) -> list[Any]:
-    user_options = dict(user_options)
+    user_options = dict(user_options)  # type: ignore[assignment]
     dp, _, fps = next(iter(os.walk("./tmp/session-data/raw")))
     if set(fps).issubset({".gitkeep"}):
-        return False
+        return False  # type: ignore[return-value]
     default_options = {
         "input_dcm_dp": "./tmp/session-data/raw",
         "output_dcm_dp": "./tmp/session-data/clean",
@@ -1066,8 +1066,8 @@ async def handle_submit_button_click(user_options: UserOptionsClass) -> list[Any
         "retain_descriptors": False,
         "patient_pseudo_id_prefix": "<PREFIX ID> - ",
     }
-    user_options["input_dcm_dp"] = default_options["input_dcm_dp"]
-    user_options["output_dcm_dp"] = default_options["output_dcm_dp"]
+    user_options["input_dcm_dp"] = default_options["input_dcm_dp"]  # type: ignore[index]
+    user_options["output_dcm_dp"] = default_options["output_dcm_dp"]  # type: ignore[index]
     user_fp = Path("./tmp/session-data/user-options.json")
     with user_fp.open("w") as file:
         json.dump(user_options, file)
