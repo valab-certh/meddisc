@@ -119,7 +119,7 @@
                 </br>
                 <center>
                     <div style="padding: 5px;">
-                        Metadata Attributes Display Mode
+                        Altered attributes display mode
                     </div>
                     <input type="checkbox" id="ToggleDiff0" class="toggleCheckbox" oninput="ShowDiffTable(this.checked)">
                     <label for="ToggleDiff0" class="toggleContainer" title="All: Shows all tags; Only Altered: Shows only altered tags">
@@ -127,17 +127,22 @@
                         <div>Only Altered</div> 
                     </label>
                 </center>
-                <center>
-                    <div style="padding: 5px;">
-                        Show Cleaned Pixel Data
-                    </div>
-                    <input type="checkbox" id="ToggleDiff1" class="toggleCheckbox" checked oninput="ShowCleanedImg(this.checked)">
-                    <label for="ToggleDiff1" class="toggleContainer" title="No: Shows raw pixel data; Yes: Shows cleaned pixel data">
-                        <div>No</div>
-                        <div>Yes</div> 
-                    </label>
-                </center>
                 </br>
+                <center>
+                    <div class="display-radio">
+                        <label>Image de-identification display mode</label>
+                        </br>
+                        <input type="radio" id="cleaned_display" name="selection" value="cleaned_display_option" onclick="DisplayMode(this.value)" checked>
+                        <label for="cleaned_display_option">Cleaned Image</label>
+                        </br>
+                        <input type="radio" id="bboxes_display" name="selection" value="bboxes_display_option" onclick="DisplayMode(this.value)">
+                        <label for="bboxes_display_option">Raw Image with Bounding Boxes</label>
+                        </br>
+                        <input type="radio" id="raw_display" name="selection" value="raw_display_option" onclick="DisplayMode(this.value)">
+                        <label for="raw_display_option">Raw Image</label>
+                        </br>
+                    </div>
+                </center>
                 <div class="button-container">
                     <select id="BrushSelect" class="DateProcessing">
                         <option value="background" selected="selected">background</option>
@@ -164,8 +169,8 @@
                         <center>
                             <div style="font-weight: bold; padding: 5px; align-items: center;">DICOM VIEWER</div>
                         </center>
-                        <div id="CleanedImg" style="flex: 1; border: 1px solid black; padding: 10px; background-color: rgba(50, 50, 55, 255); border-radius: 3px;">
-                            <img id="CleanedImgInner" class="DCMImg">
+                        <div id="ImgWrapper" style="flex: 1; border: 1px solid black; padding: 10px; background-color: rgba(50, 50, 55, 255); border-radius: 3px;">
+                            <img id="PixelDataDisplay" class="DCMImg">
                             <canvas id="OverlayCanvas"></canvas>
                             <canvas id="BoxCanvas"></canvas>
                         </div>

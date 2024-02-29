@@ -3,8 +3,7 @@ var SubmitAnonymizationProcess = document.getElementById('SubmitAnonymizationPro
 var MetadataTable = document.getElementById('MetadataTable');
 var DICOMOverview = document.getElementById('DICOMOverview');
 var RawImg = document.getElementById('RawImg');
-var CleanedImg = document.getElementById('CleanedImg');
-var CleanedImgInner = document.getElementById('CleanedImgInner');
+var PixelDataDisplay = document.getElementById('PixelDataDisplay');
 var DICOMSlider = document.getElementById('DICOMSlider');
 var ConversionResult = document.getElementById('ConversionResult');
 var clean_image = document.getElementById('clean-image');
@@ -32,7 +31,7 @@ var retain_descriptors_input_checkbox = document.getElementById('retain-descript
 var patient_pseudo_id_prefix_input_text = document.getElementById('patient-pseudo-id-prefix-input-text');
 var UploadStatus = document.getElementById('UploadStatus');
 var n_uploaded_files;
-var dicom_pair_fps;
+var dicom_data_fps;
 var OpenSequences = [];
 var DiffEnabled = false;
 var dcm_idx_;
@@ -79,7 +78,7 @@ let classesMap = ["background"];
 let predefinedClassesMap;
 var slider_pending_update = false;
 var pending_dcm_idx = 0;
-var dicom_pair;
+var dicom_data;
 var total_altered_dicom_tags = '-';
 var LoadingState = false;
 var masks = '';
@@ -88,22 +87,28 @@ var openModal = document.querySelector('#open-button');
 var overrideMasks = document.querySelector('#overrideMasks');
 var useBatchMasks = document.querySelector('#useBatchMasks');
 var classes_submitted_state = false;
+var DisplayModeSelection = "cleaned_display_option";
 
 function ShowDiffTable(ToggleValue)
 {
     DiffEnabled = ToggleValue;
-    MetadataTable.innerHTML = table(dicom_pair['raw_dicom_metadata'], dicom_pair['cleaned_dicom_metadata'], DiffEnabled);
+    MetadataTable.innerHTML = table(dicom_data['raw_dicom_metadata'], dicom_data['cleaned_dicom_metadata'], DiffEnabled);
 }
 
-function ShowCleanedImg(ToggleValue)
+function DisplayMode(DisplayModeSelection_)
 {
-    if (ToggleValue)
+    DisplayModeSelection = DisplayModeSelection_
+    if (DisplayModeSelection == "cleaned_display_option")
     {
-        CleanedImgInner.src = `data:image/png;base64,${dicom_pair['cleaned_dicom_img_data']}`;
+        PixelDataDisplay.src = `data:image/png;base64,${dicom_data['cleaned_dicom_img_data']}`;
     }
-    else
+    else if (DisplayModeSelection == "bboxes_display_option")
     {
-        CleanedImgInner.src = `data:image/png;base64,${dicom_pair['raw_dicom_img_data']}`;
+        PixelDataDisplay.src = `data:image/png;base64,${dicom_data['bboxes_dicom_img_data']}`;
+    }
+    else if (DisplayModeSelection == "raw_display_option")
+    {
+        PixelDataDisplay.src = `data:image/png;base64,${dicom_data['raw_dicom_img_data']}`;
     }
 }
 
@@ -290,7 +295,7 @@ async function UpdateDICOMInformation(dcm_idx)
         slider_pending_update = false;
         LoadingState = true;
         dcm_idx_ = dcm_idx
-        const dicom_pair_fp = await dicom_pair_fps[dcm_idx_]
+        const dicom_data_fp = await dicom_data_fps[dcm_idx_]
         const conversion_info_response = await fetch
         (
             '/conversion_info/',
@@ -300,14 +305,14 @@ async function UpdateDICOMInformation(dcm_idx)
                 {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(dicom_pair_fp)
+                body: JSON.stringify(dicom_data_fp)
             }
         );
-        dicom_pair = await conversion_info_response.json();
-        const dicom_metadata_table = table(dicom_pair['raw_dicom_metadata'], dicom_pair['cleaned_dicom_metadata'], DiffEnabled);
+        dicom_data = await conversion_info_response.json();
+        const dicom_metadata_table = table(dicom_data['raw_dicom_metadata'], dicom_data['cleaned_dicom_metadata'], DiffEnabled);
         try
         {
-            modality = dicom_pair['raw_dicom_metadata']['00080060'].value;
+            modality = dicom_data['raw_dicom_metadata']['00080060'].value;
         }
         catch (error)
         {
@@ -323,18 +328,18 @@ async function UpdateDICOMInformation(dcm_idx)
         `
             Index: ${dcm_idx_}
             </br>
-            Raw File Path: ${dicom_pair_fp[0]}
+            Raw File Path: ${dicom_data_fp[0]}
             </br>
-            Clean File Path: ${dicom_pair_fp[1]}
+            Clean File Path: ${dicom_data_fp[1]}
             </br>
-            Patient's Original ID: ${dicom_pair['raw_dicom_metadata']['00100020'].value}
+            Patient's Original ID: ${dicom_data['raw_dicom_metadata']['00100020'].value}
             </br>
             Modality: ${modality}
             </br>
             Total number of altered tags (excluding the pixel data): ${total_altered_dicom_tags}
         `;
         MetadataTable.innerHTML = dicom_metadata_table;
-        CleanedImgInner.src = `data:image/png;base64,${dicom_pair['cleaned_dicom_img_data']}`;
+        DisplayMode(DisplayModeSelection);
         LoadingState = false;
     }
     else
@@ -492,7 +497,7 @@ async function submit_dicom_processing_request()
         'retain_descriptors': retain_descriptors_input_checkbox.checked,
         'patient_pseudo_id_prefix': patient_pseudo_id_prefix_input_text.value
     };
-    const dicom_pair_fps_response = await fetch
+    const dicom_data_fps_response = await fetch
     (
         '/submit_button',
         {
@@ -504,7 +509,7 @@ async function submit_dicom_processing_request()
             body: JSON.stringify(data)
         }
     );
-    dicom_pair_fps = await dicom_pair_fps_response.json();
+    dicom_data_fps = await dicom_data_fps_response.json();
     DICOMSlider.max = n_uploaded_files-1;
     DICOMSlider.value = 0;
     await UpdateDICOMInformation(0);
@@ -551,7 +556,7 @@ async function get_mask_from_file() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(dicom_pair_fps[dcm_idx_][1])
+            body: JSON.stringify(dicom_data_fps[dcm_idx_][1])
         });
     if (reset_response.ok) {
         const response_data = await reset_response.json();
@@ -563,7 +568,7 @@ async function get_mask_from_file() {
 async function modify_dicom() {
     const requestBody = {
         pixelData: canvastobase64(),
-        filepath: dicom_pair_fps[dcm_idx_][1],
+        filepath: dicom_data_fps[dcm_idx_][1],
         classes: classesMap
     }; 
     const modify_response = await fetch(

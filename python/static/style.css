@@ -172,6 +172,11 @@ label.normal-label
     transition: color 0.3s;
 }
 
+.display-radio
+{
+    width: 300px;
+    text-align: left;
+}
 
 .metadata-table
 {
@@ -293,7 +298,7 @@ label.normal-label
     word-break: break-all;
 }
 
-#CleanedImg {
+#ImgWrapper {
     position: relative;
 }
 
