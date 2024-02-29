@@ -14,7 +14,7 @@ import time
 from functools import lru_cache
 from io import BytesIO
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import cv2
 import keras_ocr
@@ -34,6 +34,9 @@ from tiny_vit_sam import TinyViT
 from torch import nn
 from torch.nn import functional
 from uvicorn import run
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
 
 
 class UserOptionsClass(BaseModel):
@@ -64,12 +67,12 @@ class ResponseModel(BaseModel):
 class DicomData(BaseModel):
     pixel_data: str
     filepath: str
-    classes: list
+    classes: list[str]
 
 
 class BoxData(BaseModel):
-    normalized_start: dict
-    normalized_end: dict
+    normalized_start: dict[str, float]
+    normalized_end: dict[str, float]
     seg_class: int
     inp_idx: int
 
@@ -80,9 +83,9 @@ class BoxDataResponse(BaseModel):
 
 
 class ConversionInfoResponse(BaseModel):
-    raw_dicom_metadata: dict
+    raw_dicom_metadata: dict[str, dict[str, str]]
     raw_dicom_img_data: str
-    cleaned_dicom_metadata: dict
+    cleaned_dicom_metadata: dict[str, dict[str, str]]
     cleaned_dicom_img_data: str
 
 
@@ -128,7 +131,7 @@ def clean_all() -> None:
     clean_imgs()
 
 
-def dcm2dictmetadata(ds: pydicom.dataset.Dataset) -> dict:
+def dcm2dictmetadata(ds: pydicom.dataset.Dataset) -> dict[str, dict[str, str]]:
     ds_metadata_dict = {}
     for ds_attr in ds:
         ds_tag_idx = re.sub("[(,) ]", "", str(ds_attr.tag))
@@ -260,12 +263,12 @@ def load_model() -> MedsamLite:
 
 
 def image_preprocessing(
-    img: np.ndarray,
-    downscale_dimensionality: tuple[int],
+    img: NDArray[Any],
+    downscale_dimensionality: int,
     *,
     multichannel: bool = True,
     retain_aspect_ratio: bool = False,
-) -> np.ndarray:
+) -> NDArray[Any]:
     img = (255.0 * ((img - np.min(img)) / (np.max(img) - np.min(img)))).astype(np.uint8)
     if downscale_dimensionality:
         if retain_aspect_ratio:
@@ -310,23 +313,23 @@ async def conversion_info(
     cleaned_buf = BytesIO()
     Image.fromarray(cleaned_img).save(cleaned_buf, format="PNG")
     cleaned_img_base64 = base64.b64encode(cleaned_buf.getvalue()).decode("utf-8")
-    return {
-        "raw_dicom_metadata": dcm2dictmetadata(ds=raw_dcm),
-        "raw_dicom_img_data": raw_img_base64,
-        "cleaned_dicom_metadata": dcm2dictmetadata(ds=cleaned_dcm),
-        "cleaned_dicom_img_data": cleaned_img_base64,
-    }
+    return ConversionInfoResponse(
+        raw_dicom_metadata=dcm2dictmetadata(ds=raw_dcm),
+        raw_dicom_img_data=raw_img_base64,
+        cleaned_dicom_metadata=dcm2dictmetadata(ds=cleaned_dcm),
+        cleaned_dicom_img_data=cleaned_img_base64,
+    )
 
 
 @app.post("/get_mask_from_file/")
 async def get_mask_from_file(current_dcm_fp: str = Body(...)) -> MaskFromFileResponse:
     current_dcm = pydicom.dcmread(current_dcm_fp)
-    return {
-        "PixelData": base64.b64encode(current_dcm.SegmentSequence[0].PixelData).decode(
+    return MaskFromFileResponse(
+        PixelData=base64.b64encode(current_dcm.SegmentSequence[0].PixelData).decode(
             "utf-8",
         ),
-        "dimensions": [current_dcm.Columns, current_dcm.Rows],
-    }
+        dimensions=[current_dcm.Columns, current_dcm.Rows],
+    )
 
 
 @app.post("/modify_dicom/")
@@ -337,7 +340,7 @@ async def modify_dicom(data: DicomData) -> ModifyResponse:
     modified_dcm.SegmentSequence[0].PixelData = pixel_data
     modified_dcm.SegmentSequence[0].SegmentDescription = ";".join(data.classes)
     modified_dcm.save_as(filepath)
-    return {"success": True}
+    return ModifyResponse(success=True)
 
 
 @app.post("/upload_files/")
@@ -358,10 +361,10 @@ async def get_files(files: list[UploadFile]) -> UploadFilesResponse:
             inv_fp = Path(fp)
             inv_fp.unlink()
     total_uploaded_file_megabytes = "%.1f" % (total_uploaded_file_bytes / (10**3) ** 2)
-    return {
-        "n_uploaded_files": len(proper_dicom_paths),
-        "total_size": total_uploaded_file_megabytes,
-    }
+    return UploadFilesResponse(
+        n_uploaded_files=len(proper_dicom_paths),
+        total_size=total_uploaded_file_megabytes,
+    )
 
 
 def attach_segm_data(
@@ -436,7 +439,7 @@ async def correct_seg_homogeneity() -> None:
 
 
 @app.post("/get_batch_classes")
-async def get_batch_classes() -> dict:
+async def get_batch_classes() -> dict[str, list[str]]:
     user_fp = Path("./tmp/session-data/user-options.json")
     with user_fp.open() as file:
         user_input = json.load(file)
@@ -482,10 +485,10 @@ async def custom_config(config_file: UploadFile) -> None:
 def medsam_inference(
     medsam_model: MedsamLite,
     img_embed: torch.Tensor,
-    box_256: np.ndarray,
+    box_256: NDArray[Any],
     new_size: tuple[int, int],
     original_size: tuple[int, int],
-) -> np.ndarray:
+) -> NDArray[Any]:
     box_torch = torch.as_tensor(box_256, dtype=torch.float, device=img_embed.device)
     two_d = 2
     if len(box_torch.shape) == two_d:
@@ -542,10 +545,10 @@ async def medsam_estimation(boxdata: BoxData) -> BoxDataResponse:
         (hs[inp_idx], ws[inp_idx]),
     )
     medsam_seg = (seg_class * medsam_seg).astype(np.uint8)
-    return {
-        "mask": base64.b64encode(medsam_seg).decode("utf-8"),
-        "dimensions": [int(ws[inp_idx]), int(hs[inp_idx])],
-    }
+    return BoxDataResponse(
+        mask=base64.b64encode(medsam_seg).decode("utf-8"),
+        dimensions=[int(ws[inp_idx]), int(hs[inp_idx])],
+    )
 
 
 def prepare_medsam() -> None:
@@ -581,7 +584,7 @@ def prepare_medsam() -> None:
 
 
 def deidentification_attributes(
-    user_input: dict,
+    user_input: dict[str, Any],
     dcm: pydicom.dataset.FileDataset,
 ) -> pydicom.dataset.FileDataset:
     user_input_lookup_table = {
@@ -622,11 +625,11 @@ def deidentification_attributes(
 
 
 def bbox_area_distorter(
-    img: np.ndarray,
-    bboxes: np.ndarray,
+    img: NDArray[Any],
+    bboxes: NDArray[Any],
     initial_array_shape: tuple[int],
     downscaled_array_shape: tuple[int],
-) -> np.ndarray:
+) -> NDArray[Any]:
     reducted_region_color = np.mean(img).astype(np.uint16)
     multiplicative_mask = np.ones(downscaled_array_shape, dtype=np.uint8)
     additive_mask = np.zeros(initial_array_shape, dtype=np.uint8)
@@ -688,7 +691,7 @@ def image_deintentifier(
 
 
 def get_action_group(  # noqa: C901
-    user_input: dict,
+    user_input: dict[str, Any],
     action_groups_df: pd.core.frame.DataFrame,
     custom_config_df: pd.core.frame.DataFrame | None,
 ) -> pd.core.frame.DataFrame:
@@ -786,7 +789,7 @@ def adjust_dicom_metadata(  # noqa: C901
     patient_pseudo_id: str,  # noqa: ARG001
     days_total_offset: int,
     seconds_total_offset: int,
-) -> tuple[pydicom.dataset.FileDataset, dict]:
+) -> tuple[pydicom.dataset.FileDataset, dict[str, int]]:
     def add_date_offset(input_date_str: str, days_total_offset: str) -> str:
         input_date = datetime.datetime.strptime(input_date_str, "%Y%m%d").astimezone(
             datetime.timezone.utc,
@@ -880,7 +883,9 @@ class Rwdcm:
         self.raw_dicom_paths = sorted(self.get_dicom_paths(data_dp=self.raw_data_dp))
         self.dicom_pair_fps = []
         self.clean_data_dp = out_dp + "/" + "de-identified-files/"
-        already_cleaned_dicom_paths = self.get_dicom_paths(data_dp=self.clean_data_dp)
+        already_cleaned_dicom_paths = str(
+            self.get_dicom_paths(data_dp=self.clean_data_dp),
+        )
         self.hashes_of_already_converted_files = [
             already_cleaned_dicom_path.split("/")[-1].split(".")[0]
             for already_cleaned_dicom_path in already_cleaned_dicom_paths
@@ -900,7 +905,7 @@ class Rwdcm:
     def get_dicom_paths(
         self,  # noqa: ANN101
         data_dp: str,
-    ) -> list:
+    ) -> list[Path]:
         dicom_paths = list(Path(data_dp).rglob("*"))
         proper_dicom_paths = []
         for dicom_path in dicom_paths:
@@ -942,7 +947,7 @@ class Rwdcm:
 
     def export_session(
         self,  # noqa: ANN101
-        session: dict,
+        session: dict[str, dict[str, str]],
     ) -> None:
         session_fp = Path(self.clean_data_dp + "/session.json")
         with session_fp.open("w") as file:
@@ -951,7 +956,7 @@ class Rwdcm:
 
 def dicom_deidentifier(  # noqa: C901, PLR0912, PLR0915
     session_filepath: None | str = None,
-) -> tuple[dict, list[tuple[str]]]:
+) -> tuple[dict[str, dict[str, str]], list[tuple[str]]]:
     gpu = True
     if not gpu:
         tf.config.set_visible_devices([], "GPU")
@@ -1044,7 +1049,7 @@ def dicom_deidentifier(  # noqa: C901, PLR0912, PLR0915
 
 
 @app.post("/submit_button")
-async def handle_submit_button_click(user_options: UserOptionsClass) -> list:
+async def handle_submit_button_click(user_options: UserOptionsClass) -> list[Any]:
     user_options = dict(user_options)
     dp, _, fps = next(iter(os.walk("./tmp/session-data/raw")))
     if set(fps).issubset({".gitkeep"}):
@@ -1076,7 +1081,7 @@ async def handle_submit_button_click(user_options: UserOptionsClass) -> list:
     return dicom_pair_fps
 
 
-def ndarray_size(arr: np.ndarray) -> int:
+def ndarray_size(arr: NDArray[Any]) -> int:
     return arr.itemsize * arr.size
 
 
