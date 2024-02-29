@@ -848,9 +848,10 @@ class rwdcm:
         if not os.path.exists(self.clean_dicom_dp):
             os.makedirs(self.clean_dicom_dp)
         clean_dicom_fp = self.clean_dicom_dp + "/" + self.input_dicom_hash + ".dcm"
-        bbox_img_fp = self.clean_data_dp + "/" + self.input_dicom_hash + "_bbox" + ".png"
         dcm.save_as(clean_dicom_fp)
-        Image.fromarray(bbox_img).save(bbox_img_fp)
+        if bbox_img != None:
+            bbox_img_fp = self.clean_data_dp + "/" + self.input_dicom_hash + "_bbox" + ".png"
+            Image.fromarray(bbox_img).save(bbox_img_fp)
         self.dicom_pair_fps.append((self.raw_dicom_path, clean_dicom_fp))
 
     def export_session(self, session: dict) -> None:
@@ -939,8 +940,11 @@ def dicom_deidentifier(
             "seconds_total_offset"
         ]
         dcm = deidentification_attributes(user_input=user_input, dcm=dcm)
-        dcm, bbox_img = image_deintentifier(dcm=dcm)
-        bbox_img = image_preprocessing(bbox_img, downscale_dimensionality=max(bbox_img.shape), multichannel=True, retain_aspect_ratio=True)
+        if user_input["clean_image"]:
+            dcm, bbox_img = image_deintentifier(dcm=dcm)
+            bbox_img = image_preprocessing(bbox_img, downscale_dimensionality=max(bbox_img.shape), multichannel=True, retain_aspect_ratio=True)
+        else:
+            bbox_img = None
         rw_obj.export_processed_files(dcm=dcm, bbox_img=bbox_img)
         rw_obj.export_session(session=session)
     return session, rw_obj.dicom_pair_fps
