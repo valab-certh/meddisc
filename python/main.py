@@ -161,7 +161,7 @@ async def get_root() -> FileResponse:
 
 class MedsamLite(nn.Module):
     def __init__(
-        self,
+        self,  # noqa: ANN101
         image_encoder: TinyViT,
         mask_decoder: MaskDecoder,
         prompt_encoder: PromptEncoder,
@@ -171,7 +171,11 @@ class MedsamLite(nn.Module):
         self.mask_decoder = mask_decoder
         self.prompt_encoder = prompt_encoder
 
-    def forward(self, image: torch.Tensor, box_np: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,  # noqa: ANN101
+        image: torch.Tensor,
+        box_np: torch.Tensor,
+    ) -> torch.Tensor:
         image_embedding = self.image_encoder(image)
         with torch.no_grad():
             box_torch = torch.as_tensor(box_np, dtype=torch.float32, device="cpu")
@@ -194,7 +198,7 @@ class MedsamLite(nn.Module):
 
     @torch.no_grad()
     def postprocess_masks(
-        self,
+        self,  # noqa: ANN101
         masks: torch.Tensor,
         new_size: tuple[int, int],
         original_size: tuple[int, int],
@@ -412,7 +416,7 @@ async def correct_seg_homogeneity() -> None:
                 found_classes = dcm.SegmentSequence[0].SegmentDescription.split(";")
                 if len(found_classes) != (len(np.unique(mask))):
                     return False
-            except:
+            except:  # noqa: E722
                 return False
         if (
             len(set(found_classes)) > 1
@@ -683,7 +687,7 @@ def image_deintentifier(
     return dcm
 
 
-def get_action_group(
+def get_action_group(  # noqa: C901
     user_input: dict,
     action_groups_df: pd.core.frame.DataFrame,
     custom_config_df: pd.core.frame.DataFrame | None,
@@ -776,10 +780,10 @@ def get_action_group(
     return requested_action_group_df
 
 
-def adjust_dicom_metadata(
+def adjust_dicom_metadata(  # noqa: C901
     dcm: pydicom.dataset.FileDataset,
     action_group_fp: str,
-    patient_pseudo_id: str,
+    patient_pseudo_id: str,  # noqa: ARG001
     days_total_offset: int,
     seconds_total_offset: int,
 ) -> tuple[pydicom.dataset.FileDataset, dict]:
@@ -800,7 +804,7 @@ def adjust_dicom_metadata(
             output_seconds,
         )
 
-    def recursive_sq_cleaner(
+    def recursive_sq_cleaner(  # noqa: C901
         ds: pydicom.dataset.FileDataset,
         action: str,
         action_attr_tag_idx: str,
@@ -862,7 +866,11 @@ def adjust_dicom_metadata(
 
 
 class Rwdcm:
-    def __init__(self, in_dp: str, out_dp: str) -> None:
+    def __init__(
+        self,  # noqa: ANN101
+        in_dp: str,
+        out_dp: str,
+    ) -> None:
         self.SAFETY_SWITCH = True
         if not self.SAFETY_SWITCH:
             pass
@@ -880,25 +888,32 @@ class Rwdcm:
         self.n_dicom_files = len(self.raw_dicom_paths)
         self.DICOM_IDX = -1
 
-    def __next__(self) -> bool:
+    def __next__(
+        self,  # noqa: ANN101
+    ) -> bool:
         self.DICOM_IDX += 1
         if self.n_dicom_files - 1 >= self.DICOM_IDX:
             self.raw_dicom_path = self.raw_dicom_paths[self.DICOM_IDX]
             return True
         return False
 
-    def get_dicom_paths(self, data_dp: str) -> list:
+    def get_dicom_paths(
+        self,  # noqa: ANN101
+        data_dp: str,
+    ) -> list:
         dicom_paths = list(Path(data_dp).rglob("*"))
         proper_dicom_paths = []
         for dicom_path in dicom_paths:
             try:
                 pydicom.dcmread(dicom_path)
                 proper_dicom_paths.append(dicom_path)
-            except InvalidDicomError:
+            except InvalidDicomError:  # noqa: PERF203
                 continue
         return proper_dicom_paths
 
-    def parse_file(self) -> pydicom.dataset.FileDataset | bool:
+    def parse_file(
+        self,  # noqa: ANN101
+    ) -> pydicom.dataset.FileDataset | bool:
         self.input_dicom_hash = hashlib.sha256(
             str(self.raw_dicom_path).encode("UTF-8"),
         ).hexdigest()
@@ -906,7 +921,10 @@ class Rwdcm:
             return False
         return pydicom.dcmread(self.raw_dicom_path)
 
-    def export_processed_file(self, dcm: pydicom.dataset.FileDataset) -> None:
+    def export_processed_file(
+        self,  # noqa: ANN101
+        dcm: pydicom.dataset.FileDataset,
+    ) -> None:
         self.clean_dicom_dp = (
             self.clean_data_dp
             + str(dcm[0x0010, 0x0020].value)
@@ -922,13 +940,16 @@ class Rwdcm:
         dcm.save_as(clean_dicom_fp)
         self.dicom_pair_fps.append((self.raw_dicom_path, clean_dicom_fp))
 
-    def export_session(self, session: dict) -> None:
+    def export_session(
+        self,  # noqa: ANN101
+        session: dict,
+    ) -> None:
         session_fp = Path(self.clean_data_dp + "/session.json")
         with session_fp.open("w") as file:
             json.dump(session, file)
 
 
-def dicom_deidentifier(
+def dicom_deidentifier(  # noqa: C901, PLR0912, PLR0915
     session_filepath: None | str = None,
 ) -> tuple[dict, list[tuple[str]]]:
     gpu = True
@@ -1068,4 +1089,4 @@ if __name__ == "__main__":
         ]
         for directory in tmp_directories:
             directory.mkdir(parents=True, exist_ok=True)
-        run(app, host="0.0.0.0", port=8000)
+        run(app, host="0.0.0.0", port=8000)  # noqa: S104
