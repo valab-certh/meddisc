@@ -939,8 +939,7 @@ def dicom_deidentifier(
             "seconds_total_offset"
         ]
         dcm = deidentification_attributes(user_input=user_input, dcm=dcm)
-        if user_input["clean_image"]:
-            dcm, bbox_img = image_deintentifier(dcm=dcm)
+        dcm, bbox_img = image_deintentifier(dcm=dcm)
         bbox_img = image_preprocessing(bbox_img, downscale_dimensionality=max(bbox_img.shape), multichannel=True, retain_aspect_ratio=True)
         rw_obj.export_processed_files(dcm=dcm, bbox_img=bbox_img)
         rw_obj.export_session(session=session)
