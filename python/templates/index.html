@@ -134,7 +134,6 @@
                            value="0"
                            step="1"
                            class="slider"
-                           id="DICOMRange"
                            oninput="UpdateDICOMInformation(this.value)">
                 </div>
                 <div id="DICOMOverview">
@@ -195,10 +194,7 @@
                         <option value="background" selected="selected">background</option>
                     </select>
                     <div class="colorIndicator"></div>
-                    <input type="text"
-                           id="ClassText"
-                           class="PseudoPrefix"
-                           placeholder="Enter class name">
+                    <input type="text" id="ClassText" class="PseudoPrefix">
                     <button class="SubmitAnon" id="Add" onclick="add_class()">+</button>
                     <button class="SubmitAnon" id="Remove" onclick="remove_class()">-</button>
                     <button class="SubmitAnon" id="SubmitClasses" onclick="submit_classes()">Submit Classes</button>
@@ -227,7 +223,9 @@
                             <div id="img-label">DICOM VIEWER</div>
                         </center>
                         <div id="ImgWrapper">
-                            <img id="PixelDataDisplay" class="DCMImg">
+                            <!-- djlint:off H006-->
+                            <img id="PixelDataDisplay" class="DCMImg" alt="Image">
+                            <!-- djlint:on -->
                             <canvas id="OverlayCanvas"></canvas>
                             <canvas id="BoxCanvas"></canvas>
                         </div>
