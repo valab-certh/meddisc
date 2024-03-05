@@ -270,12 +270,16 @@ async def conversion_info(dicom_pair_fp: list[str] = Body(...)):
     cleaned_buf = BytesIO()
     Image.fromarray(cleaned_img).save(cleaned_buf, format="PNG")
     cleaned_img_base64 = base64.b64encode(cleaned_buf.getvalue()).decode("utf-8")
+    if cache_bbox_img(dcm_hash=dcm_hash) is None:
+        bboxes_dicom_img = raw_img_base64
+    else:
+        bboxes_dicom_img = cache_bbox_img(dcm_hash=dcm_hash)
     return {
         "raw_dicom_metadata": DCM2DictMetadata(ds=raw_dcm),
         "raw_dicom_img_data": raw_img_base64,
         "cleaned_dicom_metadata": DCM2DictMetadata(ds=cleaned_dcm),
         "cleaned_dicom_img_data": cleaned_img_base64,
-        "bboxes_dicom_img_data": cache_bbox_img(dcm_hash=dcm_hash)
+        "bboxes_dicom_img_data": bboxes_dicom_img
     }
 
 
@@ -960,7 +964,10 @@ def dicom_deidentifier(
 
 @lru_cache(maxsize=2**32)
 def cache_bbox_img(dcm_hash):
-    bbox_pil_img = Image.open(os.path.join('./tmp/session-data/clean', dcm_hash + '_bbox.png'))
+    fp = os.path.join('./tmp/session-data/clean', dcm_hash + '_bbox.png')
+    if not os.path.exists(fp):
+        return None
+    bbox_pil_img = Image.open(fp)
     bbox_img_buf = BytesIO()
     bbox_pil_img.save(bbox_img_buf, format="PNG")
     bbox_img_base64 = base64.b64encode(bbox_img_buf.getvalue()).decode("utf-8")
@@ -1003,7 +1010,7 @@ def ndarray_size(arr: np.ndarray) -> int:
 
 
 if __name__ == "__main__":
-    if os.getenv("STAGING"):
+    # if os.getenv("STAGING"):
         os.makedirs("tmp/session-data/raw", exist_ok=True)
         os.makedirs("tmp/session-data/clean", exist_ok=True)
         os.makedirs("tmp/session-data/embed", exist_ok=True)
