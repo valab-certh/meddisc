@@ -12,6 +12,7 @@ import shutil
 import sys
 import time
 from functools import lru_cache
+from glob import glob
 from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -120,9 +121,9 @@ def clean_imgs() -> None:
     for fp in fps:
         if fp != ".gitkeep":
             os.remove(dp + "/" + fp)
-    fps = glob('./tmp/session-data/clean/*')
+    fps = glob("./tmp/session-data/clean/*")
     for fp in fps:
-        if fp.split('.')[-1] == 'png':
+        if fp.split(".")[-1] == "png":
             os.remove(fp)
     if os.path.exists("./tmp/session-data/clean/de-identified-files"):
         shutil.rmtree("./tmp/session-data/clean/de-identified-files")
@@ -290,9 +291,20 @@ def image_preprocessing(
     return img
 
 
+@lru_cache(maxsize=2**32)
+def cache_bbox_img(dcm_hash):
+    fp = os.path.join("./tmp/session-data/clean", dcm_hash + "_bbox.png")
+    if not os.path.exists(fp):
+        return None
+    bbox_pil_img = Image.open(fp)
+    bbox_img_buf = BytesIO()
+    bbox_pil_img.save(bbox_img_buf, format="PNG")
+    return base64.b64encode(bbox_img_buf.getvalue()).decode("utf-8")
+
+
 @app.post("/conversion_info")
 async def conversion_info(dicom_pair_fp: list[str] = Body(...)):
-    dcm_hash = dicom_pair_fp[1].split('/')[-1].split('.')[0]
+    dcm_hash = dicom_pair_fp[1].split("/")[-1].split(".")[0]
     downscale_dimensionality = 1024
     raw_dcm = pydicom.dcmread(dicom_pair_fp[0])
     raw_img = image_preprocessing(
@@ -319,11 +331,11 @@ async def conversion_info(dicom_pair_fp: list[str] = Body(...)):
     else:
         bboxes_dicom_img = cache_bbox_img(dcm_hash=dcm_hash)
     return {
-        "raw_dicom_metadata": DCM2DictMetadata(ds=raw_dcm),
+        "raw_dicom_metadata": dcm2dictmetadata(ds=raw_dcm),
         "raw_dicom_img_data": raw_img_base64,
-        "cleaned_dicom_metadata": DCM2DictMetadata(ds=cleaned_dcm),
+        "cleaned_dicom_metadata": dcm2dictmetadata(ds=cleaned_dcm),
         "cleaned_dicom_img_data": cleaned_img_base64,
-        "bboxes_dicom_img_data": bboxes_dicom_img
+        "bboxes_dicom_img_data": bboxes_dicom_img,
     }
 
 
@@ -630,7 +642,7 @@ def deidentification_attributes(
     return dcm
 
 
-def bbox_area_distorter(
+def bbox_area_remover(
     img: NDArray[Any],
     bboxes: NDArray[Any],
     initial_array_shape: tuple[int],
@@ -945,6 +957,7 @@ class Rwdcm:
     def export_processed_file(
         self,  # noqa: ANN101
         dcm: pydicom.dataset.FileDataset,
+        bbox_img,
     ) -> None:
         self.clean_dicom_dp = (
             self.clean_data_dp
@@ -1027,7 +1040,8 @@ def dicom_deidentifier(  # noqa: C901, PLR0912, PLR0915
     while next(rw_obj):
         dcm = rw_obj.parse_file()
         if dcm is False:
-            raise Exception("E: DICOM file is corrupted or missing")
+            msg = "E: DICOM file is corrupted or missing"
+            raise Exception(msg)
         date_processing_choices = {"keep", "offset", "remove"}
         if user_input["date_processing"] not in date_processing_choices:
             msg = "E: Invalid date processing input"
@@ -1062,24 +1076,17 @@ def dicom_deidentifier(  # noqa: C901, PLR0912, PLR0915
         dcm = deidentification_attributes(user_input=user_input, dcm=dcm)
         if user_input["clean_image"]:
             dcm, bbox_img = image_deintentifier(dcm=dcm)
-            bbox_img = image_preprocessing(bbox_img, downscale_dimensionality=max(bbox_img.shape), multichannel=True, retain_aspect_ratio=True)
+            bbox_img = image_preprocessing(
+                bbox_img,
+                downscale_dimensionality=max(bbox_img.shape),
+                multichannel=True,
+                retain_aspect_ratio=True,
+            )
         else:
             bbox_img = None
-        rw_obj.export_processed_files(dcm=dcm, bbox_img=bbox_img)
+        rw_obj.export_processed_file(dcm=dcm, bbox_img=bbox_img)
         rw_obj.export_session(session=session)
     return session, rw_obj.dicom_pair_fps
-
-
-@lru_cache(maxsize=2**32)
-def cache_bbox_img(dcm_hash):
-    fp = os.path.join('./tmp/session-data/clean', dcm_hash + '_bbox.png')
-    if not os.path.exists(fp):
-        return None
-    bbox_pil_img = Image.open(fp)
-    bbox_img_buf = BytesIO()
-    bbox_pil_img.save(bbox_img_buf, format="PNG")
-    bbox_img_base64 = base64.b64encode(bbox_img_buf.getvalue()).decode("utf-8")
-    return bbox_img_base64
 
 
 @app.post("/submit_button")

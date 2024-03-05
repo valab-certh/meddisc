@@ -567,7 +567,7 @@ async function get_mask_from_file() {
 
 async function modify_dicom() {
     const requestBody = {
-        pixelData: canvastobase64(),
+        pixel_data: canvastobase64(),
         filepath: dicom_data_fps[dcm_idx_][1],
         classes: classesMap
     }; 
