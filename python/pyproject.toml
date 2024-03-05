@@ -1,6 +1,6 @@
 [project]
 dependencies = [
-  "fastapi==0.109.0",
+  "fastapi==0.110.0",
   "keras-ocr==0.9.3",
   "pydicom==2.4.4",
   "pylibjpeg-libjpeg==2.0.2",
