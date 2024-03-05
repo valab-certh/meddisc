@@ -5,6 +5,7 @@ import base64
 import datetime
 import hashlib
 import json
+import logging
 import os
 import re
 import secrets
@@ -12,7 +13,6 @@ import shutil
 import sys
 import time
 from functools import lru_cache
-from glob import glob
 from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -22,7 +22,6 @@ import keras_ocr
 import numpy as np
 import pandas as pd
 import pydicom
-import tensorflow as tf
 import torch
 from fastapi import Body, FastAPI, UploadFile
 from fastapi.responses import FileResponse
@@ -121,9 +120,9 @@ def clean_imgs() -> None:
     for fp in fps:
         if fp != ".gitkeep":
             Path(dp + "/" + fp).unlink()
-    fps = glob("./tmp/session-data/clean/*")
+    fps = list(Path("./tmp/session-data/clean").glob("*"))
     for fp in fps:
-        if fp.split(".")[-1] == "png":
+        if str(fp).split(".")[-1] == "png":
             Path(fp).unlink()
     if Path("./tmp/session-data/clean/de-identified-files").exists():
         shutil.rmtree("./tmp/session-data/clean/de-identified-files")
@@ -303,7 +302,7 @@ def cache_bbox_img(dcm_hash: str) -> str:
 
 
 @app.post("/conversion_info")
-async def conversion_info(dicom_pair_fp: list[str] = Body(...)) -> dict:
+async def conversion_info(dicom_pair_fp: list[str]) -> dict:
     dcm_hash = dicom_pair_fp[1].split("/")[-1].split(".")[0]
     downscale_dimensionality = 1024
     raw_dcm = pydicom.dcmread(dicom_pair_fp[0])
@@ -437,7 +436,8 @@ async def correct_seg_homogeneity() -> None:
                 found_classes = dcm.SegmentSequence[0].SegmentDescription.split(";")
                 if len(found_classes) != (len(np.unique(mask))):
                     return False
-            except:  # noqa: E722
+            except Exception:
+                logging.exception("Exception occurred")
                 return False
         if (
             len(set(found_classes)) > 1
@@ -658,7 +658,7 @@ def bbox_area_remover(
         x2, y2 = bbox[2, 0 : (1 + 1)]
         x3, y3 = bbox[3, 0 : (1 + 1)]
         rectangle = np.array([[[x0, y0], [x1, y1], [x2, y2], [x3, y3]]], dtype=np.int32)
-        cv2.polylines(bbox_mask, rectangle, True, 1, 2)
+        cv2.polylines(bbox_mask, rectangle, isClosed=True, color=1, thickness=2)
         cv2.fillPoly(multiplicative_mask, rectangle, 0)
     multiplicative_mask = cv2.resize(
         multiplicative_mask,
@@ -717,41 +717,43 @@ def image_deintentifier(
     return dcm, bbox_img
 
 
-def get_action_group(  # noqa: C901
+def merge_action(
+    primary_srs: pd.core.series.Series,
+    action2beassigned_srs: pd.core.series.Series,
+) -> pd.core.series.Series:
+    return primary_srs.where(
+        cond=action2beassigned_srs.isna(),
+        other=action2beassigned_srs,
+        axis=0,
+        inplace=False,
+    )
+
+
+def merge_with_custom_user_config_file(
+    requested_action_group_df: pd.core.frame.DataFrame,
+    custom_config_df: pd.core.frame.DataFrame,
+) -> pd.core.frame.DataFrame:
+    valid_actions = {"X", "K", "C"}
+    if not set(custom_config_df["Action"]).issubset(valid_actions):
+        sys.exit()
+    requested_action_group_df = requested_action_group_df.merge(
+        custom_config_df[["Action"]],
+        left_index=True,
+        right_index=True,
+        how="left",
+    )
+    requested_action_group_df.loc[
+        requested_action_group_df["Action"].isin(["X", "K", "C"]),
+        "Requested Action Group",
+    ] = requested_action_group_df["Action"]
+    return requested_action_group_df.drop(columns=["Action"])
+
+
+def get_action_group(
     user_input: dict[str, Any],
     action_groups_df: pd.core.frame.DataFrame,
     custom_config_df: pd.core.frame.DataFrame | None,
 ) -> pd.core.frame.DataFrame:
-    def merge_action(
-        primary_srs: pd.core.series.Series,
-        action2beassigned_srs: pd.core.series.Series,
-    ) -> pd.core.series.Series:
-        return primary_srs.where(
-            cond=action2beassigned_srs.isna(),
-            other=action2beassigned_srs,
-            axis=0,
-            inplace=False,
-        )
-
-    def merge_with_custom_user_config_file(
-        requested_action_group_df: pd.core.frame.DataFrame,
-        custom_config_df: pd.core.frame.DataFrame,
-    ) -> pd.core.frame.DataFrame:
-        valid_actions = {"X", "K", "C"}
-        if not set(custom_config_df["Action"]).issubset(valid_actions):
-            sys.exit()
-        requested_action_group_df = requested_action_group_df.merge(
-            custom_config_df[["Action"]],
-            left_index=True,
-            right_index=True,
-            how="left",
-        )
-        requested_action_group_df.loc[
-            requested_action_group_df["Action"].isin(["X", "K", "C"]),
-            "Requested Action Group",
-        ] = requested_action_group_df["Action"]
-        return requested_action_group_df.drop(columns=["Action"])
-
     requested_action_group_df = pd.DataFrame(
         data=action_groups_df["Default"].to_list(),
         columns=["Requested Action Group"],
@@ -937,11 +939,9 @@ class Rwdcm:
         dicom_paths = list(Path(data_dp).rglob("*"))
         proper_dicom_paths = []
         for dicom_path in dicom_paths:
-            try:
-                pydicom.dcmread(dicom_path)
+            ds = pydicom.dcmread(dicom_path, stop_before_pixels=True)
+            if ds:
                 proper_dicom_paths.append(dicom_path)
-            except InvalidDicomError:  # noqa: PERF203
-                continue
         return proper_dicom_paths
 
     def parse_file(
@@ -986,19 +986,10 @@ class Rwdcm:
             json.dump(session, file)
 
 
-def dicom_deidentifier(  # noqa: C901, PLR0912, PLR0915
+def dicom_deidentifier(  # noqa: PLR0912, PLR0915
     session_filepath: None | str = None,
 ) -> tuple[dict[str, dict[str, str]], list[tuple[str]]]:
-    gpu = True
-    if not gpu:
-        tf.config.set_visible_devices([], "GPU")
-    elif (
-        len(tf.config.list_physical_devices("GPU")) == 0
-        or tf.config.list_physical_devices("GPU")[0][1] == "GPU"
-    ):
-        pass
-    custom_fp = Path("./tmp/session-data/custom-config.csv")
-    if custom_fp.is_file():
+    if Path("./tmp/session-data/custom-config.csv").is_file():
         custom_config_df = pd.read_csv(
             filepath_or_buffer="./tmp/session-data/custom-config.csv",
             index_col=0,
@@ -1013,12 +1004,10 @@ def dicom_deidentifier(  # noqa: C901, PLR0912, PLR0915
     if session_filepath is None or not Path(session_filepath).is_file():
         session = {}
     else:
-        session_fp = Path("./tmp/session-data/session.json")
-        with session_fp.open() as file:
+        with Path("./tmp/session-data/session.json").open() as file:
             session = json.load(file)
-    user_fp = Path("./tmp/session-data/user-options.json")
-    if user_fp.is_file():
-        with user_fp.open() as file:
+    if Path("./tmp/session-data/user-options.json").is_file():
+        with Path("./tmp/session-data/user-options.json").open() as file:
             user_input = json.load(file)
     else:
         sys.exit("E: No client de-identification configuration was provided")
@@ -1041,7 +1030,7 @@ def dicom_deidentifier(  # noqa: C901, PLR0912, PLR0915
         dcm = rw_obj.parse_file()
         if dcm is False:
             msg = "E: DICOM file is corrupted or missing"
-            raise Exception(msg)
+            raise ValueError(msg)
         date_processing_choices = {"keep", "offset", "remove"}
         if user_input["date_processing"] not in date_processing_choices:
             msg = "E: Invalid date processing input"
