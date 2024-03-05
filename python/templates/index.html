@@ -123,7 +123,7 @@
                     class="SubmitAnon"
                     onclick="submit_dicom_processing_request()"
                     disabled>De-Identify DICOM Files</button>
-            <div id="ConversionResult" style="display: none;">
+            <div id="ConversionResult">
                 <br>
                 <h2>DICOM Conversion Result</h2>
                 <div id="ControlPanel">
@@ -135,7 +135,6 @@
                            step="1"
                            class="slider"
                            id="DICOMRange"
-                           style="width: 500px"
                            oninput="UpdateDICOMInformation(this.value)">
                 </div>
                 <div id="DICOMOverview">
@@ -150,7 +149,7 @@
                 <br>
                 <br>
                 <center>
-                    <div style="padding: 5px;">Altered attributes display mode</div>
+                    <div id="toggle-diff-label">Altered attributes display mode</div>
                     <input type="checkbox"
                            id="ToggleDiff0"
                            class="toggleCheckbox"
@@ -221,21 +220,13 @@
                             disabled>Load</button>
                     <button class="SubmitAnon" id="ModifyDICOM" onclick="modify_dicom()" disabled>Save to DICOM</button>
                 </div>
-                <div style="background-color: rgba(50, 50, 55, 255);
-                            display: flex;
-                            border-radius: 3px;
-                            color: white">
+                <div id="ui-background">
                     <div class="image-row-left-label"></div>
-                    <div style="display: flex; flex-direction: column; flex: 1;">
+                    <div id="img-container">
                         <center>
-                            <div style="font-weight: bold; padding: 5px; align-items: center;">DICOM VIEWER</div>
+                            <div id="img-label">DICOM VIEWER</div>
                         </center>
-                        <div id="ImgWrapper"
-                             style="flex: 1;
-                                    border: 1px solid black;
-                                    padding: 10px;
-                                    background-color: rgba(50, 50, 55, 255);
-                                    border-radius: 3px">
+                        <div id="ImgWrapper">
                             <img id="PixelDataDisplay" class="DCMImg">
                             <canvas id="OverlayCanvas"></canvas>
                             <canvas id="BoxCanvas"></canvas>
@@ -266,7 +257,7 @@
                 </button>
             </div>
         </dialog>
-        <div id="notification-message" style="display: none;">
+        <div id="notification-message">
             <span id="notification-icon"></span>
             <span id="notification-text"></span>
         </div>

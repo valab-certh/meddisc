@@ -381,7 +381,7 @@ input[type="range"] {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    display: flex;
+    display: none;
     align-items: center;
     color: white;
     padding: 10px;
@@ -391,4 +391,43 @@ input[type="range"] {
 
 #notification-icon {
     margin-right: 5px;
+}
+
+#ImgWrapper {
+    flex: 1;
+    border: 1px solid black;
+    padding: 10px;
+    background-color: rgba(50, 50, 55, 255);
+    border-radius: 3px;
+}
+
+#img-label {
+    font-weight: bold;
+    padding: 5px;
+    align-items: center;
+}
+
+#img-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+#ui-background {
+    background-color: rgba(50, 50, 55, 255);
+    display: flex;
+    border-radius: 3px;
+    color: white;
+}
+
+#toggle-diff-label {
+    padding: 5px;
+}
+
+#ConversionResult {
+    display: none;
+}
+
+#DICOMSlider {
+    width: 500px;
 }
