@@ -120,12 +120,12 @@ def clean_imgs() -> None:
     dp, _, fps = next(iter(os.walk("./tmp/session-data/raw")))
     for fp in fps:
         if fp != ".gitkeep":
-            os.remove(dp + "/" + fp)
+            Path(dp + "/" + fp).unlink()
     fps = glob("./tmp/session-data/clean/*")
     for fp in fps:
         if fp.split(".")[-1] == "png":
-            os.remove(fp)
-    if os.path.exists("./tmp/session-data/clean/de-identified-files"):
+            Path(fp).unlink()
+    if Path("./tmp/session-data/clean/de-identified-files").exists():
         shutil.rmtree("./tmp/session-data/clean/de-identified-files")
 
 
@@ -293,8 +293,8 @@ def image_preprocessing(
 
 @lru_cache(maxsize=2**32)
 def cache_bbox_img(dcm_hash):
-    fp = os.path.join("./tmp/session-data/clean", dcm_hash + "_bbox.png")
-    if not os.path.exists(fp):
+    fp = Path("./tmp/session-data/clean") / (dcm_hash + "_bbox.png")
+    if not fp.exists():
         return None
     bbox_pil_img = Image.open(fp)
     bbox_img_buf = BytesIO()
@@ -967,8 +967,8 @@ class Rwdcm:
             + "/"
             + str(dcm[0x0020, 0x0011].value)
         )
-        if not os.path.exists(self.clean_dicom_dp):
-            os.makedirs(self.clean_dicom_dp)
+        if not Path(self.clean_dicom_dp).exists():
+            Path(self.clean_dicom_dp).mkdir(parents=True)
         if bbox_img is not None:
             bbox_img_fp = self.out_dp + "/" + self.input_dicom_hash + "_bbox" + ".png"
             Image.fromarray(bbox_img).save(bbox_img_fp)
