@@ -1010,7 +1010,7 @@ def ndarray_size(arr: np.ndarray) -> int:
 
 
 if __name__ == "__main__":
-    # if os.getenv("STAGING"):
+    if os.getenv("STAGING"):
         os.makedirs("tmp/session-data/raw", exist_ok=True)
         os.makedirs("tmp/session-data/clean", exist_ok=True)
         os.makedirs("tmp/session-data/embed", exist_ok=True)
