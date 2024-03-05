@@ -121,7 +121,7 @@ def clean_imgs() -> None:
     for fp in fps:
         if fp != ".gitkeep":
             Path(dp + "/" + fp).unlink()
-    fps = list(Path("./tmp/session-data/clean").glob("*"))
+    fps = list(Path("./tmp/session-data/clean").glob("*"))  # type: ignore[arg-type]
     for fp in fps:
         if str(fp).split(".")[-1] == "png":
             Path(fp).unlink()
@@ -296,7 +296,7 @@ def image_preprocessing(
 def cache_bbox_img(dcm_hash: str) -> str:
     fp = Path("./tmp/session-data/clean") / (dcm_hash + "_bbox.png")
     if not fp.exists():
-        return None
+        return None  # type: ignore[return-value]
     bbox_pil_img = Image.open(fp)
     bbox_img_buf = BytesIO()
     bbox_pil_img.save(bbox_img_buf, format="PNG")
@@ -304,7 +304,7 @@ def cache_bbox_img(dcm_hash: str) -> str:
 
 
 @app.post("/conversion_info")
-async def conversion_info(dicom_pair_fp: list[str]) -> dict:
+async def conversion_info(dicom_pair_fp: list[str]) -> dict:  # type: ignore[type-arg]
     dcm_hash = dicom_pair_fp[1].split("/")[-1].split(".")[0]
     downscale_dimensionality = 1024
     raw_dcm = pydicom.dcmread(dicom_pair_fp[0])
@@ -660,22 +660,22 @@ def bbox_area_remover(
         x2, y2 = bbox[2, 0 : (1 + 1)]
         x3, y3 = bbox[3, 0 : (1 + 1)]
         rectangle = np.array([[[x0, y0], [x1, y1], [x2, y2], [x3, y3]]], dtype=np.int32)
-        cv2.polylines(bbox_mask, rectangle, isClosed=True, color=1, thickness=2)
-        cv2.fillPoly(multiplicative_mask, rectangle, 0)
-    multiplicative_mask = cv2.resize(
+        cv2.polylines(bbox_mask, rectangle, isClosed=True, color=1, thickness=2)  # type: ignore[call-overload]
+        cv2.fillPoly(multiplicative_mask, rectangle, 0)  # type: ignore[call-overload]
+    multiplicative_mask = cv2.resize(  # type: ignore[assignment]
         multiplicative_mask,
         (initial_array_shape[1], initial_array_shape[0]),  # type: ignore[misc]
         interpolation=cv2.INTER_NEAREST,
     )
-    bbox_mask = cv2.resize(
+    bbox_mask = cv2.resize(  # type: ignore[assignment]
         bbox_mask,
-        (initial_array_shape[1], initial_array_shape[0]),
+        (initial_array_shape[1], initial_array_shape[0]),  # type: ignore[misc]
         interpolation=cv2.INTER_NEAREST,
     )
     additive_mask = reducted_region_color * (multiplicative_mask == 0)
     cleaned_img = img * multiplicative_mask + additive_mask
     bbox_img = np.maximum(bbox_mask * np.max(img), img)
-    return cleaned_img, bbox_img
+    return cleaned_img, bbox_img  # type: ignore[return-value]
 
 
 def image_deintentifier(
@@ -716,7 +716,7 @@ def image_deintentifier(
         dcm.PixelData = cleaned_img.tobytes()
     else:
         pass
-    return dcm, bbox_img
+    return dcm, bbox_img  # type: ignore[return-value]
 
 
 def merge_action(
@@ -912,7 +912,7 @@ class Rwdcm:
             in_dp = in_dp + "/"
         self.raw_data_dp = in_dp
         self.raw_dicom_paths = sorted(self.get_dicom_paths(data_dp=self.raw_data_dp))
-        self.dicom_pair_fps = []
+        self.dicom_pair_fps = []  # type: ignore[var-annotated]
         self.out_dp = out_dp
         self.clean_data_dp = out_dp + "/" + "de-identified-files/"
         already_cleaned_dicom_paths = str(
@@ -1066,16 +1066,16 @@ def dicom_deidentifier(  # noqa: PLR0912, PLR0915
         ]
         dcm = deidentification_attributes(user_input=user_input, dcm=dcm)
         if user_input["clean_image"]:
-            dcm, bbox_img = image_deintentifier(dcm=dcm)
-            bbox_img = image_preprocessing(
-                bbox_img,
-                downscale_dimensionality=max(bbox_img.shape),
+            dcm, bbox_img = image_deintentifier(dcm=dcm)  # type: ignore[assignment]
+            bbox_img = image_preprocessing(  # type: ignore[assignment]
+                bbox_img,  # type: ignore[arg-type]
+                downscale_dimensionality=max(bbox_img.shape),  # type: ignore[attr-defined]
                 multichannel=True,
                 retain_aspect_ratio=True,
             )
         else:
             bbox_img = None
-        rw_obj.export_processed_file(dcm=dcm, bbox_img=bbox_img)
+        rw_obj.export_processed_file(dcm=dcm, bbox_img=bbox_img)  # type: ignore[arg-type]
         rw_obj.export_session(session=session)
     return session, rw_obj.dicom_pair_fps
 
