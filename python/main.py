@@ -292,7 +292,7 @@ def image_preprocessing(
 
 
 @lru_cache(maxsize=2**32)
-def cache_bbox_img(dcm_hash):
+def cache_bbox_img(dcm_hash: str) -> str:
     fp = Path("./tmp/session-data/clean") / (dcm_hash + "_bbox.png")
     if not fp.exists():
         return None
@@ -303,7 +303,7 @@ def cache_bbox_img(dcm_hash):
 
 
 @app.post("/conversion_info")
-async def conversion_info(dicom_pair_fp: list[str] = Body(...)):
+async def conversion_info(dicom_pair_fp: list[str] = Body(...)) -> dict:
     dcm_hash = dicom_pair_fp[1].split("/")[-1].split(".")[0]
     downscale_dimensionality = 1024
     raw_dcm = pydicom.dcmread(dicom_pair_fp[0])
@@ -957,7 +957,7 @@ class Rwdcm:
     def export_processed_file(
         self,  # noqa: ANN101
         dcm: pydicom.dataset.FileDataset,
-        bbox_img,
+        bbox_img: NDArray[Any],
     ) -> None:
         self.clean_dicom_dp = (
             self.clean_data_dp
