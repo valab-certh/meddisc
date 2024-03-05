@@ -6,7 +6,9 @@
         <meta name="description" content="placeholder">
         <meta name="keywords" content="placeholder">
         <meta content="width=device-width, initial-scale=1" name="viewport">
-        <link rel="stylesheet" type="text/css" href="static/style.css">
+        <link rel="stylesheet"
+              type="text/css"
+              href="{{ url_for('static', path='style.css') }}">
         <title>DICOM de-identification and curation tool</title>
     </head>
     <body>
@@ -20,7 +22,7 @@
         <main>
             <h2>Input</h2>
             <form id="UploadForm"
-                  action="/upload_files/"
+                  action="{{ url_for("upload_files") }}"
                   enctype="multipart/form-data"
                   method="post">
                 <div>
@@ -43,7 +45,7 @@
                 </div>
             </form>
             <form id="SessionForm"
-                  action="/upload_files/"
+                  action="{{ url_for("session") }}"
                   enctype="application/json"
                   method="post">
                 <b>
@@ -54,7 +56,7 @@
                 <br>
             </form>
             <form id="CustomDeidentificationConfig"
-                  action="/custom_config/"
+                  action="{{ url_for("custom_config") }}"
                   enctype="multipart/form-data"
                   method="post">
                 <b>

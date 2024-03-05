@@ -23,9 +23,10 @@ import numpy as np
 import pandas as pd
 import pydicom
 import torch
-from fastapi import Body, FastAPI, UploadFile
-from fastapi.responses import FileResponse
+from fastapi import Body, FastAPI, Request, UploadFile
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from PIL import Image
 from pydantic import BaseModel
 from pydicom.errors import InvalidDicomError
@@ -155,13 +156,14 @@ def dcm2dictmetadata(ds: pydicom.dataset.Dataset) -> dict[str, dict[str, str]]:
 
 
 app = FastAPI()
-app.mount(path="/static", app=StaticFiles(directory="static"), name="sttc")
+templates = Jinja2Templates(directory="templates")
+app.mount(path="/static", app=StaticFiles(directory="static"), name="static")
 
 
-@app.get("/")
-async def get_root() -> FileResponse:
+@app.get("/", response_class=HTMLResponse)
+async def get_root(request: Request) -> HTMLResponse:
     clean_all()
-    return FileResponse("./templates/index.html")
+    return templates.TemplateResponse("index.html", {"request": request})
 
 
 class MedsamLite(nn.Module):
@@ -360,7 +362,7 @@ async def modify_dicom(data: DicomData) -> ModifyResponse:
     return ModifyResponse(success=True)
 
 
-@app.post("/upload_files/")
+@app.post("/upload_files/", name="upload_files")
 async def get_files(files: list[UploadFile]) -> UploadFilesResponse:
     clean_imgs()
     proper_dicom_paths = []
@@ -484,14 +486,14 @@ async def align_classes(classes: list[str]) -> None:
     renew_segm_seq(fps, classes)  # type: ignore[arg-type]
 
 
-@app.post("/session")
+@app.post("/session", name="session")
 async def handle_session_button_click(session_dict: dict[str, Any]) -> None:
     session_fp = Path("./tmp/session-data/session.json")
     with session_fp.open("w") as file:
         json.dump(session_dict, file)
 
 
-@app.post("/custom_config/")
+@app.post("/custom_config/", name="custom_config")
 async def custom_config(config_file: UploadFile) -> None:
     contents = await config_file.read()
     custom_fp = Path("./tmp/session-data/custom-config.csv")
