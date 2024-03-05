@@ -7,7 +7,6 @@
         <link rel="stylesheet" type="text/css" href="static/style.css">
         <title>DICOM de-identification and curation tool</title>
     </head>
-
     <body>
         <header>
             <h1>DICOM De-identification Tool</h1>
@@ -16,16 +15,23 @@
             <a href="https://cordis.europa.eu/project/id/952179">INCISIVE Cordis webpage</a> |
             <a href="https://github.com/fl0wxr/DICOMDeIdentifier">Source code (server side)</a>
         </nav>
-
         <main>
             <h2>Input</h2>
-            <form id="UploadForm" action="/upload_files/" enctype="multipart/form-data" method="post">
+            <form id="UploadForm"
+                  action="/upload_files/"
+                  enctype="multipart/form-data"
+                  method="post">
                 <div>
                     <b>
                         Load directory with DICOM files:
                     </b>
                 </div>
-                <input name="files" class="UploadDICOM" type="file" directory webkitdirectory mozdirectory>
+                <input name="files"
+                       class="UploadDICOM"
+                       type="file"
+                       directory
+                       webkitdirectory
+                       mozdirectory>
                 <div id="UploadStatus">
                     <br>
                     Total DICOM files: 0
@@ -34,7 +40,10 @@
                     <br>
                 </div>
             </form>
-            <form id="SessionForm" action="/upload_files/" enctype="application/json" method="post">
+            <form id="SessionForm"
+                  action="/upload_files/"
+                  enctype="application/json"
+                  method="post">
                 <b>
                     Load session file (.json):
                 </b>
@@ -42,20 +51,24 @@
                 <input name="SessionFile"  class="UploadSession" type="file">
                 <br>
             </form>
-            <form id="CustomDeidentificationConfig" action="/custom_config/" enctype="multipart/form-data" method="post">
+            <form id="CustomDeidentificationConfig"
+                  action="/custom_config/"
+                  enctype="multipart/form-data"
+                  method="post">
                 <b>
                     Load configuration file (.csv):
                 </b>
                 <br>
-                <input name="ConfigFile" title="Determines the de-identification process through the user's custom configuration in .csv.&#013;&#013;Allowed columns (in order):&#013;Tag ID&#013;Action&#013;&#013;Tag IDs must be in the format:&#013;'hhhhhhhh&#013;where h is a digit.&#013;&#013;Allowed actions are K, X and C, where C is only allowed on DA and TM tag VRs.&#013;&#013;Wrong tag IDs will not be considered."  class="UploadConfig" type="file">
+                <input name="ConfigFile"
+                       title="Determines the de-identification process through the user's custom configuration in .csv.&#013;&#013;Allowed columns (in order):&#013;Tag ID&#013;Action&#013;&#013;Tag IDs must be in the format:&#013;'hhhhhhhh&#013;where h is a digit.&#013;&#013;Allowed actions are K, X and C, where C is only allowed on DA and TM tag VRs.&#013;&#013;Wrong tag IDs will not be considered."
+                       class="UploadConfig"
+                       type="file">
                 <br>
             </form>
-
             <h2>De-identification options</h2>
-
             <i>
                 Based on
-                <a href="https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html"> DICOM PS3.15</a>
+                <a href="https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html">DICOM PS3.15</a>
             </i>
             <br>
             <br>
@@ -78,7 +91,9 @@
                 </div>
                 <div class="checkbox-container">
                     <label class="normal-label">Retain patient characteristics:</label>
-                    <input type="checkbox" id="retain-patient-characteristics-input-checkbox" checked>
+                    <input type="checkbox"
+                           id="retain-patient-characteristics-input-checkbox"
+                           checked>
                 </div>
                 <div class="checkbox-container">
                     <label class="normal-label">Date processing:</label>
@@ -89,22 +104,37 @@
                     </select>
                 </div>
                 <div class="checkbox-container">
-                    <label class="normal-label"> Retain descriptors:</label>
+                    <label class="normal-label">Retain descriptors:</label>
                     <input type="checkbox" id="retain-descriptors-input-checkbox" checked>
                 </div>
                 <div class="checkbox-container">
                     <label class="normal-label">Pseudo patient ID prefix:</label>
-                    <input type="text" title="Will be concatenated with randomly generated pseudo-ID" id="patient-pseudo-id-prefix-input-text" class="PseudoPrefix" placeholder="e.g. an organization's ID">
+                    <input type="text"
+                           title="Will be concatenated with randomly generated pseudo-ID"
+                           id="patient-pseudo-id-prefix-input-text"
+                           class="PseudoPrefix"
+                           placeholder="e.g. an organization's ID">
                 </div>
             </div>
-            <button type="button" id="SubmitAnonymizationProcess" class="SubmitAnon" onclick="submit_dicom_processing_request()" disabled>
-                De-Identify DICOM Files
-            </button>
+            <button type="button"
+                    id="SubmitAnonymizationProcess"
+                    class="SubmitAnon"
+                    onclick="submit_dicom_processing_request()"
+                    disabled>De-Identify DICOM Files</button>
             <div id="ConversionResult" style="display: none;">
                 <br>
                 <h2>DICOM Conversion Result</h2>
                 <div id="ControlPanel">
-                    <input id="DICOMSlider" type="range" min="0" max="${n_uploaded_files-1}" value="0" step="1" class="slider" id="DICOMRange" style="width: 500px;" oninput="UpdateDICOMInformation(this.value)">
+                    <input id="DICOMSlider"
+                           type="range"
+                           min="0"
+                           max="${n_uploaded_files-1}"
+                           value="0"
+                           step="1"
+                           class="slider"
+                           id="DICOMRange"
+                           style="width: 500px"
+                           oninput="UpdateDICOMInformation(this.value)">
                 </div>
                 <div id="DICOMOverview">
                     Index: -
@@ -118,13 +148,16 @@
                 <br>
                 <br>
                 <center>
-                    <div style="padding: 5px;">
-                        Altered attributes display mode
-                    </div>
-                    <input type="checkbox" id="ToggleDiff0" class="toggleCheckbox" oninput="ShowDiffTable(this.checked)">
-                    <label for="ToggleDiff0" class="toggleContainer" title="All: Shows all tags; Only Altered: Shows only altered tags">
+                    <div style="padding: 5px;">Altered attributes display mode</div>
+                    <input type="checkbox"
+                           id="ToggleDiff0"
+                           class="toggleCheckbox"
+                           oninput="ShowDiffTable(this.checked)">
+                    <label for="ToggleDiff0"
+                           class="toggleContainer"
+                           title="All: Shows all tags; Only Altered: Shows only altered tags">
                         <div>All</div>
-                        <div>Only Altered</div> 
+                        <div>Only Altered</div>
                     </label>
                 </center>
                 <br>
@@ -132,13 +165,26 @@
                     <div class="display-radio">
                         <label>Image de-identification display mode</label>
                         <br>
-                        <input type="radio" id="cleaned_display" name="selection" value="cleaned_display_option" onclick="DisplayMode(this.value)" checked>
+                        <input type="radio"
+                               id="cleaned_display"
+                               name="selection"
+                               value="cleaned_display_option"
+                               onclick="DisplayMode(this.value)"
+                               checked>
                         <label for="cleaned_display_option">Cleaned Image</label>
                         <br>
-                        <input type="radio" id="bboxes_display" name="selection" value="bboxes_display_option" onclick="DisplayMode(this.value)">
+                        <input type="radio"
+                               id="bboxes_display"
+                               name="selection"
+                               value="bboxes_display_option"
+                               onclick="DisplayMode(this.value)">
                         <label for="bboxes_display_option">Raw Image with Bounding Boxes</label>
                         <br>
-                        <input type="radio" id="raw_display" name="selection" value="raw_display_option" onclick="DisplayMode(this.value)">
+                        <input type="radio"
+                               id="raw_display"
+                               name="selection"
+                               value="raw_display_option"
+                               onclick="DisplayMode(this.value)">
                         <label for="raw_display_option">Raw Image</label>
                         <br>
                     </div>
@@ -148,7 +194,10 @@
                         <option value="background" selected="selected">background</option>
                     </select>
                     <div class="colorIndicator"></div>
-                    <input type="text" id="ClassText" class="PseudoPrefix" placeholder="Enter class name">
+                    <input type="text"
+                           id="ClassText"
+                           class="PseudoPrefix"
+                           placeholder="Enter class name">
                     <button class="SubmitAnon" id="Add" onclick="add_class()">+</button>
                     <button class="SubmitAnon" id="Remove" onclick="remove_class()">-</button>
                     <button class="SubmitAnon" id="SubmitClasses" onclick="submit_classes()">Submit Classes</button>
@@ -156,44 +205,69 @@
                 <div class="button-container">
                     <button class="SubmitAnon" id="ToggleEdit" disabled>View Mode</button>
                     <button class="SubmitAnon" id="Mode" disabled>Brush</button>
-                    <input type="range" id="BrushSizeSlider" min="1" max="50" value="25" disabled>
+                    <input type="range"
+                           id="BrushSizeSlider"
+                           min="1"
+                           max="50"
+                           value="25"
+                           disabled>
                     <button class="SubmitAnon" id="Undo" disabled>↩</button>
                     <button class="SubmitAnon" id="Redo" disabled>↪</button>
-                    <button class="SubmitAnon" id="ResetDICOM" onclick="get_mask_from_file(dcm_idx_)" disabled>Load</button>
+                    <button class="SubmitAnon"
+                            id="ResetDICOM"
+                            onclick="get_mask_from_file(dcm_idx_)"
+                            disabled>Load</button>
                     <button class="SubmitAnon" id="ModifyDICOM" onclick="modify_dicom()" disabled>Save to DICOM</button>
                 </div>
-                <div style="background-color: rgba(50, 50, 55, 255); display: flex; border-radius: 3px; color: white;">
-                    <div class="image-row-left-label">
-                    </div>
+                <div style="background-color: rgba(50, 50, 55, 255);
+                            display: flex;
+                            border-radius: 3px;
+                            color: white">
+                    <div class="image-row-left-label"></div>
                     <div style="display: flex; flex-direction: column; flex: 1;">
                         <center>
                             <div style="font-weight: bold; padding: 5px; align-items: center;">DICOM VIEWER</div>
                         </center>
-                        <div id="ImgWrapper" style="flex: 1; border: 1px solid black; padding: 10px; background-color: rgba(50, 50, 55, 255); border-radius: 3px;">
+                        <div id="ImgWrapper"
+                             style="flex: 1;
+                                    border: 1px solid black;
+                                    padding: 10px;
+                                    background-color: rgba(50, 50, 55, 255);
+                                    border-radius: 3px">
                             <img id="PixelDataDisplay" class="DCMImg">
                             <canvas id="OverlayCanvas"></canvas>
                             <canvas id="BoxCanvas"></canvas>
                         </div>
                     </div>
                 </div>
-                <div id="MetadataTable" class="metadata-table">
-                </div>
+                <div id="MetadataTable" class="metadata-table"></div>
             </div>
         </main>
         <dialog class="modal" id="modal">
             <div class="modal-content">
                 <h2 class="modal-header">Classes Conflict</h2>
-                <p>Warning: The newly defined classes are inconsistent with the classes found on the input batch. How should this be handled?
-                <br><br>
-                Press "Override with New Classes" to override the newly defined classes and reset each DICOM file's mask. Otherwise you can keep the batch classes along with their masks by pressing "Keep Batch Classes".</p>
-                <button id="overrideMasks">Override with<br><b>New Classes</b></button>
-                <button id="useBatchMasks">Keep imported<br><b>Batch Classes</b></button>
+                <p>
+                    Warning: The newly defined classes are inconsistent with the classes found on the input batch. How should this be handled?
+                    <br>
+                    <br>
+                    Press "Override with New Classes" to override the newly defined classes and reset each DICOM file's mask. Otherwise you can keep the batch classes along with their masks by pressing "Keep Batch Classes".
+                </p>
+                <button id="overrideMasks">
+                    Override with
+                    <br>
+                    <b>New Classes</b>
+                </button>
+                <button id="useBatchMasks">
+                    Keep imported
+                    <br>
+                    <b>Batch Classes</b>
+                </button>
             </div>
         </dialog>
         <div id="notification-message" style="display: none;">
             <span id="notification-icon"></span>
             <span id="notification-text"></span>
-        </div>   
+        </div>
         <script src="static/script.js"></script>
     </body>
 </html>
