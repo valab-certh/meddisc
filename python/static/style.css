@@ -172,6 +172,11 @@ label.normal-label
     transition: color 0.3s;
 }
 
+.display-radio
+{
+    width: 300px;
+    text-align: left;
+}
 
 .metadata-table
 {
@@ -189,7 +194,7 @@ label.normal-label
     border: 0px;
 }
 
-.inner-row, .inner-row-column-names
+.inner-table, .inner-table-column-names
 {
     display: table;
     max-width: 99.5%;
@@ -202,22 +207,12 @@ label.normal-label
     transition: background-color 0.3s;
 }
 
-.left-row
+.table-row
 {
     display: table-cell;
     flex: 1;
     max-width: 49.5%;
     min-width: 49.5%;
-    border-left: 0px;
-    border-right: 0px;
-}
-
-.right-row
-{
-    display: table-cell;
-    flex: 1;
-    max-width: 47.6%;
-    min-width: 47.6%;
     border-left: 0px;
     border-right: 0px;
 }
@@ -263,18 +258,6 @@ label.normal-label
     word-break: break-all;
 }
 
-.cell-vertical-separator
-{
-    display: table-cell;
-    border: 0px;
-    width: 0.5%;
-    min-width: 0.5%;
-    padding: 0px;
-    text-align: center;
-    line-height: 30px;
-    background-color: rgba(47, 47, 51, 255);
-}
-
 .cell-dcmtag-id
 {
     display: table-cell;
@@ -309,17 +292,17 @@ label.normal-label
 {
     display: table-cell;
     border: 1px solid rgba(39,39,43,255);
-    width: 150px;
-    min-width: 150px;
+    width: 200px;
+    min-width: 200px;
     padding: 8px;
     word-break: break-all;
 }
 
-#CleanedImg {
+#ImgWrapper {
     position: relative;
 }
 
-#CleanedImgInner, #OverlayCanvas, #BoxCanvas {
+#OverlayCanvas, #BoxCanvas {
     position: absolute;
     top: 10px;       
     left: 10px;      

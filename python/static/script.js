@@ -3,9 +3,7 @@ var SubmitAnonymizationProcess = document.getElementById('SubmitAnonymizationPro
 var MetadataTable = document.getElementById('MetadataTable');
 var DICOMOverview = document.getElementById('DICOMOverview');
 var RawImg = document.getElementById('RawImg');
-var CleanedImg = document.getElementById('CleanedImg');
-var RawImgInner = document.getElementById('RawImgInner');
-var CleanedImgInner = document.getElementById('CleanedImgInner');
+var PixelDataDisplay = document.getElementById('PixelDataDisplay');
 var DICOMSlider = document.getElementById('DICOMSlider');
 var ConversionResult = document.getElementById('ConversionResult');
 var clean_image = document.getElementById('clean-image');
@@ -33,7 +31,7 @@ var retain_descriptors_input_checkbox = document.getElementById('retain-descript
 var patient_pseudo_id_prefix_input_text = document.getElementById('patient-pseudo-id-prefix-input-text');
 var UploadStatus = document.getElementById('UploadStatus');
 var n_uploaded_files;
-var dicom_pair_fps;
+var dicom_data_fps;
 var OpenSequences = [];
 var DiffEnabled = false;
 var dcm_idx_;
@@ -80,21 +78,38 @@ let classesMap = ["background"];
 let predefinedClassesMap;
 var slider_pending_update = false;
 var pending_dcm_idx = 0;
-var dicom_pair;
+var dicom_data;
 var total_altered_dicom_tags = '-';
 var LoadingState = false;
-var PredeterminedHeight = '37vw';
 var masks = '';
 var modal = document.querySelector('#modal');
 var openModal = document.querySelector('#open-button');
 var overrideMasks = document.querySelector('#overrideMasks');
 var useBatchMasks = document.querySelector('#useBatchMasks');
 var classes_submitted_state = false;
+var DisplayModeSelection = "cleaned_display_option";
 
-function ShowDiff(ToggleValue)
+function ShowDiffTable(ToggleValue)
 {
     DiffEnabled = ToggleValue;
-    MetadataTable.innerHTML = table(dicom_pair['raw_dicom_metadata'], dicom_pair['cleaned_dicom_metadata'], DiffEnabled);
+    MetadataTable.innerHTML = table(dicom_data['raw_dicom_metadata'], dicom_data['cleaned_dicom_metadata'], DiffEnabled);
+}
+
+function DisplayMode(DisplayModeSelection_)
+{
+    DisplayModeSelection = DisplayModeSelection_
+    if (DisplayModeSelection == "cleaned_display_option")
+    {
+        PixelDataDisplay.src = `data:image/png;base64,${dicom_data['cleaned_dicom_img_data']}`;
+    }
+    else if (DisplayModeSelection == "bboxes_display_option")
+    {
+        PixelDataDisplay.src = `data:image/png;base64,${dicom_data['bboxes_dicom_img_data']}`;
+    }
+    else if (DisplayModeSelection == "raw_display_option")
+    {
+        PixelDataDisplay.src = `data:image/png;base64,${dicom_data['raw_dicom_img_data']}`;
+    }
 }
 
 function HideSequence(SequenceID)
@@ -129,17 +144,12 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
         CurrentNodeIdx.push(-1);
         for (let tagID in RawDCMMetadataObjectLvN)
         {
-            let tagID_part1 = tagID.substring(0, 4);
-            let tagID_part2 = tagID.substring(4);
-            let tagID_ = `(${tagID_part1},${tagID_part2})`;
             const vr = RawDCMMetadataObjectLvN[tagID].vr;
             const name = RawDCMMetadataObjectLvN[tagID].name;
             const raw_value = RawDCMMetadataObjectLvN[tagID].value;
             let cleaned_value;
             let tag_dropped;
-            let right_row_contents;
             let left_col_style;
-            let right_col_style;
             CurrentNodeIdx[CurrentNodeIdx.length - 1] += 1;
             if (CleanedDCMMetadataObjectLvN.hasOwnProperty(tagID))
             {
@@ -154,10 +164,6 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
             if (tag_dropped)
             {
                 left_col_style = ' style="background-color: rgba(0, 255, 255, 10%);"';
-                right_col_style = ' style="background-color: rgba(47, 47, 51, 255);"';
-                right_row_contents = 
-                `
-                `;
             }
             else
             {
@@ -165,24 +171,15 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
                 {
                     total_altered_dicom_tags += 1;
                     left_col_style = ' style="background-color: rgba(0, 255, 255, 10%);"';
-                    right_col_style = left_col_style;
                 }
                 else
                 {
                     left_col_style = ' style="background-color: rgba(100, 100, 110, 10%);"';
-                    right_col_style = left_col_style;
                     if (DiffEnabled)
                     {
                         continue;
                     }
                 }
-                right_row_contents = 
-                `
-                    <div class="cell-dcmtag-id"${right_col_style}>${tagID_}</div>
-                    <div class="cell-dcmtag-vr"${right_col_style}>${vr}</div>
-                    <div class="cell-dcmtag-value"${right_col_style}>${cleaned_value}</div>
-                    <div class="cell-dcmtag-name"${right_col_style}>${name}</div>
-                `;
             }
             if (vr === 'SQ')
             {
@@ -190,22 +187,12 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
                 MetadataTable += 
                 `
                     <div class="outer-row" onclick="HideSequence(${JSON.stringify(CurrentNodeIdx)})" style="cursor: pointer;">
-                        <div class="inner-row">
-                            <div class="left-row">
+                        <div class="inner-table">
+                            <div class="table-row">
                                 ${indentation_block}
                                 <div class="cell-expand-row" id="${JSON.stringify(CurrentNodeIdx)}_expand_row"${left_col_style}>+</div>
-                                <div class="cell-dcmtag-id"${left_col_style}>${tagID_}</div>
-                                <div class="cell-dcmtag-vr"${left_col_style}>${vr}</div>
-                                <div class="cell-dcmtag-value"${left_col_style}></div>
                                 <div class="cell-dcmtag-name"${left_col_style}>${name}</div>
-                            </div>
-                            <div class="cell-vertical-separator"></div>
-                            <div class="right-row">
-                                ${indentation_block}
-                                <div class="cell-dcmtag-id"${right_col_style}>${tagID_}</div>
-                                <div class="cell-dcmtag-vr"${right_col_style}>${vr}</div>
-                                <div class="cell-dcmtag-value"${right_col_style}></div>
-                                <div class="cell-dcmtag-name"${right_col_style}>${name}</div>
+                                <div class="cell-dcmtag-value"${left_col_style}></div>
                             </div>
                         </div>
                     </div>
@@ -223,15 +210,8 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
                     MetadataTable += 
                     `
                         <div class="outer-row">
-                            <div class="inner-row">
-                                <div class="left-row">
-                                    ${indentation_block}
-                                    <div class="cell-dataset">
-                                        Dataset ${ds_idx}
-                                    </div>
-                                </div>
-                                <div class="cell-vertical-separator"></div>
-                                <div class="right-row">
+                            <div class="inner-table">
+                                <div class="table-row">
                                     ${indentation_block}
                                     <div class="cell-dataset">
                                         Dataset ${ds_idx}
@@ -257,19 +237,12 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
                 MetadataTable += 
                 `
                     <div class="outer-row">
-                        <div class="inner-row">
-                            <div class="left-row">
+                        <div class="inner-table">
+                            <div class="table-row">
                                 ${indentation_block}
                                 <div class="cell-expand-row"${left_col_style}></div>
-                                <div class="cell-dcmtag-id"${left_col_style}>${tagID_}</div>
-                                <div class="cell-dcmtag-vr"${left_col_style}>${vr}</div>
-                                <div class="cell-dcmtag-value"${left_col_style}>${raw_value}</div>
                                 <div class="cell-dcmtag-name"${left_col_style}>${name}</div>
-                            </div>
-                            <div class="cell-vertical-separator"></div>
-                            <div class="right-row">
-                                ${indentation_block}
-                                ${right_row_contents}
+                                <div class="cell-dcmtag-value"${left_col_style}>${raw_value}</div>
                             </div>
                         </div>
                     </div>
@@ -283,20 +256,11 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
     let MetadataTable = 
     `
         <div class="outer-row">
-            <div class="inner-row-column-names">
-                <div class="left-row">
+            <div class="inner-table-column-names">
+                <div class="table-row">
                     <div class="cell-expand-row"></div>
-                    <div class="cell-dcmtag-id"${UppermostRowStyle}><b>Tag ID</b></div>
-                    <div class="cell-dcmtag-vr"${UppermostRowStyle}><b>VR</b></div>
-                    <div class="cell-dcmtag-value"${UppermostRowStyle}><b>Tag Value</b></div>
                     <div class="cell-dcmtag-name"${UppermostRowStyle}><b>Tag Name</b></div>
-                </div>
-                <div class="cell-vertical-separator"></div>
-                <div class="right-row">
-                    <div class="cell-dcmtag-id"${UppermostRowStyle}><b>Tag ID</b></div>
-                    <div class="cell-dcmtag-vr"${UppermostRowStyle}><b>VR</b></div>
                     <div class="cell-dcmtag-value"${UppermostRowStyle}><b>Tag Value</b></div>
-                    <div class="cell-dcmtag-name"${UppermostRowStyle}><b>Tag Name</b></div>
                 </div>
             </div>
         </div>
@@ -331,7 +295,7 @@ async function UpdateDICOMInformation(dcm_idx)
         slider_pending_update = false;
         LoadingState = true;
         dcm_idx_ = dcm_idx
-        const dicom_pair_fp = await dicom_pair_fps[dcm_idx_]
+        const dicom_data_fp = await dicom_data_fps[dcm_idx_]
         const conversion_info_response = await fetch
         (
             '/conversion_info/',
@@ -341,18 +305,14 @@ async function UpdateDICOMInformation(dcm_idx)
                 {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(dicom_pair_fp)
+                body: JSON.stringify(dicom_data_fp)
             }
         );
-        dicom_pair = await conversion_info_response.json();
-        const dicom_metadata_table = table(dicom_pair['raw_dicom_metadata'], dicom_pair['cleaned_dicom_metadata'], DiffEnabled);
-        if (RawImgInner.height !== 0)
-        {
-            PredeterminedHeight = String(RawImgInner.height) + 'px';
-        }
+        dicom_data = await conversion_info_response.json();
+        const dicom_metadata_table = table(dicom_data['raw_dicom_metadata'], dicom_data['cleaned_dicom_metadata'], DiffEnabled);
         try
         {
-            modality = dicom_pair['raw_dicom_metadata']['00080060'].value;
+            modality = dicom_data['raw_dicom_metadata']['00080060'].value;
         }
         catch (error)
         {
@@ -368,23 +328,18 @@ async function UpdateDICOMInformation(dcm_idx)
         `
             Index: ${dcm_idx_}
             </br>
-            Raw File Path: ${dicom_pair_fp[0]}
+            Raw File Path: ${dicom_data_fp[0]}
             </br>
-            Clean File Path: ${dicom_pair_fp[1]}
+            Clean File Path: ${dicom_data_fp[1]}
             </br>
-            Patient's Original ID: ${dicom_pair['raw_dicom_metadata']['00100020'].value}
+            Patient's Original ID: ${dicom_data['raw_dicom_metadata']['00100020'].value}
             </br>
             Modality: ${modality}
             </br>
             Total number of altered tags (excluding the pixel data): ${total_altered_dicom_tags}
         `;
         MetadataTable.innerHTML = dicom_metadata_table;
-        RawImg.style.minHeight = PredeterminedHeight;
-        CleanedImg.style.minHeight = PredeterminedHeight;
-        RawImgInner.src = `data:image/png;base64,${dicom_pair['raw_dicom_img_data']}`;
-        CleanedImgInner.src = `data:image/png;base64,${dicom_pair['cleaned_dicom_img_data']}`;
-        RawImg.style.minHeight = 0;
-        CleanedImg.style.minHeight = 0;
+        DisplayMode(DisplayModeSelection);
         LoadingState = false;
     }
     else
@@ -542,7 +497,7 @@ async function submit_dicom_processing_request()
         'retain_descriptors': retain_descriptors_input_checkbox.checked,
         'patient_pseudo_id_prefix': patient_pseudo_id_prefix_input_text.value
     };
-    const dicom_pair_fps_response = await fetch
+    const dicom_data_fps_response = await fetch
     (
         '/submit_button',
         {
@@ -554,7 +509,7 @@ async function submit_dicom_processing_request()
             body: JSON.stringify(data)
         }
     );
-    dicom_pair_fps = await dicom_pair_fps_response.json();
+    dicom_data_fps = await dicom_data_fps_response.json();
     DICOMSlider.max = n_uploaded_files-1;
     DICOMSlider.value = 0;
     await UpdateDICOMInformation(0);
@@ -601,7 +556,7 @@ async function get_mask_from_file() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(dicom_pair_fps[dcm_idx_][1])
+            body: JSON.stringify(dicom_data_fps[dcm_idx_][1])
         });
     if (reset_response.ok) {
         const response_data = await reset_response.json();
@@ -613,7 +568,7 @@ async function get_mask_from_file() {
 async function modify_dicom() {
     const requestBody = {
         pixel_data: canvastobase64(),
-        filepath: dicom_pair_fps[dcm_idx_][1],
+        filepath: dicom_data_fps[dcm_idx_][1],
         classes: classesMap
     }; 
     const modify_response = await fetch(
