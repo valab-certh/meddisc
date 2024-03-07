@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 from urllib import request
 
 import pandas as pd
