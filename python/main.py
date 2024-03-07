@@ -22,11 +22,13 @@ import keras_ocr
 import numpy as np
 import pandas as pd
 import pydicom
+import pytest
 import torch
-from fastapi import Body, FastAPI, Request, UploadFile
+from fastapi import Body, FastAPI, Request, UploadFile, status
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.testclient import TestClient
 from PIL import Image
 from pydantic import BaseModel
 from pydicom.errors import InvalidDicomError
@@ -158,6 +160,22 @@ def dcm2dictmetadata(ds: pydicom.dataset.Dataset) -> dict[str, dict[str, str]]:
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 app.mount(path="/static", app=StaticFiles(directory="static"), name="static")
+
+client = TestClient(app)
+
+
+def app_url() -> str:
+    return "http://0.0.0.0:8000"
+
+
+def test_upload_files() -> None:
+    with Path("./prm/sample.dcm").open("rb") as file:
+        files = {"files": ("./prm/sample.dcm", file, "application/dicom")}
+        response = client.post(app_url() + "/upload_files", files=files)
+        if response.status_code != status.HTTP_200_OK:
+            raise AssertionError
+        response.json()
+        UploadFilesResponse.model_validate(response.json())
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -1149,3 +1167,7 @@ if __name__ == "__main__":
             ssl_certfile="tmp/fullchain.pem",
             ssl_keyfile="tmp/privkey.pem",
         )
+    else:
+        results = pytest.main(["-rA", "-o", "cache_dir=tmp", __file__])
+        if results.value != 0:  # type: ignore[attr-defined]
+            sys.exit(results)
