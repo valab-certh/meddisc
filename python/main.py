@@ -10,6 +10,7 @@ import os
 import re
 import secrets
 import shutil
+import subprocess
 import sys
 import time
 from functools import lru_cache
@@ -1126,4 +1127,26 @@ if __name__ == "__main__":
         ]
         for directory in tmp_directories:
             directory.mkdir(parents=True, exist_ok=True)
-        run(app, host="0.0.0.0", port=8000)  # noqa: S104
+        if not Path("tmp/fullchain.pem").exists():
+            subprocess.run(
+                [  # noqa: S603
+                    "/usr/bin/openssl",
+                    "req",
+                    "-subj",
+                    "/C=..",
+                    "-nodes",
+                    "-x509",
+                    "-keyout",
+                    "tmp/privkey.pem",
+                    "-out",
+                    "tmp/fullchain.pem",
+                ],
+                check=True,
+            )
+        run(
+            app,
+            host="0.0.0.0",  # noqa: S104
+            port=8000,
+            ssl_certfile="tmp/fullchain.pem",
+            ssl_keyfile="tmp/privkey.pem",
+        )
