@@ -1136,14 +1136,14 @@ def ndarray_size(arr: NDArray[Any]) -> int:
 
 
 if __name__ == "__main__":
+    tmp_directories = [
+        Path("tmp/session-data/raw"),
+        Path("tmp/session-data/clean"),
+        Path("tmp/session-data/embed"),
+    ]
+    for directory in tmp_directories:
+        directory.mkdir(parents=True, exist_ok=True)
     if os.getenv("STAGING"):
-        tmp_directories = [
-            Path("tmp/session-data/raw"),
-            Path("tmp/session-data/clean"),
-            Path("tmp/session-data/embed"),
-        ]
-        for directory in tmp_directories:
-            directory.mkdir(parents=True, exist_ok=True)
         if not Path("tmp/fullchain.pem").exists():
             subprocess.run(
                 [  # noqa: S603
