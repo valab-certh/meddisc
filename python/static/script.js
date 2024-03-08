@@ -447,7 +447,7 @@ document.querySelector('#SessionForm input[name="SessionFile"]').addEventListene
 
 window.onload = function()
 {
-    document.querySelector('.UploadConfig').addEventListener
+    document.querySelector('#UploadForm').addEventListener
     (
         'change',
         function(e)
