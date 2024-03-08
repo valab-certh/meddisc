@@ -558,7 +558,6 @@ async function get_mask_from_file() {
     if (reset_response.ok) {
         const response_data = await reset_response.json();
         fillCanvas(response_data['PixelData'], response_data['dimensions']);
-        showNotification("success", "Loaded mask from DICOM", 1500);
     }
 }
 
@@ -579,7 +578,6 @@ async function modify_dicom() {
         });
     if (modify_response.ok) {
         progress_saved = true
-        showNotification("success", "Saved to DICOM", 1500);
     }
 }
 
@@ -614,7 +612,7 @@ ToggleEdit.addEventListener('click', () => {
     ToggleEdit.textContent = isEditing ? 'Edit Mode' : 'View Mode';
     OverlayCanvas.style.pointerEvents = isEditing ? 'auto' : 'none';
     BoxCanvas.style.pointerEvents = (isEditing && editMode === 'boundingBox') ? 'auto' : 'none';
-    showNotification("info", "Switched to " + ToggleEdit.textContent, 1500);
+});
 });
 
 function getMousePos(canvas, evt) {
@@ -663,7 +661,6 @@ function undoLastAction() {
             ctx.clearRect(0, 0, OverlayCanvas.width, OverlayCanvas.height);
         }
     }
-    showNotification("info", "Undo", 1500);
 }
 
 function redoLastAction() {
@@ -672,7 +669,6 @@ function redoLastAction() {
         undoStack.push(nextState);
         ctx.putImageData(nextState, 0, 0);
     }
-    showNotification("info", "Redo", 1500);
 }
 
 document.addEventListener('keydown', (e) => {
@@ -755,7 +751,6 @@ Mode.addEventListener('click', function () {
         BoxCanvas.style.pointerEvents = 'none';
         document.querySelector('#BrushSelect option[value="background"]').disabled = false;
     }
-    showNotification("info", "Switched to " + Mode.textContent, 1500);
 });
 
 BoxCanvas.addEventListener('mousedown', (e) => {
@@ -810,15 +805,12 @@ function fillCanvas(maskData, dimensions) {
 function add_class() {
     const inputVal = ClassText.value.trim();
     if (inputVal === '') {
-        showNotification("info", "Please enter a class name", 1500);
         return;
     }
     if (classesMap.includes(inputVal)) {
-        showNotification("failure", "This class already exists", 1500);
         return;
     }
     if (classesMap.length >= 11) {
-        showNotification("failure", "Maximum of 10 classes reached", 1500);
         return;
     }
     classesMap.push(inputVal);
@@ -828,22 +820,18 @@ function add_class() {
     ClassText.value = '';
     const event = new Event('change');
     BrushSelect.dispatchEvent(event);
-    showNotification("success", "Added class " + inputVal, 1500);
 }
 
 function remove_class() {
     const inputVal = ClassText.value.trim();
     if (inputVal === '') {
-        showNotification("info", "Please enter a class name", 1500);
         return;
     }
     const index = classesMap.indexOf(inputVal);
     if (index === -1) {
-        showNotification("failure", "Class not found", 1500);
         return;
     }
     if (inputVal === 'background') {
-        showNotification("failure", "Cannot remove background class", 1500);
         return;
     }
     classesMap.splice(index, 1);
@@ -856,7 +844,6 @@ function remove_class() {
     ClassText.value = '';
     const event = new Event('change');
     BrushSelect.dispatchEvent(event);
-    showNotification("success", "Removed class " + inputVal, 1500);
 }
 
 async function submit_classes(){
@@ -893,7 +880,6 @@ async function submit_classes(){
             }
         }
     }
-    showNotification("success", "Submitted classes", 1500);
 }
 
 function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
