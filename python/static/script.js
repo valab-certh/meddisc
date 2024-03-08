@@ -737,7 +737,7 @@ async function medsam_estimation(normalizedStart,normalizedEnd) {
 Mode.addEventListener('click', function () {
     if (editMode === 'brush') {
         editMode = 'boundingBox';
-        Mode.textContent = 'Box';
+        Mode.innerHTML = '<i class="bi bi-bounding-box-circles"></i>';
         BoxCanvas.style.pointerEvents = isEditing ? 'auto' : 'none';
         document.querySelector('#BrushSelect option[value="background"]').disabled = true;
         let foundBackground = false;
@@ -756,7 +756,7 @@ Mode.addEventListener('click', function () {
         }
     } else {
         editMode = 'brush';
-        Mode.textContent = 'Brush';
+        Mode.innerHTML = '<i class="bi bi-brush-fill"></i>';
         BoxCanvas.style.pointerEvents = 'none';
         document.querySelector('#BrushSelect option[value="background"]').disabled = false;
     }
@@ -858,6 +858,7 @@ function remove_class() {
 async function submit_classes(){
     classes_submitted_state = true;
     ToggleEdit.disabled = false;
+    ToggleMask.disabled = false;
     if (classesMap.length > 1){
         Mode.disabled = false;
     }
@@ -990,13 +991,14 @@ function resetGUIElements() {
     classesMap = ["background"];
     classes_submitted_state = false;
     ToggleEdit.disabled = true;
+    ToggleMask.disabled = true;
     isEditing = false;
-    ToggleEdit.textContent = 'View Mode';
+    ToggleEdit.innerHTML = '<i class="bi bi-eye-fill"></i>';
     OverlayCanvas.style.pointerEvents = 'none';
     BoxCanvas.style.pointerEvents = 'none';
     Mode.disabled = true;
     editMode = 'brush';
-    Mode.textContent = 'Brush';
+    Mode.innerHTML = '<i class="bi bi-brush-fill"></i>';
     document.querySelector('#BrushSelect option[value="background"]').disabled = false;
     BrushSizeSlider.disabled = true;
     Undo.disabled = true;
