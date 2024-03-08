@@ -1010,34 +1010,3 @@ function resetGUIElements() {
     ClassText.disabled = false;
     SubmitClasses.disabled = false;
 }
-
-function showNotification(type, text, duration) {
-    clearTimeout(notificationTimeout);
-    notificationText.textContent = text;
-    switch (type) {
-        case "success":
-            notificationIcon.textContent = "✔️"; 
-            notificationMessage.style.backgroundColor = "green";
-            notificationMessage.style.color = "white";
-            break;
-        case "info":
-            notificationIcon.textContent = "ℹ️"; 
-            notificationMessage.style.backgroundColor = "lightblue";
-            notificationMessage.style.color = "black";
-            break;
-        case "failure":
-            notificationIcon.textContent = "❌"; 
-            notificationMessage.style.backgroundColor = "red";
-            notificationMessage.style.color = "white";
-            break;
-        default:
-            notificationIcon.textContent = "";
-            notificationMessage.style.backgroundColor = "grey";
-            notificationMessage.style.color = "black";
-            break;
-    }
-    notificationMessage.style.display = "flex";
-    notificationTimeout = setTimeout(function() {
-        notificationMessage.style.display = "none";
-    }, duration);
-}
