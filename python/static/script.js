@@ -602,18 +602,27 @@ BrushSelect.addEventListener('change', (event) => {
     currentBrush = event.target.value;
     updateBrushIndicator(classesMap.indexOf(currentBrush));
 });
-
+const dropdownMenuButton = document.getElementById("dropdownMenuButton");
 BrushSizeSlider.addEventListener('input', (event) => {
     brushSize = event.target.value;
+    dropdownMenuButton.innerHTML = '<i class="bi bi-brush-fill"></i> Size: ' + brushSize + 'px';
 });
 
 ToggleEdit.addEventListener('click', () => {
     isEditing = !isEditing;
-    ToggleEdit.textContent = isEditing ? 'Edit Mode' : 'View Mode';
+    ToggleEdit.innerHTML = isEditing ? '<i class="bi bi-pencil-fill"></i>' : '<i class="bi bi-eye-fill"></i>';
     OverlayCanvas.style.pointerEvents = isEditing ? 'auto' : 'none';
     BoxCanvas.style.pointerEvents = (isEditing && editMode === 'boundingBox') ? 'auto' : 'none';
 });
+
+var ToggleMask = document.getElementById("toggle-mask")
+var maskVisibility = true;
+ToggleMask.addEventListener('click', () => {
+    maskVisibility = !maskVisibility;
+    ToggleMask.innerHTML = maskVisibility ? '<i class="bi bi-circle-fill"></i>' : '<i class="bi bi-circle"></i>';
+    OverlayCanvas.style.opacity = maskVisibility ? '0.3' : '0';
 });
+
 
 function getMousePos(canvas, evt) {
     var rect = canvas.getBoundingClientRect();
