@@ -5,7 +5,6 @@ var DICOMOverview = document.getElementById('DICOMOverview');
 var RawImg = document.getElementById('RawImg');
 var PixelDataDisplay = document.getElementById('PixelDataDisplay');
 var DICOMSlider = document.getElementById('DICOMSlider');
-var ConversionResult = document.getElementById('ConversionResult');
 var clean_image = document.getElementById('clean-image');
 var OverlayCanvas = document.getElementById('OverlayCanvas')
 var ctx = OverlayCanvas.getContext('2d');
@@ -393,7 +392,6 @@ document.querySelector('#UploadForm input[name="files"]').addEventListener
             }
         );
         const dcm_files = await dcm_files_response.json();
-        ConversionResult.style.display = 'none';
         if (dcm_files_response.ok && dcm_files.n_uploaded_files > 0)
         {
             n_uploaded_files = dcm_files.n_uploaded_files;
@@ -514,7 +512,6 @@ async function submit_dicom_processing_request()
     DICOMSlider.value = 0;
     await UpdateDICOMInformation(0);
     CheckForChanges();
-    ConversionResult.style.display = 'inline';
     retain_safe_private_input_checkbox.disabled = false;
     retain_uids_input_checkbox.disabled = false;
     retain_device_identity_input_checkbox.disabled = false;
