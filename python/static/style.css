@@ -37,3 +37,123 @@ body {
     pointer-events: none;
     cursor: crosshair;
 }
+
+.metadata-table
+{
+    overflow: hidden;
+    background-color: rgba(47, 47, 51, 255);
+    color: white;
+    border-radius: 3px;
+    padding-left: 7px;
+    padding-bottom: 7px;
+}
+
+.outer-row
+{
+    display: flex;
+    border: 0px;
+}
+
+.inner-table, .inner-table-column-names
+{
+    display: table;
+    max-width: 99.5%;
+    min-width: 99.5%;
+}
+
+.inner-row:hover
+{
+    background-color: rgba(60, 60, 70, 255);
+    transition: background-color 0.3s;
+}
+
+.table-row
+{
+    display: table-cell;
+    flex: 1;
+    max-width: 49.5%;
+    min-width: 49.5%;
+    border-left: 0px;
+    border-right: 0px;
+}
+
+.cell-expand-row
+{
+    display: table-cell;
+    border: 1px solid rgba(39, 39, 43, 255);
+    border-left: 2px solid rgba(39, 39, 43, 255);
+    border-right: 0px solid rgba(39, 39, 43, 255);
+    width: 14px;
+    min-width: 14px;
+    padding: 2px;
+    text-align: center;
+    line-height: 30px;
+}
+
+.image-row-left-label
+{
+    display: table-cell;
+    width: 21px;
+    min-width: 21px;
+    padding: 2px;
+}
+
+.cell-expand-row-margin
+{
+    display: table-cell;
+    background-color: rgba(47, 47, 51, 255);
+    width: 16px;
+    min-width: 16px;
+    padding: 2px;
+    text-align: center;
+    line-height: 30px;
+}
+
+.cell-dataset, .empty-cleaned-row
+{
+    display: table-cell;
+    border: 1px solid rgba(39, 39, 43, 255);
+    width: 100%;
+    padding: 8px;
+    word-break: break-all;
+}
+
+.cell-dcmtag-id
+{
+    display: table-cell;
+    border: 1px solid rgba(39,39,43,255);
+    width: 110px;
+    min-width: 110px;
+    padding: 8px;
+    word-break: break-all;
+}
+
+.cell-dcmtag-vr
+{
+    display: table-cell;
+    border: 1px solid rgba(39,39,43,255);
+    width: 40px;
+    min-width: 40px;
+    padding: 8px;
+    word-break: break-all;
+}
+
+.cell-dcmtag-value
+{
+    flex: 1;
+    display: table-cell;
+    border: 1px solid rgba(39,39,43,255);
+    width: 100%;
+    padding: 8px;
+    word-break: break-all;
+}
+
+.cell-dcmtag-name
+{
+    display: table-cell;
+    border: 1px solid rgba(39,39,43,255);
+    width: 200px;
+    min-width: 200px;
+    padding: 8px;
+    word-break: break-all;
+}
