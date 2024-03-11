@@ -3,18 +3,18 @@ body {
     margin: 0;
     padding: 0;
     height: 100%;
-    overflow: hidden;
+    overflow: scroll;
 }
 
 .DCMImg {
     display: block;
     width: 100%;
     object-fit: contain;
-    max-height: 80vh;
 }
 
 #ImgWrapper {
     position: relative;
+    max-width: 40vw;
 }
 
 #OverlayCanvas,
