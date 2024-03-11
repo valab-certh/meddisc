@@ -256,7 +256,7 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
     `
         <div class="outer-row">
             <div class="inner-table-column-names">
-                <div class="table-row">
+                <div class="header-table-row">
                     <div class="cell-expand-row"></div>
                     <div class="cell-dcmtag-name"${UppermostRowStyle}><b>Tag Name</b></div>
                     <div class="cell-dcmtag-value"${UppermostRowStyle}><b>Tag Value</b></div>
