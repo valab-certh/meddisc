@@ -7,6 +7,10 @@ var PixelDataDisplay = document.getElementById('PixelDataDisplay');
 var DICOMSlider = document.getElementById('DICOMSlider');
 var clean_image = document.getElementById('clean-image');
 var annotation = document.getElementById('annotation');
+var BrushSizeButton = document.getElementById('BrushSizeButton');
+var DisplayRadio = document.getElementById('display-radio');
+var OverlayCanvas = document.getElementById('OverlayCanvas');
+var ToggleDiff = document.getElementById('ToggleDiff0');
 var ctx = OverlayCanvas.getContext('2d');
 var ToggleEdit = document.getElementById('ToggleEdit');
 var BrushSizeSlider = document.getElementById('BrushSizeSlider');
@@ -406,6 +410,17 @@ document.querySelector('#UploadForm input[name="files"]').addEventListener
                 </br>
             `;
             SubmitAnonymizationProcess.disabled = false;
+            annotation.disabled = false;
+            clean_image.disabled = false;
+            retain_safe_private_input_checkbox.disabled = false;
+            retain_uids_input_checkbox.disabled = false;
+            retain_device_identity_input_checkbox.disabled = false;
+            retain_patient_characteristics_input_checkbox.disabled = false;
+            date_processing_select.disabled = false;
+            retain_descriptors_input_checkbox.disabled = false;
+            patient_pseudo_id_prefix_input_text.disabled = false;
+            DICOMSlider.disabled = true;
+            DisplayRadio.disabled = true;
             resetGUIElements();
         }
         else
@@ -507,11 +522,27 @@ async function submit_dicom_processing_request()
             body: JSON.stringify(data)
         }
     );
+
+    if (clean_image.checked) {
+        DisplayRadio.disabled=false;
+    }
     dicom_data_fps = await dicom_data_fps_response.json();
+    DICOMSlider.disabled = false;
     DICOMSlider.max = n_uploaded_files-1;
     DICOMSlider.value = 0;
+
     await UpdateDICOMInformation(0);
     CheckForChanges();
+    annotation.disabled = true;
+    clean_image.disabled = true;
+    retain_safe_private_input_checkbox.disabled = true;
+    retain_uids_input_checkbox.disabled = true;
+    retain_device_identity_input_checkbox.disabled = true;
+    retain_patient_characteristics_input_checkbox.disabled = true;
+    date_processing_select.disabled = true;
+    retain_descriptors_input_checkbox.disabled = true;
+    patient_pseudo_id_prefix_input_text.disabled = true;
+    ToggleDiff.disabled = false;
     if (annotation.checked) {
         BrushSelect.disabled=false;
         ClassText.disabled=false;
@@ -872,6 +903,8 @@ async function submit_classes(){
     Remove.disabled = true;
     ClassText.disabled = true;
     SubmitClasses.disabled = true;
+    DisplayRadio.disabled=false;
+    BrushSizeButton.disabled=false;
     if (predefinedClassesMap.length === 1 && predefinedClassesMap[0] == 'background')
     {
         get_mask_from_file();
@@ -1006,8 +1039,11 @@ function resetGUIElements() {
     Redo.disabled = true;
     LoadDICOM.disabled = true;
     ModifyDICOM.disabled = true;
-    Add.disabled = false;
-    Remove.disabled = false;
-    ClassText.disabled = false;
-    SubmitClasses.disabled = false;
+    Add.disabled = true;
+    Remove.disabled = true;
+    ClassText.disabled = true;
+    SubmitClasses.disabled = true;
+    BrushSelect.disabled = true;
+    DisplayRadio.disabled=true;
+    BrushSizeButton.disabled=true;
 }
