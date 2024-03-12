@@ -191,52 +191,88 @@
                                     <div class="col-6 d-flex justify-content-between">
                                         <select id="BrushSelect"
                                                 class="form-select"
-                                                aria-label="Default select example">
+                                                    aria-label="Default select example"
+                                                    title="Select annotation class"
+                                                    disabled>
                                             <option value="background" selected>background</option>
                                         </select>
-                                        <div class="colorIndicator"></div>
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text colorIndicator"
+                                                      id="colorIndicator"
+                                                      title="Class color indicator"></span>
+                                            </div>
                                         <input id="ClassText"
                                                type="text"
                                                class="form-control"
                                                placeholder="Class Name"
                                                aria-label="ID"
-                                               aria-describedby="basic-addon1">
-                                        <button type="button" id="Add" onclick="add_class()" class="btn btn-primary">
+                                                   title="Input a class name"
+                                                   disabled>
+                                            <button type="button"
+                                                    id="Add"
+                                                    onclick="add_class()"
+                                                    class="btn btn-primary"
+                                                    title="Add an annotation class"
+                                                    disabled>
                                             <i class="bi bi-bookmark-plus-fill"></i>
                                         </button>
                                         <button type="button"
                                                 id="Remove"
                                                 onclick="remove_class()"
-                                                class="btn btn-primary">
+                                                    class="btn btn-primary"
+                                                    title="Remove existing annotation class"
+                                                    disabled>
                                             <i class="bi bi-bookmark-x-fill"></i>
                                         </button>
                                         <button type="button"
                                                 id="SubmitClasses"
                                                 onclick="submit_classes()"
-                                                class="btn btn-primary">
+                                                    class="btn btn-primary"
+                                                    title="Submit classes to begin annotation"
+                                                    disabled>
                                             <i class="bi bi-arrow-right-square-fill"></i>
                                         </button>
                                     </div>
-                                    <div class="col-6 d-flex justify-content-between">
-                                        <button type="button" id="toggle-mask" class="btn btn-primary" disabled>
+                                            <button type="button"
+                                                    id="toggle-mask"
+                                                    class="btn btn-primary"
+                                                    title="Show/hide annotation masks"
+                                                    disabled>
                                             <i class="bi bi-circle-fill"></i>
                                         </button>
-                                        <button type="button" id="ToggleEdit" class="btn btn-primary" disabled>
+                                            <button type="button"
+                                                    id="ToggleEdit"
+                                                    class="btn btn-primary"
+                                                    title="View/edit mode"
+                                                    disabled>
                                             <i class="bi bi-eye-fill"></i>
                                         </button>
-                                        <button type="button" id="Mode" class="btn btn-primary" disabled>
+                                            <button type="button"
+                                                    id="Mode"
+                                                    class="btn btn-primary"
+                                                    title="Toggle annotation tool"
+                                                    disabled>
                                             <i class="bi bi-brush-fill"></i>
                                         </button>
-                                        <button type="button" id="Undo" class="btn btn-primary" disabled>
+                                            <button type="button"
+                                                    id="Undo"
+                                                    class="btn btn-primary"
+                                                    title="Undo (Ctrl-Z)"
+                                                    disabled>
                                             <i class="bi bi-arrow-90deg-left"></i>
                                         </button>
-                                        <button type="button" id="Redo" class="btn btn-primary" disabled>
+                                            <button type="button"
+                                                    id="Redo"
+                                                    class="btn btn-primary"
+                                                    title="Redo (Ctrl-Y)"
+                                                    disabled>
                                             <i class="bi bi-arrow-90deg-right"></i>
                                         </button>
                                         <button type="button"
                                                 id="ResetDICOM"
                                                 class="btn btn-primary"
                                                 onclick="get_mask_from_file(dcm_idx_)"
+                                                    title="Discard changes"
                                                 disabled>
                                             <i class="bi bi-arrow-clockwise"></i>
                                         </button>
@@ -244,18 +280,23 @@
                                                 id="ModifyDICOM"
                                                 class="btn btn-primary"
                                                 onclick="modify_dicom()"
+                                                    title="Save annotation data to DICOM file"
                                                 disabled>
                                             <i class="bi bi-floppy-fill"></i>
                                         </button>
                                         <div class="dropdown">
-                                            <button class="btn btn-secondary dropdown-toggle"
+                                                <button class="btn btn-secondary dropdown-toggle dropdown-btn-fixed-width"
                                                     type="button"
-                                                    id="dropdownMenuButton"
+                                                        id="BrushSizeButton"
                                                     data-bs-toggle="dropdown"
-                                                    aria-expanded="false">
+                                                        aria-expanded="false"
+                                                        title="Change brush size in px"
+                                                        disabled>
                                                 <i class="bi bi-brush-fill"></i> Size: 25px
                                             </button>
-                                            <div class="dropdown-menu p-3" aria-labelledby="dropdownMenuButton">
+                                                <div class="dropdown-menu p-3"
+                                                     aria-labelledby="dropdownMenuButton"
+                                                     disabled>
                                                 <input type="range"
                                                        class="form-range"
                                                        id="BrushSizeSlider"
@@ -268,7 +309,9 @@
                                         <select id="display-radio"
                                                 class="form-select"
                                                 aria-label="Default select example"
-                                                onchange="DisplayMode(this.value)">
+                                                    onchange="DisplayMode(this.value)"
+                                                    title="Text detector display mode"
+                                                    disabled>
                                             <option value="cleaned_display_option" selected>Clean</option>
                                             <option value="bboxes_display_option">BBoxes</option>
                                             <option value="raw_display_option">Raw</option>
