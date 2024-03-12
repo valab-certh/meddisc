@@ -323,10 +323,9 @@ async function UpdateDICOMInformation(dcm_idx)
             undoStack = [];
             redoStack = [];
         }
+        document.getElementById('sliderLabel').textContent = dcm_idx_;
         DICOMOverview.innerHTML =
         `
-            Index: ${dcm_idx_}
-            </br>
             Raw File Path: ${dicom_data_fp[0]}
             </br>
             Clean File Path: ${dicom_data_fp[1]}

@@ -171,6 +171,9 @@
                              role="tabpanel"
                              aria-labelledby="home-tab"
                              tabindex="0">
+                            <div class="container">
+                                <div class="d-flex align-items-center">
+                                    <label for="DICOMSlider">File</label>
                             <input id="DICOMSlider"
                                    type="range"
                                    class="form-range"
@@ -178,7 +181,11 @@
                                    min="0"
                                    max="${n_uploaded_files-1}"
                                    step="1"
-                                   oninput="UpdateDICOMInformation(this.value)">
+                                           oninput="UpdateDICOMInformation(this.value)"
+                                           disabled>
+                                    <span id="sliderLabel">0</span>
+                                </div>
+                            </div>
                             <div class="container">
                                 <div class="row">
                                     <div class="col-6 d-flex justify-content-between">
