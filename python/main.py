@@ -128,6 +128,9 @@ def clean_imgs() -> None:
     for fp in fps:
         if str(fp).split(".")[-1] == "png":
             Path(fp).unlink()
+    edp, _, efps = next(iter(os.walk("./tmp/session-data/embed")))
+    for efp in efps:
+        Path(edp + "/" + efp).unlink()
     if Path("./tmp/session-data/clean/de-identified-files").exists():
         shutil.rmtree("./tmp/session-data/clean/de-identified-files")
 
