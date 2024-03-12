@@ -44,6 +44,7 @@ if TYPE_CHECKING:
 
 class UserOptionsClass(BaseModel):
     clean_image: bool
+    annotation: bool
     retain_safe_private: bool
     retain_uids: bool
     retain_device_identity: bool
@@ -1108,6 +1109,7 @@ async def handle_submit_button_click(user_options: UserOptionsClass) -> list[Any
         "input_dcm_dp": "./tmp/session-data/raw",
         "output_dcm_dp": "./tmp/session-data/clean",
         "clean_image": True,
+        "annotation": True,
         "retain_safe_private": False,
         "retain_uids": False,
         "retain_device_identity": False,
@@ -1127,7 +1129,8 @@ async def handle_submit_button_click(user_options: UserOptionsClass) -> list[Any
     session_fp = Path("./tmp/session-data/session.json")
     with session_fp.open("w") as file:
         json.dump(session, file)
-    prepare_medsam()
+    if user_options["annotation"]:  # type: ignore[index]
+        prepare_medsam()
     return dicom_pair_fps
 
 

@@ -6,7 +6,7 @@ var RawImg = document.getElementById('RawImg');
 var PixelDataDisplay = document.getElementById('PixelDataDisplay');
 var DICOMSlider = document.getElementById('DICOMSlider');
 var clean_image = document.getElementById('clean-image');
-var OverlayCanvas = document.getElementById('OverlayCanvas')
+var annotation = document.getElementById('annotation');
 var ctx = OverlayCanvas.getContext('2d');
 var ToggleEdit = document.getElementById('ToggleEdit');
 var BrushSizeSlider = document.getElementById('BrushSizeSlider');
@@ -487,6 +487,7 @@ async function submit_dicom_processing_request()
     const data =
     {
         'clean_image': clean_image.checked,
+        'annotation': annotation.checked,
         'retain_safe_private': retain_safe_private_input_checkbox.checked,
         'retain_uids': retain_uids_input_checkbox.checked,
         'retain_device_identity': retain_device_identity_input_checkbox.checked,
@@ -512,12 +513,12 @@ async function submit_dicom_processing_request()
     DICOMSlider.value = 0;
     await UpdateDICOMInformation(0);
     CheckForChanges();
-    retain_safe_private_input_checkbox.disabled = false;
-    retain_uids_input_checkbox.disabled = false;
-    retain_device_identity_input_checkbox.disabled = false;
-    retain_patient_characteristics_input_checkbox.disabled = false;
-    date_processing_select.disabled = false;
-    retain_descriptors_input_checkbox.disabled = false;
+    if (annotation.checked) {
+        BrushSelect.disabled=false;
+        ClassText.disabled=false;
+        Add.disabled=false;
+        Remove.disabled=false;
+        SubmitClasses.disabled=false;
     await fetch
     (
         '/correct_seg_homogeneity',
@@ -542,6 +543,7 @@ async function submit_dicom_processing_request()
     {
         const newOption = new Option(classesMap[class_idx], classesMap[class_idx], false, false);
         BrushSelect.add(newOption);
+        }
     }
 }
 
