@@ -5,9 +5,12 @@ var DICOMOverview = document.getElementById('DICOMOverview');
 var RawImg = document.getElementById('RawImg');
 var PixelDataDisplay = document.getElementById('PixelDataDisplay');
 var DICOMSlider = document.getElementById('DICOMSlider');
-var ConversionResult = document.getElementById('ConversionResult');
 var clean_image = document.getElementById('clean-image');
-var OverlayCanvas = document.getElementById('OverlayCanvas')
+var annotation = document.getElementById('annotation');
+var BrushSizeButton = document.getElementById('BrushSizeButton');
+var DisplayRadio = document.getElementById('display-radio');
+var OverlayCanvas = document.getElementById('OverlayCanvas');
+var ToggleDiff = document.getElementById('ToggleDiff0');
 var ctx = OverlayCanvas.getContext('2d');
 var ToggleEdit = document.getElementById('ToggleEdit');
 var BrushSizeSlider = document.getElementById('BrushSizeSlider');
@@ -82,8 +85,6 @@ var dicom_data;
 var total_altered_dicom_tags = '-';
 var LoadingState = false;
 var masks = '';
-var modal = document.querySelector('#modal');
-var openModal = document.querySelector('#open-button');
 var overrideMasks = document.querySelector('#overrideMasks');
 var useBatchMasks = document.querySelector('#useBatchMasks');
 var classes_submitted_state = false;
@@ -257,7 +258,7 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
     `
         <div class="outer-row">
             <div class="inner-table-column-names">
-                <div class="table-row">
+                <div class="header-table-row">
                     <div class="cell-expand-row"></div>
                     <div class="cell-dcmtag-name"${UppermostRowStyle}><b>Tag Name</b></div>
                     <div class="cell-dcmtag-value"${UppermostRowStyle}><b>Tag Value</b></div>
@@ -324,11 +325,10 @@ async function UpdateDICOMInformation(dcm_idx)
             undoStack = [];
             redoStack = [];
         }
+        document.getElementById('sliderLabel').textContent = dcm_idx_;
         DICOMOverview.innerHTML =
         `
-            Index: ${dcm_idx_}
-            </br>
-            Raw File Path: ${dicom_data_fp[0]}
+            Raw File Path: ./${dicom_data_fp[0]}
             </br>
             Clean File Path: ${dicom_data_fp[1]}
             </br>
@@ -393,7 +393,6 @@ document.querySelector('#UploadForm input[name="files"]').addEventListener
             }
         );
         const dcm_files = await dcm_files_response.json();
-        ConversionResult.style.display = 'none';
         if (dcm_files_response.ok && dcm_files.n_uploaded_files > 0)
         {
             n_uploaded_files = dcm_files.n_uploaded_files;
@@ -409,7 +408,19 @@ document.querySelector('#UploadForm input[name="files"]').addEventListener
                 </br>
             `;
             SubmitAnonymizationProcess.disabled = false;
+            annotation.disabled = false;
+            clean_image.disabled = false;
+            retain_safe_private_input_checkbox.disabled = false;
+            retain_uids_input_checkbox.disabled = false;
+            retain_device_identity_input_checkbox.disabled = false;
+            retain_patient_characteristics_input_checkbox.disabled = false;
+            date_processing_select.disabled = false;
+            retain_descriptors_input_checkbox.disabled = false;
+            patient_pseudo_id_prefix_input_text.disabled = false;
+            DICOMSlider.disabled = true;
+            DisplayRadio.disabled = true;
             resetGUIElements();
+            ctx.clearRect(0, 0, OverlayCanvas.width, OverlayCanvas.height);
         }
         else
         {
@@ -449,7 +460,7 @@ document.querySelector('#SessionForm input[name="SessionFile"]').addEventListene
 
 window.onload = function()
 {
-    document.querySelector('.UploadConfig').addEventListener
+    document.querySelector('#UploadForm').addEventListener
     (
         'change',
         function(e)
@@ -489,6 +500,7 @@ async function submit_dicom_processing_request()
     const data =
     {
         'clean_image': clean_image.checked,
+        'annotation': annotation.checked,
         'retain_safe_private': retain_safe_private_input_checkbox.checked,
         'retain_uids': retain_uids_input_checkbox.checked,
         'retain_device_identity': retain_device_identity_input_checkbox.checked,
@@ -509,42 +521,57 @@ async function submit_dicom_processing_request()
             body: JSON.stringify(data)
         }
     );
+
+    if (clean_image.checked) {
+        DisplayRadio.disabled=false;
+    }
     dicom_data_fps = await dicom_data_fps_response.json();
+    DICOMSlider.disabled = false;
     DICOMSlider.max = n_uploaded_files-1;
     DICOMSlider.value = 0;
     await UpdateDICOMInformation(0);
     CheckForChanges();
-    ConversionResult.style.display = 'inline';
-    retain_safe_private_input_checkbox.disabled = false;
-    retain_uids_input_checkbox.disabled = false;
-    retain_device_identity_input_checkbox.disabled = false;
-    retain_patient_characteristics_input_checkbox.disabled = false;
-    date_processing_select.disabled = false;
-    retain_descriptors_input_checkbox.disabled = false;
-    await fetch
-    (
-        '/correct_seg_homogeneity',
-        {
-            method: 'POST'
-        }
-    );
-    const predefinedClassesMap_responce = await fetch
-    (
-        '/get_batch_classes',
-        {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
+    annotation.disabled = true;
+    clean_image.disabled = true;
+    retain_safe_private_input_checkbox.disabled = true;
+    retain_uids_input_checkbox.disabled = true;
+    retain_device_identity_input_checkbox.disabled = true;
+    retain_patient_characteristics_input_checkbox.disabled = true;
+    date_processing_select.disabled = true;
+    retain_descriptors_input_checkbox.disabled = true;
+    patient_pseudo_id_prefix_input_text.disabled = true;
+    ToggleDiff.disabled = false;
+    if (annotation.checked) {
+        BrushSelect.disabled=false;
+        ClassText.disabled=false;
+        Add.disabled=false;
+        Remove.disabled=false;
+        SubmitClasses.disabled=false;
+        await fetch
+        (
+            '/correct_seg_homogeneity',
+            {
+                method: 'POST'
             }
+        );
+        const predefinedClassesMap_responce = await fetch
+        (
+            '/get_batch_classes',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+        predefinedClassesMap = await predefinedClassesMap_responce.json()
+        predefinedClassesMap = predefinedClassesMap.classes
+        classesMap = Array.from(predefinedClassesMap)
+        for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
+        {
+            const newOption = new Option(classesMap[class_idx], classesMap[class_idx], false, false);
+            BrushSelect.add(newOption);
         }
-    );
-    predefinedClassesMap = await predefinedClassesMap_responce.json()
-    predefinedClassesMap = predefinedClassesMap.classes
-    classesMap = Array.from(predefinedClassesMap)
-    for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
-    {
-        const newOption = new Option(classesMap[class_idx], classesMap[class_idx], false, false);
-        BrushSelect.add(newOption);
     }
 }
 
@@ -582,7 +609,7 @@ async function modify_dicom() {
         });
     if (modify_response.ok) {
         progress_saved = true
-        showNotification("success", "Saved to DICOM", 1500);
+        showNotification("success", "Saved to DICOM", 1500);    
     }
 }
 
@@ -607,18 +634,26 @@ BrushSelect.addEventListener('change', (event) => {
     currentBrush = event.target.value;
     updateBrushIndicator(classesMap.indexOf(currentBrush));
 });
-
 BrushSizeSlider.addEventListener('input', (event) => {
     brushSize = event.target.value;
+    BrushSizeButton.innerHTML = '<i class="bi bi-brush-fill"></i> Size: ' + brushSize + 'px';
 });
 
 ToggleEdit.addEventListener('click', () => {
     isEditing = !isEditing;
-    ToggleEdit.textContent = isEditing ? 'Edit Mode' : 'View Mode';
+    ToggleEdit.innerHTML = isEditing ? '<i class="bi bi-pencil-fill"></i>' : '<i class="bi bi-eye-fill"></i>';
     OverlayCanvas.style.pointerEvents = isEditing ? 'auto' : 'none';
     BoxCanvas.style.pointerEvents = (isEditing && editMode === 'boundingBox') ? 'auto' : 'none';
-    showNotification("info", "Switched to " + ToggleEdit.textContent, 1500);
 });
+
+var ToggleMask = document.getElementById("toggle-mask")
+var maskVisibility = true;
+ToggleMask.addEventListener('click', () => {
+    maskVisibility = !maskVisibility;
+    ToggleMask.innerHTML = maskVisibility ? '<i class="bi bi-circle-fill"></i>' : '<i class="bi bi-circle"></i>';
+    OverlayCanvas.style.opacity = maskVisibility ? '0.3' : '0';
+});
+
 
 function getMousePos(canvas, evt) {
     var rect = canvas.getBoundingClientRect();
@@ -735,7 +770,7 @@ async function medsam_estimation(normalizedStart,normalizedEnd) {
 Mode.addEventListener('click', function () {
     if (editMode === 'brush') {
         editMode = 'boundingBox';
-        Mode.textContent = 'Box';
+        Mode.innerHTML = '<i class="bi bi-bounding-box-circles"></i>';
         BoxCanvas.style.pointerEvents = isEditing ? 'auto' : 'none';
         document.querySelector('#BrushSelect option[value="background"]').disabled = true;
         let foundBackground = false;
@@ -754,11 +789,10 @@ Mode.addEventListener('click', function () {
         }
     } else {
         editMode = 'brush';
-        Mode.textContent = 'Brush';
+        Mode.innerHTML = '<i class="bi bi-brush-fill"></i>';
         BoxCanvas.style.pointerEvents = 'none';
         document.querySelector('#BrushSelect option[value="background"]').disabled = false;
     }
-    showNotification("info", "Switched to " + Mode.textContent, 1500);
 });
 
 BoxCanvas.addEventListener('mousedown', (e) => {
@@ -865,6 +899,7 @@ function remove_class() {
 async function submit_classes(){
     classes_submitted_state = true;
     ToggleEdit.disabled = false;
+    ToggleMask.disabled = false;
     if (classesMap.length > 1){
         Mode.disabled = false;
     }
@@ -877,13 +912,15 @@ async function submit_classes(){
     Remove.disabled = true;
     ClassText.disabled = true;
     SubmitClasses.disabled = true;
-    if (predefinedClassesMap.length === 1 && predefinedClassesMap[0] == 'background')
+    DisplayRadio.disabled=false;
+    BrushSizeButton.disabled=false;
+    get_mask_from_file();
+    if (classesMap.length !== predefinedClassesMap.length)
     {
-        get_mask_from_file();
-    }
-    else if (classesMap.length !== predefinedClassesMap.length)
-    {
-        modal.showModal();
+        var optionModal = new bootstrap.Modal(document.getElementById('optionModal'), {
+            keyboard: false
+          });
+        optionModal.show();
     }
     else
     {
@@ -891,7 +928,10 @@ async function submit_classes(){
         {
             if (classesMap[i] !== predefinedClassesMap[i])
             {
-                modal.showModal();
+                var optionModal = new bootstrap.Modal(document.getElementById('optionModal'), {
+                    keyboard: false
+                  });
+                optionModal.show();
                 break;
             }
         }
@@ -930,7 +970,6 @@ overrideMasks.addEventListener('click', async function(){
         }
     );
     get_mask_from_file();
-    modal.close();
 })
 
 useBatchMasks.addEventListener('click', function(){
@@ -944,8 +983,9 @@ useBatchMasks.addEventListener('click', function(){
         const newOption = new Option(classesMap[class_idx], classesMap[class_idx], false, false);
         BrushSelect.add(newOption);
     }
+    const event = new Event('change');
+    BrushSelect.dispatchEvent(event);
     get_mask_from_file();
-    modal.close();
 })
 
 function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
@@ -998,52 +1038,77 @@ function resetGUIElements() {
     classesMap = ["background"];
     classes_submitted_state = false;
     ToggleEdit.disabled = true;
+    ToggleMask.disabled = true;
     isEditing = false;
-    ToggleEdit.textContent = 'View Mode';
+    ToggleEdit.innerHTML = '<i class="bi bi-eye-fill"></i>';
     OverlayCanvas.style.pointerEvents = 'none';
     BoxCanvas.style.pointerEvents = 'none';
     Mode.disabled = true;
     editMode = 'brush';
-    Mode.textContent = 'Brush';
+    Mode.innerHTML = '<i class="bi bi-brush-fill"></i>';
     document.querySelector('#BrushSelect option[value="background"]').disabled = false;
     BrushSizeSlider.disabled = true;
     Undo.disabled = true;
     Redo.disabled = true;
     LoadDICOM.disabled = true;
     ModifyDICOM.disabled = true;
-    Add.disabled = false;
-    Remove.disabled = false;
-    ClassText.disabled = false;
-    SubmitClasses.disabled = false;
+    Add.disabled = true;
+    Remove.disabled = true;
+    ClassText.disabled = true;
+    SubmitClasses.disabled = true;
+    BrushSelect.disabled = true;
+    DisplayRadio.disabled=true;
+    BrushSizeButton.disabled=true;
 }
 
 function showNotification(type, text, duration) {
-    clearTimeout(notificationTimeout);
-    notificationText.textContent = text;
+    let icon, bgColor, textColor;
     switch (type) {
         case "success":
-            notificationIcon.textContent = "✔️"; 
-            notificationMessage.style.backgroundColor = "green";
-            notificationMessage.style.color = "white";
+            icon = "✔️";
+            bgColor = "bg-success";
+            textColor = "text-white";
             break;
         case "info":
-            notificationIcon.textContent = "ℹ️"; 
-            notificationMessage.style.backgroundColor = "lightblue";
-            notificationMessage.style.color = "black";
+            icon = "ℹ️";
+            bgColor = "bg-info";
+            textColor = "text-dark";
             break;
         case "failure":
-            notificationIcon.textContent = "❌"; 
-            notificationMessage.style.backgroundColor = "red";
-            notificationMessage.style.color = "white";
+            icon = "❌";
+            bgColor = "bg-danger";
+            textColor = "text-white";
             break;
         default:
-            notificationIcon.textContent = "";
-            notificationMessage.style.backgroundColor = "grey";
-            notificationMessage.style.color = "black";
+            icon = "";
+            bgColor = "bg-secondary";
+            textColor = "text-white";
             break;
     }
-    notificationMessage.style.display = "flex";
-    notificationTimeout = setTimeout(function() {
-        notificationMessage.style.display = "none";
+
+    const toastEl = document.createElement('div');
+    toastEl.classList.add('toast', bgColor, textColor);
+    toastEl.setAttribute('role', 'alert');
+    toastEl.setAttribute('aria-live', 'assertive');
+    toastEl.setAttribute('aria-atomic', 'true');
+    toastEl.innerHTML = `
+        <div class="toast-header ${bgColor} ${textColor}">
+            <strong class="me-auto">Notification</strong>
+        </div>
+        <div class="toast-body">
+            ${icon} ${text}
+        </div>
+    `;
+
+    document.getElementById('toast-container').appendChild(toastEl);
+
+    var toast = new bootstrap.Toast(toastEl);
+    toast.show();
+
+    setTimeout(() => {
+        toast.hide();
+        toastEl.addEventListener('hidden.bs.toast', () => {
+            toastEl.remove();
+        });
     }, duration);
 }

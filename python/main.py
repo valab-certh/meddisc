@@ -44,6 +44,7 @@ if TYPE_CHECKING:
 
 class UserOptionsClass(BaseModel):
     clean_image: bool
+    annotation: bool
     retain_safe_private: bool
     retain_uids: bool
     retain_device_identity: bool
@@ -127,6 +128,9 @@ def clean_imgs() -> None:
     for fp in fps:
         if str(fp).split(".")[-1] == "png":
             Path(fp).unlink()
+    edp, _, efps = next(iter(os.walk("./tmp/session-data/embed")))
+    for efp in efps:
+        Path(edp + "/" + efp).unlink()
     if Path("./tmp/session-data/clean/de-identified-files").exists():
         shutil.rmtree("./tmp/session-data/clean/de-identified-files")
 
@@ -454,15 +458,12 @@ async def correct_seg_homogeneity() -> None:
                     dtype=np.uint8,
                 ).reshape((dcm.Rows, dcm.Columns))
                 found_classes = dcm.SegmentSequence[0].SegmentDescription.split(";")
-                if len(found_classes) != (len(np.unique(mask))):
+                if len(found_classes) < (len(np.unique(mask))):
                     return False
             except Exception:
                 logging.exception("Exception occurred")
                 return False
-        if (
-            len(set(found_classes)) > 1
-            or dcm.SegmentSequence[0].SegmentDescription.split(";")[0] != "background"
-        ):
+        if dcm.SegmentSequence[0].SegmentDescription.split(";")[0] != "background":
             return False
         return True
 
@@ -1108,6 +1109,7 @@ async def handle_submit_button_click(user_options: UserOptionsClass) -> list[Any
         "input_dcm_dp": "./tmp/session-data/raw",
         "output_dcm_dp": "./tmp/session-data/clean",
         "clean_image": True,
+        "annotation": True,
         "retain_safe_private": False,
         "retain_uids": False,
         "retain_device_identity": False,
@@ -1127,7 +1129,8 @@ async def handle_submit_button_click(user_options: UserOptionsClass) -> list[Any
     session_fp = Path("./tmp/session-data/session.json")
     with session_fp.open("w") as file:
         json.dump(session, file)
-    prepare_medsam()
+    if user_options["annotation"]:  # type: ignore[index]
+        prepare_medsam()
     return dicom_pair_fps
 
 
