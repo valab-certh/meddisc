@@ -328,7 +328,7 @@ async function UpdateDICOMInformation(dcm_idx)
         document.getElementById('sliderLabel').textContent = dcm_idx_;
         DICOMOverview.innerHTML =
         `
-            Raw File Path: ${dicom_data_fp[0]}
+            Raw File Path: ./${dicom_data_fp[0]}
             </br>
             Clean File Path: ${dicom_data_fp[1]}
             </br>
@@ -420,6 +420,7 @@ document.querySelector('#UploadForm input[name="files"]').addEventListener
             DICOMSlider.disabled = true;
             DisplayRadio.disabled = true;
             resetGUIElements();
+            ctx.clearRect(0, 0, OverlayCanvas.width, OverlayCanvas.height);
         }
         else
         {
@@ -528,7 +529,6 @@ async function submit_dicom_processing_request()
     DICOMSlider.disabled = false;
     DICOMSlider.max = n_uploaded_files-1;
     DICOMSlider.value = 0;
-
     await UpdateDICOMInformation(0);
     CheckForChanges();
     annotation.disabled = true;
@@ -547,30 +547,30 @@ async function submit_dicom_processing_request()
         Add.disabled=false;
         Remove.disabled=false;
         SubmitClasses.disabled=false;
-    await fetch
-    (
-        '/correct_seg_homogeneity',
-        {
-            method: 'POST'
-        }
-    );
-    const predefinedClassesMap_responce = await fetch
-    (
-        '/get_batch_classes',
-        {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
+        await fetch
+        (
+            '/correct_seg_homogeneity',
+            {
+                method: 'POST'
             }
-        }
-    );
-    predefinedClassesMap = await predefinedClassesMap_responce.json()
-    predefinedClassesMap = predefinedClassesMap.classes
-    classesMap = Array.from(predefinedClassesMap)
-    for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
-    {
-        const newOption = new Option(classesMap[class_idx], classesMap[class_idx], false, false);
-        BrushSelect.add(newOption);
+        );
+        const predefinedClassesMap_responce = await fetch
+        (
+            '/get_batch_classes',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+        predefinedClassesMap = await predefinedClassesMap_responce.json()
+        predefinedClassesMap = predefinedClassesMap.classes
+        classesMap = Array.from(predefinedClassesMap)
+        for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
+        {
+            const newOption = new Option(classesMap[class_idx], classesMap[class_idx], false, false);
+            BrushSelect.add(newOption);
         }
     }
 }
@@ -634,10 +634,9 @@ BrushSelect.addEventListener('change', (event) => {
     currentBrush = event.target.value;
     updateBrushIndicator(classesMap.indexOf(currentBrush));
 });
-const dropdownMenuButton = document.getElementById("dropdownMenuButton");
 BrushSizeSlider.addEventListener('input', (event) => {
     brushSize = event.target.value;
-    dropdownMenuButton.innerHTML = '<i class="bi bi-brush-fill"></i> Size: ' + brushSize + 'px';
+    BrushSizeButton.innerHTML = '<i class="bi bi-brush-fill"></i> Size: ' + brushSize + 'px';
 });
 
 ToggleEdit.addEventListener('click', () => {
@@ -915,7 +914,7 @@ async function submit_classes(){
     SubmitClasses.disabled = true;
     DisplayRadio.disabled=false;
     BrushSizeButton.disabled=false;
-        get_mask_from_file();
+    get_mask_from_file();
     if (classesMap.length !== predefinedClassesMap.length)
     {
         var optionModal = new bootstrap.Modal(document.getElementById('optionModal'), {

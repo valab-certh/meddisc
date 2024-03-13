@@ -3,7 +3,7 @@ body {
     margin: 0;
     padding: 0;
     height: 100%;
-    overflow: scroll;
+    overflow-x: hidden;
 }
 
 .DCMImg {
@@ -173,4 +173,8 @@ body {
     background-size: 18px 18px;
     margin-left: .5rem;
     margin-right: .5rem;
+}
+
+.dropdown-btn-fixed-width {
+    min-width: 150px;
 }

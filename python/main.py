@@ -463,9 +463,7 @@ async def correct_seg_homogeneity() -> None:
             except Exception:
                 logging.exception("Exception occurred")
                 return False
-        if (
-            dcm.SegmentSequence[0].SegmentDescription.split(";")[0] != "background"
-        ):
+        if dcm.SegmentSequence[0].SegmentDescription.split(";")[0] != "background":
             return False
         return True
 
