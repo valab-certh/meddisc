@@ -458,14 +458,13 @@ async def correct_seg_homogeneity() -> None:
                     dtype=np.uint8,
                 ).reshape((dcm.Rows, dcm.Columns))
                 found_classes = dcm.SegmentSequence[0].SegmentDescription.split(";")
-                if len(found_classes) != (len(np.unique(mask))):
+                if len(found_classes) < (len(np.unique(mask))):
                     return False
             except Exception:
                 logging.exception("Exception occurred")
                 return False
         if (
-            len(set(found_classes)) > 1
-            or dcm.SegmentSequence[0].SegmentDescription.split(";")[0] != "background"
+            dcm.SegmentSequence[0].SegmentDescription.split(";")[0] != "background"
         ):
             return False
         return True

@@ -85,8 +85,6 @@ var dicom_data;
 var total_altered_dicom_tags = '-';
 var LoadingState = false;
 var masks = '';
-var modal = document.querySelector('#modal');
-var openModal = document.querySelector('#open-button');
 var overrideMasks = document.querySelector('#overrideMasks');
 var useBatchMasks = document.querySelector('#useBatchMasks');
 var classes_submitted_state = false;
@@ -917,13 +915,13 @@ async function submit_classes(){
     SubmitClasses.disabled = true;
     DisplayRadio.disabled=false;
     BrushSizeButton.disabled=false;
-    if (predefinedClassesMap.length === 1 && predefinedClassesMap[0] == 'background')
-    {
         get_mask_from_file();
-    }
-    else if (classesMap.length !== predefinedClassesMap.length)
+    if (classesMap.length !== predefinedClassesMap.length)
     {
-        modal.showModal();
+        var optionModal = new bootstrap.Modal(document.getElementById('optionModal'), {
+            keyboard: false
+          });
+        optionModal.show();
     }
     else
     {
@@ -931,7 +929,10 @@ async function submit_classes(){
         {
             if (classesMap[i] !== predefinedClassesMap[i])
             {
-                modal.showModal();
+                var optionModal = new bootstrap.Modal(document.getElementById('optionModal'), {
+                    keyboard: false
+                  });
+                optionModal.show();
                 break;
             }
         }
@@ -957,36 +958,36 @@ function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
     ctx.putImageData(imageData, 0, 0);
 }
 
-// overrideMasks.addEventListener('click', async function(){
-//     await fetch
-//     (
-//         '/align_classes/',
-//         {
-//             method: 'POST',
-//             headers: {
-//                 'Content-Type': 'application/json'
-//             },
-//             body: JSON.stringify(classesMap)
-//         }
-//     );
-//     get_mask_from_file();
-//     modal.close();
-// })
+overrideMasks.addEventListener('click', async function(){
+    await fetch
+    (
+        '/align_classes/',
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(classesMap)
+        }
+    );
+    get_mask_from_file();
+})
 
-// useBatchMasks.addEventListener('click', function(){
-//     for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
-//     {
-//         BrushSelect.remove(1);
-//     }
-//     classesMap = Array.from(predefinedClassesMap)
-//     for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
-//     {
-//         const newOption = new Option(classesMap[class_idx], classesMap[class_idx], false, false);
-//         BrushSelect.add(newOption);
-//     }
-//     get_mask_from_file();
-//     modal.close();
-// })
+useBatchMasks.addEventListener('click', function(){
+    for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
+    {
+        BrushSelect.remove(1);
+    }
+    classesMap = Array.from(predefinedClassesMap)
+    for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
+    {
+        const newOption = new Option(classesMap[class_idx], classesMap[class_idx], false, false);
+        BrushSelect.add(newOption);
+    }
+    const event = new Event('change');
+    BrushSelect.dispatchEvent(event);
+    get_mask_from_file();
+})
 
 function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
     const binaryString = window.atob(base64DicomMask);
