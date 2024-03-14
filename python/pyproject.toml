@@ -8,9 +8,9 @@ dependencies = [
   "pytest==8.0.2",
   "python-multipart==0.0.9",
   "segment-anything@git+https://github.com/facebookresearch/segment-anything.git@6fdee8f2727f4506cfbbe553e23b895e27956588",
-  "tensorflow==2.15.0.post1",
-  "torch@https://download.pytorch.org/whl/cpu/torch-2.2.0%2Bcpu-cp39-cp39-linux_x86_64.whl",
-  "torchvision@https://download.pytorch.org/whl/cpu/torchvision-0.17.0%2Bcpu-cp39-cp39-linux_x86_64.whl",
+  "tensorflow==2.16.1",
+  "torch@https://download.pytorch.org/whl/cpu/torch-2.2.1%2Bcpu-cp312-cp312-linux_x86_64.whl",
+  "torchvision@https://download.pytorch.org/whl/cpu/torchvision-0.17.1%2Bcpu-cp312-cp312-linux_x86_64.whl",
   "uvicorn==0.27.1"
 ]
 name = "UNKNOWN"
