@@ -585,7 +585,7 @@ async def medsam_estimation(boxdata: BoxData) -> BoxDataResponse:
     )
     medsam_seg = (seg_class * medsam_seg).astype(np.uint8)
     return BoxDataResponse(
-        mask=base64.b64encode(medsam_seg).decode("utf-8"),  # type: ignore[arg-type]
+        mask=base64.b64encode(medsam_seg).decode("utf-8"),
         dimensions=[int(ws[inp_idx]), int(hs[inp_idx])],
     )
 
