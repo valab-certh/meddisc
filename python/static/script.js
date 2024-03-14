@@ -496,6 +496,7 @@ window.onload = function()
 
 async function submit_dicom_processing_request()
 {
+    document.body.style.cursor = 'wait';
     SubmitAnonymizationProcess.disabled = true;
     const data =
     {
@@ -573,6 +574,7 @@ async function submit_dicom_processing_request()
             BrushSelect.add(newOption);
         }
     }
+    document.body.style.cursor = 'default';
 }
 
 async function get_mask_from_file() {
