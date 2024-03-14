@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.12-slim
 RUN apt-get update && apt-get install git libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender1 libfontconfig1 libice6 -y
 WORKDIR /usr/src/app
 COPY pyproject.toml .
