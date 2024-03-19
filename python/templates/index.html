@@ -71,12 +71,21 @@
                         <a href="https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html"> DICOM
                         PS3.15</a>
                     </i>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input"
-                               type="checkbox"
-                               role="switch"
-                               id="clean-image">
-                        <label class="form-check-label" for="flexSwitchCheckDefault">Clean pixel data</label>
+                    <div class="d-flex align-items-center">
+                        <div class="form-check form-switch me-2">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   role="switch"
+                                   id="clean-image">
+                            <label class="form-check-label" for="clean-image">Clean pixel data</label>
+                        </div>
+                        <select id="display-radio"
+                                class="form-select"
+                                aria-label="Display mode selection">
+                            <option value="cleaned-display-option" selected>Clean</option>
+                            <option value="bboxes-display-option">BBoxes</option>
+                            <option value="raw-display-option">Raw</option>
+                        </select>
                     </div>
                     <div class="form-check form-switch">
                         <input class="form-check-input"
@@ -310,16 +319,6 @@
                                                            step="1">
                                                 </div>
                                             </div>
-                                            <select id="display-radio"
-                                                    class="form-select"
-                                                    aria-label="Default select example"
-                                                    onchange="DisplayMode(this.value)"
-                                                    title="Text detector display mode"
-                                                    disabled>
-                                                <option value="cleaned_display_option" selected>Clean</option>
-                                                <option value="bboxes_display_option">BBoxes</option>
-                                                <option value="raw_display_option">Raw</option>
-                                            </select>
                                         </div>
                                     </div>
                                 </div>
