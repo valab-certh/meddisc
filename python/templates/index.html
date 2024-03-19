@@ -39,6 +39,7 @@
                             <br>
                             Total size of DICOM content: 0 MB
                             <br>
+                            <br>
                         </div>
                     </form>
                     <form id="SessionForm"
@@ -76,15 +77,18 @@
                             <input class="form-check-input"
                                    type="checkbox"
                                    role="switch"
-                                   id="clean-image">
+                                   id="clean-image"
+                                   checked>
                             <label class="form-check-label" for="clean-image">Clean pixel data</label>
                         </div>
                         <select id="display-radio"
                                 class="form-select"
-                                aria-label="Display mode selection">
-                            <option value="cleaned_display_option" selected>Clean</option>
-                            <option value="bboxes_display_option">BBoxes</option>
-                            <option value="raw_display_option">Raw</option>
+                                aria-label="Display mode selection"
+                                onchange="DisplayMode(this.value)"
+                                disabled>
+                            <option value="cleaned-display-option" selected>Clean</option>
+                            <option value="bboxes-display-option">BBoxes</option>
+                            <option value="raw-display-option">Raw</option>
                         </select>
                     </div>
                     <div class="form-check form-switch">
@@ -197,7 +201,7 @@
                              role="tabpanel"
                              aria-labelledby="home-tab"
                              tabindex="0">
-                            <div class="container">
+                            <div class="container d-flex justify-content-center align-items-center">
                                 <div class="row">
                                     <div class="col-lg-6 col-md-12 mb-3">
                                         <div class="input-group">
