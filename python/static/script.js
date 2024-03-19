@@ -417,7 +417,6 @@ document.querySelector('#UploadForm input[name="files"]').addEventListener
             retain_descriptors_input_checkbox.disabled = false;
             patient_pseudo_id_prefix_input_text.disabled = false;
             DICOMSlider.disabled = true;
-            DisplayRadio.disabled = true;
             resetGUIElements();
             ctx.clearRect(0, 0, OverlayCanvas.width, OverlayCanvas.height);
         }

@@ -863,7 +863,7 @@ def adjust_dicom_metadata(  # noqa: C901
         action_attr_tag_idx: str,
     ) -> pydicom.dataset.FileDataset:
         for ds_attr in ds:
-            ds_tag_idx = re.sub("[(,) ]", "", str(ds_attr.tag))
+            ds_tag_idx = re.sub("[(,) ]", "", str(ds_attr.tag)).upper()
             if ds[ds_tag_idx].VR == "SQ":
                 for inner_ds_idx in range(ds[ds_tag_idx].VM):
                     ds[ds_tag_idx].value[inner_ds_idx] = recursive_sq_cleaner(
