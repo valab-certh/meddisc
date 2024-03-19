@@ -916,15 +916,14 @@ async function submit_classes(){
     SubmitClasses.disabled = true;
     DisplayRadio.disabled=false;
     BrushSizeButton.disabled=false;
-    get_mask_from_file();
-    if (classesMap.length !== predefinedClassesMap.length)
+    if (classesMap.length !== predefinedClassesMap.length && predefinedClassesMap.length !== 1)
     {
         var optionModal = new bootstrap.Modal(document.getElementById('optionModal'), {
             keyboard: false
           });
         optionModal.show();
     }
-    else
+    else if (classesMap.length == predefinedClassesMap.length)
     {
         for (let i = 0; i < classesMap.length; i++)
         {
@@ -937,6 +936,10 @@ async function submit_classes(){
                 break;
             }
         }
+    }
+    else 
+    {
+        get_mask_from_file();
     }
     showNotification("success", "Submitted classes", 1500);
 }
