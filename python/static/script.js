@@ -398,7 +398,6 @@ document.querySelector('#UploadForm input[name="files"]').addEventListener
             n_uploaded_files = dcm_files.n_uploaded_files;
             UploadStatus.innerHTML = 
             `
-                </br>\n
                 Files Uploaded Successfully\n
                 </br>\n
                 Total DICOM files: ${n_uploaded_files}\n
