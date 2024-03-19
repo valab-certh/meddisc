@@ -243,7 +243,7 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
                                 ${indentation_block}
                                 <div class="cell-expand-row"${left_col_style}></div>
                                 <div class="cell-dcmtag-name"${left_col_style}>${name}</div>
-                                <div class="cell-dcmtag-value"${left_col_style}>${raw_value}</div>
+                                <div class="cell-dcmtag-value"${left_col_style}>${cleaned_value}</div>
                             </div>
                         </div>
                     </div>
