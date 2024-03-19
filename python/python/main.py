@@ -85,7 +85,7 @@ def main() -> None:
     )
     for action in ("D", "X/Z", "X/Z/D", "X/D", "Z/D"):
         dicom_tag_to_nema_action_df = dicom_tag_to_nema_action_df.replace(
-            to_replace={"Default": action},
+            to_replace=action,
             value="X",
         )
     for tag_idx in dicom_tag_to_nema_action_df.index:
