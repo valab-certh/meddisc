@@ -703,7 +703,12 @@ function undoLastAction() {
             ctx.clearRect(0, 0, OverlayCanvas.width, OverlayCanvas.height);
         }
     }
-    showNotification("info", "Undo", 1500);
+    if (undoStack.length == 0) {
+        showNotification("info", "Nothing to Undo", 1500);
+    }
+    else {
+        showNotification("info", "Undo", 1500);
+    }
 }
 
 function redoLastAction() {
@@ -712,7 +717,12 @@ function redoLastAction() {
         undoStack.push(nextState);
         ctx.putImageData(nextState, 0, 0);
     }
-    showNotification("info", "Redo", 1500);
+    if (redoStack.length == 0) {
+        showNotification("info", "Nothing to Redo", 1500);
+    }
+    else {
+        showNotification("info", "Redo", 1500);
+    }
 }
 
 document.addEventListener('keydown', (e) => {
