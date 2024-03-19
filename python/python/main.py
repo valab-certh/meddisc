@@ -83,6 +83,11 @@ def main() -> None:
         },
         value="K",
     )
+    for action in ("D", "X/Z", "X/Z/D", "X/D", "Z/D"):
+        dicom_tag_to_nema_action_df = dicom_tag_to_nema_action_df.replace(
+            to_replace={"Default": action},
+            value="X",
+        )
     for tag_idx in dicom_tag_to_nema_action_df.index:
         tag = "(" + tag_idx[0:4] + "," + tag_idx[4:9] + ")"
         if len(tag_idx) > THRESHOLD:

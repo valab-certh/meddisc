@@ -168,7 +168,7 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
             }
             else
             {
-                if (JSON.stringify(cleaned_value) !== JSON.stringify(raw_value))
+                if (JSON.stringify(cleaned_value) !== JSON.stringify(raw_value) || JSON.stringify(name) === 'Patient\'s Name' || JSON.stringify(name) === 'Patient ID')
                 {
                     total_altered_dicom_tags += 1;
                     left_col_style = ' style="background-color: rgba(0, 255, 255, 10%);"';

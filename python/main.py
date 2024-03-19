@@ -836,7 +836,7 @@ def get_action_group(
 def adjust_dicom_metadata(  # noqa: C901
     dcm: pydicom.dataset.FileDataset,
     action_group_fp: str,
-    patient_pseudo_id: str,  # noqa: ARG001
+    patient_pseudo_id: str,
     days_total_offset: int,
     seconds_total_offset: int,
 ) -> tuple[pydicom.dataset.FileDataset, dict[str, int]]:
@@ -874,16 +874,8 @@ def adjust_dicom_metadata(  # noqa: C901
             elif action_attr_tag_idx == ds_tag_idx:
                 if action == "Z":
                     # Check if ds_tag_idx is not one of the specified tags
-                    if ds_tag_idx not in ["00100010", "00100020"]:
-                        msg = (
-                            "E: Cannot apply action code `Z` in any"
-                            "other attribute besides Patient ID and"
-                            "Patient Name; the issue is likely on "
-                            "the action group config object"
-                        )
-                        raise ValueError(
-                            msg,
-                        )
+                    if ds_tag_idx in ["00100010", "00100020"]:
+                        ds[ds_tag_idx].value = patient_pseudo_id
                 elif action == "X":
                     ds[ds_tag_idx].value = ""
                 elif action == "C":
