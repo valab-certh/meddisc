@@ -91,6 +91,7 @@ body {
     padding: 2px;
     text-align: center;
     line-height: 30px;
+    font-size: 12px;
 }
 
 .image-row-left-label
@@ -177,4 +178,8 @@ body {
 
 .dropdown-btn-fixed-width {
     min-width: 150px;
+}
+
+#display-radio {
+    width: auto;
 }

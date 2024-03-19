@@ -703,7 +703,12 @@ function undoLastAction() {
             ctx.clearRect(0, 0, OverlayCanvas.width, OverlayCanvas.height);
         }
     }
-    showNotification("info", "Undo", 1500);
+    if (undoStack.length == 0) {
+        showNotification("info", "Nothing to Undo", 1500);
+    }
+    else {
+        showNotification("info", "Undo", 1500);
+    }
 }
 
 function redoLastAction() {
@@ -712,7 +717,12 @@ function redoLastAction() {
         undoStack.push(nextState);
         ctx.putImageData(nextState, 0, 0);
     }
-    showNotification("info", "Redo", 1500);
+    if (redoStack.length == 0) {
+        showNotification("info", "Nothing to Redo", 1500);
+    }
+    else {
+        showNotification("info", "Redo", 1500);
+    }
 }
 
 document.addEventListener('keydown', (e) => {
@@ -916,15 +926,14 @@ async function submit_classes(){
     SubmitClasses.disabled = true;
     DisplayRadio.disabled=false;
     BrushSizeButton.disabled=false;
-    get_mask_from_file();
-    if (classesMap.length !== predefinedClassesMap.length)
+    if (classesMap.length !== predefinedClassesMap.length && predefinedClassesMap.length !== 1)
     {
         var optionModal = new bootstrap.Modal(document.getElementById('optionModal'), {
             keyboard: false
           });
         optionModal.show();
     }
-    else
+    else if (classesMap.length == predefinedClassesMap.length)
     {
         for (let i = 0; i < classesMap.length; i++)
         {
@@ -937,6 +946,10 @@ async function submit_classes(){
                 break;
             }
         }
+    }
+    else 
+    {
+        get_mask_from_file();
     }
     showNotification("success", "Submitted classes", 1500);
 }

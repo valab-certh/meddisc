@@ -173,8 +173,8 @@ def app_url() -> str:
 
 
 def test_upload_files() -> None:
-    with Path("./prm/sample.dcm").open("rb") as file:
-        files = {"files": ("./prm/sample.dcm", file, "application/dicom")}
+    with Path("./prm/1-1.dcm").open("rb") as file:
+        files = {"files": ("./prm/1-1.dcm", file, "application/dicom")}
         response = client.post(app_url() + "/upload_files", files=files)
         if response.status_code != status.HTTP_200_OK:
             raise AssertionError
