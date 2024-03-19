@@ -88,7 +88,7 @@ var masks = '';
 var overrideMasks = document.querySelector('#overrideMasks');
 var useBatchMasks = document.querySelector('#useBatchMasks');
 var classes_submitted_state = false;
-var DisplayModeSelection = "cleaned_display_option";
+var DisplayModeSelection = "cleaned-display-option";
 
 function ShowDiffTable(ToggleValue)
 {
@@ -99,15 +99,15 @@ function ShowDiffTable(ToggleValue)
 function DisplayMode(DisplayModeSelection_)
 {
     DisplayModeSelection = DisplayModeSelection_
-    if (DisplayModeSelection == "cleaned_display_option")
+    if (DisplayModeSelection == "cleaned-display-option")
     {
         PixelDataDisplay.src = `data:image/png;base64,${dicom_data['cleaned_dicom_img_data']}`;
     }
-    else if (DisplayModeSelection == "bboxes_display_option")
+    else if (DisplayModeSelection == "bboxes-display-option")
     {
         PixelDataDisplay.src = `data:image/png;base64,${dicom_data['bboxes_dicom_img_data']}`;
     }
-    else if (DisplayModeSelection == "raw_display_option")
+    else if (DisplayModeSelection == "raw-display-option")
     {
         PixelDataDisplay.src = `data:image/png;base64,${dicom_data['raw_dicom_img_data']}`;
     }

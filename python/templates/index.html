@@ -81,7 +81,9 @@
                         </div>
                         <select id="display-radio"
                                 class="form-select"
-                                aria-label="Display mode selection">
+                                aria-label="Display mode selection"
+                                onchange="DisplayMode(this.value)"
+                                disabled>
                             <option value="cleaned-display-option" selected>Clean</option>
                             <option value="bboxes-display-option">BBoxes</option>
                             <option value="raw-display-option">Raw</option>
