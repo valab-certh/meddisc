@@ -833,12 +833,13 @@ def get_action_group(
     return requested_action_group_df
 
 
-def adjust_dicom_metadata(  # noqa: C901
+def adjust_dicom_metadata(  # noqa: C901, PLR0913
     dcm: pydicom.dataset.FileDataset,
     action_group_fp: str,
     patient_pseudo_id: str,
     days_total_offset: int,
     seconds_total_offset: int,
+    patient_pseudo_id_prefix: str,
 ) -> tuple[pydicom.dataset.FileDataset, dict[str, int]]:
     def add_date_offset(input_date_str: str, days_total_offset: str) -> str:
         input_date = datetime.datetime.strptime(input_date_str, "%Y%m%d").astimezone(
@@ -861,6 +862,7 @@ def adjust_dicom_metadata(  # noqa: C901
         ds: pydicom.dataset.FileDataset,
         action: str,
         action_attr_tag_idx: str,
+        patient_pseudo_id_prefix: str,
     ) -> pydicom.dataset.FileDataset:
         for ds_attr in ds:
             ds_tag_idx = re.sub("[(,) ]", "", str(ds_attr.tag)).upper()
@@ -870,12 +872,15 @@ def adjust_dicom_metadata(  # noqa: C901
                         ds=ds[ds_tag_idx][inner_ds_idx],
                         action=action,
                         action_attr_tag_idx=action_attr_tag_idx,
+                        patient_pseudo_id_prefix=patient_pseudo_id_prefix,
                     )
             elif action_attr_tag_idx == ds_tag_idx:
                 if action == "Z":
                     # Check if ds_tag_idx is not one of the specified tags
                     if ds_tag_idx in ["00100010", "00100020"]:
-                        ds[ds_tag_idx].value = patient_pseudo_id
+                        ds[ds_tag_idx].value = (
+                            patient_pseudo_id_prefix + patient_pseudo_id
+                        )
                 elif action == "X":
                     ds[ds_tag_idx].value = ""
                 elif action == "C":
@@ -906,6 +911,7 @@ def adjust_dicom_metadata(  # noqa: C901
             ds=dcm,
             action=action,
             action_attr_tag_idx=action_attr_tag_idx,
+            patient_pseudo_id_prefix=patient_pseudo_id_prefix,
         )
     return dcm, tag_value_replacements
 
@@ -1048,6 +1054,7 @@ def dicom_deidentifier(  # noqa: PLR0912, PLR0915
         if user_input["date_processing"] not in date_processing_choices:
             msg = "E: Invalid date processing input"
             raise ValueError(msg)
+        patient_pseudo_id_prefix = user_input["patient_pseudo_id_prefix"]
         real_patient_id = dcm[0x0010, 0x0020].value  # type: ignore[index]
         patient_deidentification_properties = session.get(real_patient_id, False)
         if not patient_deidentification_properties:
@@ -1068,6 +1075,7 @@ def dicom_deidentifier(  # noqa: PLR0912, PLR0915
             patient_pseudo_id=session[real_patient_id]["patient_pseudo_id"],
             days_total_offset=days_total_offset,
             seconds_total_offset=seconds_total_offset,
+            patient_pseudo_id_prefix=patient_pseudo_id_prefix,
         )
         session[real_patient_id]["days_offset"] = tag_value_replacements[
             "days_total_offset"
