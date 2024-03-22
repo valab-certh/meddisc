@@ -28,7 +28,7 @@ tmp:
 	mkdir $@
 
 tmp/all-done: .dockerignore .gitignore Dockerfile main.py pyproject.toml
-	docker container run \
+	docker container run --publish 443:443\
 		$$(command -v nvidia-container-toolkit > /dev/null && printf '%s' '--gpus all') \
 		$$(test -t 0 && printf '%s' '--interactive --tty') \
 		--detach-keys 'ctrl-^,ctrl-^' \
