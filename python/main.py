@@ -169,7 +169,7 @@ client = TestClient(app)
 
 
 def app_url() -> str:
-    return "http://0.0.0.0:8000"
+    return "http://0.0.0.0:443"
 
 
 def test_upload_files() -> None:
@@ -1166,7 +1166,7 @@ if __name__ == "__main__":
         run(
             app,
             host="0.0.0.0",  # noqa: S104
-            port=8000,
+            port=443,
             ssl_certfile="tmp/fullchain.pem",
             ssl_keyfile="tmp/privkey.pem",
         )
