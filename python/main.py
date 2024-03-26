@@ -453,6 +453,7 @@ async def correct_seg_homogeneity() -> None:
             except InvalidDicomError:
                 continue
             try:
+                dcm.SegmentSequence  # noqa: B018
                 mask = np.frombuffer(
                     dcm.SegmentSequence[0].PixelData,
                     dtype=np.uint8,
