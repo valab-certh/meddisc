@@ -944,6 +944,7 @@ async function submit_classes(){
                 break;
             }
         }
+        get_mask_from_file();
     }
     else 
     {
@@ -1008,6 +1009,7 @@ useBatchMasks.addEventListener('click', function(){
     const event = new Event('change');
     BrushSelect.dispatchEvent(event);
     get_mask_from_file();
+    debugger;
 })
 
 function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
