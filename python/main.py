@@ -432,15 +432,24 @@ def attach_segm_data(
 
 
 def renew_segm_seq(fps: list[str], classes: list[str]) -> None:
-    if classes != ["background"]:
-        pass
-    else:
-        pass
     for fp in fps:
         dcm = pydicom.dcmread(fp)
         img_shape = dcm.pixel_array.shape
         mask = np.zeros(shape=img_shape, dtype=np.uint8)
         dcm = attach_segm_data(dcm=dcm, seg_mask=mask, class_names=classes)
+        dcm.save_as(fp)
+
+
+@app.post("/export_classes")
+def export_classes(classes: list[str]) -> None:
+    user_fp = Path("./tmp/session-data/user-options.json")
+    with user_fp.open() as file:
+        user_input = json.load(file)
+    output_fp = Path(user_input["output_dcm_dp"])
+    fps = list(output_fp.rglob("*.dcm"))
+    for fp in fps:
+        dcm = pydicom.dcmread(fp)
+        dcm.SegmentSequence[0].SegmentDescription = ";".join(classes)
         dcm.save_as(fp)
 
 
