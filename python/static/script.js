@@ -947,6 +947,15 @@ async function submit_classes(){
     }
     else 
     {
+        await fetch(
+        '/export_classes/',
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(classesMap)
+        });
         get_mask_from_file();
     }
     showNotification("success", "Submitted classes", 1500);
