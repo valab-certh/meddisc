@@ -64,6 +64,14 @@
                                checked>
                         <label class="form-check-label" for="annotation">Enable annotation</label>
                     </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input"
+                               type="checkbox"
+                               role="switch"
+                               id="ExportAnnot2Nifti"
+                               checked>
+                        <label class="form-check-label" for="ExportAnnot2Nifti">Export annotation masks to NIfTI</label>
+                    </div>
                     <br>
                     <b>De-identification options</b>
                     <br>
@@ -296,9 +304,9 @@
                                                 <i class="bi bi-arrow-clockwise"></i>
                                             </button>
                                             <button type="button"
-                                                    id="ModifyDICOM"
+                                                    id="ExportMasks"
                                                     class="btn btn-primary"
-                                                    onclick="modify_dicom()"
+                                                    onclick="export_masks()"
                                                     title="Save annotation data to DICOM file"
                                                     disabled>
                                                 <i class="bi bi-floppy-fill"></i>

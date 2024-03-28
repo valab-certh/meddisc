@@ -37,6 +37,7 @@ from tiny_vit_sam import TinyViT
 from torch import nn
 from torch.nn import functional
 from uvicorn import run
+import nibabel as nib
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -68,10 +69,11 @@ class ResponseModel(BaseModel):
     message: str
 
 
-class DicomData(BaseModel):
+class SegData(BaseModel):
     pixel_data: str
     filepath: str
     classes: list[str]
+    export2nifti: bool
 
 
 class BoxData(BaseModel):
@@ -105,6 +107,10 @@ class ModifyResponse(BaseModel):
 class UploadFilesResponse(BaseModel):
     n_uploaded_files: int
     total_size: str
+
+
+class export2niftiResponse(BaseModel):
+    export2nifti: bool
 
 
 def clean_config_session() -> None:
@@ -373,14 +379,19 @@ async def get_mask_from_file(current_dcm_fp: str = Body(...)) -> MaskFromFileRes
     )
 
 
-@app.post("/modify_dicom/")
-async def modify_dicom(data: DicomData) -> ModifyResponse:
+@app.post("/export_masks/")
+async def export_masks(data: SegData) -> ModifyResponse:
     pixel_data = base64.b64decode(data.pixel_data)
-    filepath = data.filepath
-    modified_dcm = pydicom.dcmread(filepath)
+    fp = data.filepath
+    modified_dcm = pydicom.dcmread(fp)
     modified_dcm.SegmentSequence[0].PixelData = pixel_data
     modified_dcm.SegmentSequence[0].SegmentDescription = ";".join(data.classes)
-    modified_dcm.save_as(filepath)
+    modified_dcm.save_as(fp)
+    H, W = modified_dcm.SegmentSequence[0].Rows, modified_dcm.SegmentSequence[0].Columns
+    if data.export2nifti:
+        niifp = '.'.join(fp.split('.')[:-1]) + '.nii'
+        arr = np.frombuffer(pixel_data, dtype=np.uint8).reshape((H, W))
+        nib.save(nib.Nifti1Image(arr, np.eye(4)), niifp)
     return ModifyResponse(success=True)
 
 
@@ -431,8 +442,9 @@ def attach_segm_data(
     return dcm
 
 
-def renew_segm_seq(fps: list[str], classes: list[str]) -> None:
+def renew_segm_seq(fps: list, classes: list[str]) -> None:
     for fp in fps:
+        fp = str(fp)
         dcm = pydicom.dcmread(fp)
         img_shape = dcm.pixel_array.shape
         mask = np.zeros(shape=img_shape, dtype=np.uint8)
@@ -454,7 +466,7 @@ def export_classes(classes: list[str]) -> None:
 
 
 @app.post("/correct_seg_homogeneity")
-async def correct_seg_homogeneity() -> None:
+async def correct_seg_homogeneity(Data: export2niftiResponse) -> None:
     def segment_sequence_homogeneity_check(fps: list[str]) -> bool:
         for fp in fps:
             try:
@@ -471,7 +483,6 @@ async def correct_seg_homogeneity() -> None:
                 if len(found_classes) < (len(np.unique(mask))):
                     return False
             except Exception:
-                logging.exception("Exception occurred")
                 return False
         if dcm.SegmentSequence[0].SegmentDescription.split(";")[0] != "background":
             return False

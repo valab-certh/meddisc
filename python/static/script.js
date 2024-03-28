@@ -5,6 +5,7 @@ var DICOMOverview = document.getElementById('DICOMOverview');
 var RawImg = document.getElementById('RawImg');
 var PixelDataDisplay = document.getElementById('PixelDataDisplay');
 var DICOMSlider = document.getElementById('DICOMSlider');
+var ExportAnnot2Nifti = document.getElementById('ExportAnnot2Nifti');
 var clean_image = document.getElementById('clean-image');
 var annotation = document.getElementById('annotation');
 var BrushSizeButton = document.getElementById('BrushSizeButton');
@@ -16,7 +17,7 @@ var ToggleEdit = document.getElementById('ToggleEdit');
 var BrushSizeSlider = document.getElementById('BrushSizeSlider');
 var BrushSelect = document.getElementById('BrushSelect');
 var LoadDICOM = document.getElementById('ResetDICOM');
-var ModifyDICOM = document.getElementById('ModifyDICOM');
+var ExportMasks = document.getElementById('ExportMasks');
 var Undo = document.getElementById('Undo');
 var Redo = document.getElementById('Redo');
 var Mode = document.getElementById('Mode');
@@ -347,7 +348,7 @@ async function UpdateDICOMInformation(dcm_idx)
         save = confirm('Unsaved changes found. Save last changes before continuing?')
         if (save)
         {
-            await modify_dicom()
+            await export_masks()
             await UpdateDICOMInformation(dcm_idx)
         }
         else
@@ -539,6 +540,7 @@ async function submit_dicom_processing_request()
     date_processing_select.disabled = true;
     retain_descriptors_input_checkbox.disabled = true;
     patient_pseudo_id_prefix_input_text.disabled = true;
+    ExportAnnot2Nifti.disabled=true;
     ToggleDiff.disabled = false;
     if (annotation.checked) {
         BrushSelect.disabled=false;
@@ -546,11 +548,16 @@ async function submit_dicom_processing_request()
         Add.disabled=false;
         Remove.disabled=false;
         SubmitClasses.disabled=false;
+        correct_seg_homogeneity_data={export2nifti: ExportAnnot2Nifti.checked}
         await fetch
         (
             '/correct_seg_homogeneity',
             {
-                method: 'POST'
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(correct_seg_homogeneity_data)
             }
         );
         const predefinedClassesMap_responce = await fetch
@@ -592,14 +599,15 @@ async function get_mask_from_file() {
     }
 }
 
-async function modify_dicom() {
+async function export_masks() {
     const requestBody = {
         pixel_data: canvastobase64(),
         filepath: dicom_data_fps[dcm_idx_][1],
-        classes: classesMap
+        classes: classesMap,
+        export2nifti: ExportAnnot2Nifti.checked
     }; 
     const modify_response = await fetch(
-        '/modify_dicom/',
+        '/export_masks/',
         {
             method: 'POST',
             headers: {
@@ -917,7 +925,7 @@ async function submit_classes(){
     Undo.disabled = false;
     Redo.disabled = false;
     LoadDICOM.disabled = false;
-    ModifyDICOM.disabled = false;
+    ExportMasks.disabled = false;
     Add.disabled = true;
     Remove.disabled = true;
     ClassText.disabled = true;
@@ -1009,7 +1017,6 @@ useBatchMasks.addEventListener('click', function(){
     const event = new Event('change');
     BrushSelect.dispatchEvent(event);
     get_mask_from_file();
-    debugger;
 })
 
 function mergeMask(ctx, base64DicomMask, canvasWidth, canvasHeight, colorMap) {
@@ -1075,7 +1082,7 @@ function resetGUIElements() {
     Undo.disabled = true;
     Redo.disabled = true;
     LoadDICOM.disabled = true;
-    ModifyDICOM.disabled = true;
+    ExportMasks.disabled = true;
     Add.disabled = true;
     Remove.disabled = true;
     ClassText.disabled = true;
@@ -1083,6 +1090,7 @@ function resetGUIElements() {
     BrushSelect.disabled = true;
     DisplayRadio.disabled=true;
     BrushSizeButton.disabled=true;
+    ExportAnnot2Nifti.disabled=false;
 }
 
 function showNotification(type, text, duration) {
