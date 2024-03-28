@@ -548,7 +548,6 @@ async function submit_dicom_processing_request()
         Add.disabled=false;
         Remove.disabled=false;
         SubmitClasses.disabled=false;
-        correct_seg_homogeneity_data={export2nifti: ExportAnnot2Nifti.checked}
         await fetch
         (
             '/correct_seg_homogeneity',
@@ -556,8 +555,7 @@ async function submit_dicom_processing_request()
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(correct_seg_homogeneity_data)
+                }
             }
         );
         const predefinedClassesMap_responce = await fetch

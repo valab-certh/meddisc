@@ -4,7 +4,6 @@ import base64
 import datetime
 import hashlib
 import json
-import logging
 import os
 import re
 import secrets
@@ -19,6 +18,7 @@ from typing import TYPE_CHECKING, Any
 
 import cv2
 import keras_ocr
+import nibabel as nib
 import numpy as np
 import pandas as pd
 import pydicom
@@ -31,13 +31,11 @@ from fastapi.templating import Jinja2Templates
 from fastapi.testclient import TestClient
 from PIL import Image
 from pydantic import BaseModel
-from pydicom.errors import InvalidDicomError
 from segment_anything.modeling import MaskDecoder, PromptEncoder, TwoWayTransformer
 from tiny_vit_sam import TinyViT
 from torch import nn
 from torch.nn import functional
 from uvicorn import run
-import nibabel as nib
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -109,7 +107,7 @@ class UploadFilesResponse(BaseModel):
     total_size: str
 
 
-class export2niftiResponse(BaseModel):
+class Export2niftiResponse(BaseModel):
     export2nifti: bool
 
 
@@ -387,11 +385,11 @@ async def export_masks(data: SegData) -> ModifyResponse:
     modified_dcm.SegmentSequence[0].PixelData = pixel_data
     modified_dcm.SegmentSequence[0].SegmentDescription = ";".join(data.classes)
     modified_dcm.save_as(fp)
-    H, W = modified_dcm.SegmentSequence[0].Rows, modified_dcm.SegmentSequence[0].Columns
+    h, w = modified_dcm.SegmentSequence[0].Rows, modified_dcm.SegmentSequence[0].Columns
     if data.export2nifti:
-        niifp = '.'.join(fp.split('.')[:-1]) + '.nii'
-        arr = np.frombuffer(pixel_data, dtype=np.uint8).reshape((H, W))
-        nib.save(nib.Nifti1Image(arr, np.eye(4)), niifp)
+        niifp = ".".join(fp.split(".")[:-1]) + ".nii"
+        arr = np.frombuffer(pixel_data, dtype=np.uint8).reshape((h, w))
+        nib.save(nib.Nifti1Image(arr, np.eye(4)), niifp)  # type: ignore[attr-defined, no-untyped-call]
     return ModifyResponse(success=True)
 
 
@@ -409,7 +407,7 @@ async def get_files(files: list[UploadFile]) -> UploadFilesResponse:
             pydicom.dcmread(fp)
             proper_dicom_paths.append(fp)
             total_uploaded_file_bytes += len(contents)
-        except InvalidDicomError:
+        except AttributeError:
             inv_fp = Path(fp)
             inv_fp.unlink()
     total_uploaded_file_megabytes = "%.1f" % (total_uploaded_file_bytes / (10**3) ** 2)
@@ -442,14 +440,14 @@ def attach_segm_data(
     return dcm
 
 
-def renew_segm_seq(fps: list, classes: list[str]) -> None:
+def renew_segm_seq(fps: list[str], classes: list[str]) -> None:
     for fp in fps:
-        fp = str(fp)
-        dcm = pydicom.dcmread(fp)
+        fp_str = str(fp)
+        dcm = pydicom.dcmread(fp_str)
         img_shape = dcm.pixel_array.shape
         mask = np.zeros(shape=img_shape, dtype=np.uint8)
         dcm = attach_segm_data(dcm=dcm, seg_mask=mask, class_names=classes)
-        dcm.save_as(fp)
+        dcm.save_as(fp_str)
 
 
 @app.post("/export_classes")
@@ -466,12 +464,12 @@ def export_classes(classes: list[str]) -> None:
 
 
 @app.post("/correct_seg_homogeneity")
-async def correct_seg_homogeneity(Data: export2niftiResponse) -> None:
+async def correct_seg_homogeneity() -> None:
     def segment_sequence_homogeneity_check(fps: list[str]) -> bool:
         for fp in fps:
             try:
                 dcm = pydicom.dcmread(fp)
-            except InvalidDicomError:
+            except AttributeError:
                 continue
             try:
                 dcm.SegmentSequence  # noqa: B018
@@ -482,7 +480,7 @@ async def correct_seg_homogeneity(Data: export2niftiResponse) -> None:
                 found_classes = dcm.SegmentSequence[0].SegmentDescription.split(";")
                 if len(found_classes) < (len(np.unique(mask))):
                     return False
-            except Exception:
+            except AttributeError:
                 return False
         if dcm.SegmentSequence[0].SegmentDescription.split(";")[0] != "background":
             return False
