@@ -186,9 +186,39 @@ def test_upload_files() -> None:
         response = client.post(app_url() + "/upload_files", files=files)
         if response.status_code != status.HTTP_200_OK:
             raise AssertionError
-        response.json()
         UploadFilesResponse.model_validate(response.json())
 
+
+def test_submit_button() -> None:
+    test_options = {
+        "clean_image": True,
+        "annotation": False,
+        "retain_safe_private": False,
+        "retain_uids": False,
+        "retain_device_identity": False,
+        "retain_patient_characteristics": False,
+        "date_processing": "remove",
+        "retain_descriptors": False,
+        "patient_pseudo_id_prefix": "OrgX - ",
+    }
+    response = client.post(app_url() + "/submit_button", json=test_options)
+    if response.status_code != status.HTTP_200_OK:
+        raise AssertionError
+    json_response = response.json()
+    desired_hash = "cd6e8eae4006ca7b150c3217667de6b6f7b435f93961d182e72b4da7773884a9"
+    hasher = hashlib.sha256()
+    block_size = 65536
+    with Path(json_response[0][1]).open("rb") as file:
+        buf = file.read(block_size)
+        while len(buf) > 0:
+            hasher.update(buf)
+            buf = file.read(block_size)
+    generated_hash = hasher.hexdigest()
+    if desired_hash != generated_hash:
+        msg = "E: Generated hash doesn't match"
+        raise ValueError(
+            msg,
+        )
 
 
 def authenticate(credentials: HTTPBasicCredentials = Depends(security)) -> bool:  # noqa: B008
