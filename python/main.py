@@ -24,8 +24,10 @@ import pandas as pd
 import pydicom
 import pytest
 import torch
-from fastapi import Body, FastAPI, Request, UploadFile, status
+from dotenv import dotenv_values
+from fastapi import Body, Depends, FastAPI, HTTPException, Request, UploadFile, status
 from fastapi.responses import HTMLResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.testclient import TestClient
@@ -170,6 +172,8 @@ templates = Jinja2Templates(directory="templates")
 app.mount(path="/static", app=StaticFiles(directory="static"), name="static")
 
 client = TestClient(app)
+security = HTTPBasic()
+env_vars = dotenv_values(".env")
 
 
 def app_url() -> str:
@@ -186,7 +190,20 @@ def test_upload_files() -> None:
         UploadFilesResponse.model_validate(response.json())
 
 
-@app.get("/", response_class=HTMLResponse)
+
+def authenticate(credentials: HTTPBasicCredentials = Depends(security)) -> bool:  # noqa: B008
+    correct_username = credentials.username == env_vars["USERNAME"]
+    correct_password = credentials.password == env_vars["PASSWORD"]
+    if not (correct_username and correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return True
+
+
+@app.get("/", response_class=HTMLResponse, dependencies=[Depends(authenticate)])
 async def get_root(request: Request) -> HTMLResponse:
     clean_all()
     return templates.TemplateResponse("index.html", {"request": request})
