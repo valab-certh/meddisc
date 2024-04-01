@@ -33,6 +33,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.testclient import TestClient
 from PIL import Image
 from pydantic import BaseModel
+from pydicom.errors import InvalidDicomError
 from segment_anything.modeling import MaskDecoder, PromptEncoder, TwoWayTransformer
 from tiny_vit_sam import TinyViT
 from torch import nn
@@ -454,7 +455,7 @@ async def get_files(files: list[UploadFile]) -> UploadFilesResponse:
             pydicom.dcmread(fp)
             proper_dicom_paths.append(fp)
             total_uploaded_file_bytes += len(contents)
-        except AttributeError:
+        except InvalidDicomError:
             inv_fp = Path(fp)
             inv_fp.unlink()
     total_uploaded_file_megabytes = "%.1f" % (total_uploaded_file_bytes / (10**3) ** 2)
