@@ -517,6 +517,19 @@ def export_classes(classes: list[str]) -> None:
         user_input = json.load(file)
     output_fp = Path(user_input["output_dcm_dp"])
     fps = list(output_fp.rglob("*.dcm"))
+    session_classes = classes
+    session_classes.remove('background')
+    session_fp = Path("./tmp/session-data/session.json")
+    with session_fp.open() as file:
+        session_file = json.load(file)
+    for entry_key in session_file:
+        entry = session_file[entry_key]
+        if "classes" not in entry:
+            entry["classes"] = []
+        for class_name in session_classes:
+            entry["classes"].append({len(entry["classes"]) + 1: class_name})
+    with session_fp.open("w") as file:
+        json.dump(session_file, file, indent=4)
     for fp in fps:
         dcm = pydicom.dcmread(fp)
         dcm.SegmentSequence[0].SegmentDescription = ";".join(classes)
