@@ -75,6 +75,8 @@ class SegData(BaseModel):
     filepath: str
     classes: list[str]
     export2nifti: bool
+    n_dicom: int
+    dcm_idx: int
 
 
 class BoxData(BaseModel):
@@ -434,10 +436,20 @@ async def export_masks(data: SegData) -> ModifyResponse:
     modified_dcm.SegmentSequence[0].SegmentDescription = ";".join(data.classes)
     modified_dcm.save_as(fp)
     h, w = modified_dcm.SegmentSequence[0].Rows, modified_dcm.SegmentSequence[0].Columns
+    arr = np.frombuffer(pixel_data, dtype=np.uint8).reshape((h, w))
+    nii_file = Path(fp).parent / "masks.nii.gz"
     if data.export2nifti:
-        niifp = ".".join(fp.split(".")[:-1]) + ".nii"
-        arr = np.frombuffer(pixel_data, dtype=np.uint8).reshape((h, w))
-        nib.save(nib.Nifti1Image(arr, np.eye(4)), niifp)  # type: ignore[attr-defined, no-untyped-call]
+        if nii_file.exists():
+            nii_img = nib.load(nii_file)  # type: ignore[attr-defined]
+        else:
+            nii_img_data = np.zeros((h, w, data.n_dicom), dtype=np.uint8)
+            nii_img = nib.Nifti1Image(nii_img_data, np.eye(4))  # type: ignore[attr-defined,no-untyped-call]
+        if data.dcm_idx < data.n_dicom:
+            nii_img_data = nii_img.get_fdata()  # type: ignore[attr-defined]
+            nii_img_data[:, :, data.dcm_idx] = arr
+            nii_img = nib.Nifti1Image(nii_img_data, np.eye(4))  # type: ignore[attr-defined,no-untyped-call]
+
+        nib.save(nii_img, nii_file)  # type: ignore[attr-defined]
     return ModifyResponse(success=True)
 
 

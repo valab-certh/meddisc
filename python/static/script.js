@@ -602,7 +602,9 @@ async function export_masks() {
         pixel_data: canvastobase64(),
         filepath: dicom_data_fps[dcm_idx_][1],
         classes: classesMap,
-        export2nifti: ExportAnnot2Nifti.checked
+        export2nifti: ExportAnnot2Nifti.checked,
+        n_dicom: n_uploaded_files,
+        dcm_idx: dcm_idx_ 
     }; 
     const modify_response = await fetch(
         '/export_masks/',
