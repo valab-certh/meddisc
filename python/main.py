@@ -391,7 +391,7 @@ async def conversion_info(dicom_pair_fp: list[str]) -> dict:  # type: ignore[typ
         retain_aspect_ratio=True,
     )
     raw_buf = BytesIO()
-    Image.fromarray(raw_img).save(raw_buf, format="PNG")
+    Image.fromarray(raw_img).save(raw_buf, format="PNG")  # type: ignore[no-untyped-call]
     raw_img_base64 = base64.b64encode(raw_buf.getvalue()).decode("utf-8")
     cleaned_dcm = pydicom.dcmread(dicom_pair_fp[1])
     cleaned_img = image_preprocessing(
@@ -401,7 +401,7 @@ async def conversion_info(dicom_pair_fp: list[str]) -> dict:  # type: ignore[typ
         retain_aspect_ratio=True,
     )
     cleaned_buf = BytesIO()
-    Image.fromarray(cleaned_img).save(cleaned_buf, format="PNG")
+    Image.fromarray(cleaned_img).save(cleaned_buf, format="PNG")  # type: ignore[no-untyped-call]
     cleaned_img_base64 = base64.b64encode(cleaned_buf.getvalue()).decode("utf-8")
     if cache_bbox_img(dcm_hash=dcm_hash) is None:
         bboxes_dicom_img = raw_img_base64
@@ -518,7 +518,7 @@ def export_classes(classes: list[str]) -> None:
     output_fp = Path(user_input["output_dcm_dp"])
     fps = list(output_fp.rglob("*.dcm"))
     session_classes = classes
-    session_classes.remove('background')
+    session_classes.remove("background")
     session_fp = Path("./tmp/session-data/session.json")
     with session_fp.open() as file:
         session_file = json.load(file)
@@ -1082,7 +1082,7 @@ class Rwdcm:
             Path(self.clean_dicom_dp).mkdir(parents=True)
         if bbox_img is not None:
             bbox_img_fp = self.out_dp + "/" + self.input_dicom_hash + "_bbox" + ".png"
-            Image.fromarray(bbox_img).save(bbox_img_fp)
+            Image.fromarray(bbox_img).save(bbox_img_fp)  # type: ignore[no-untyped-call]
             cache_bbox_img(self.input_dicom_hash)
         clean_dicom_fp = self.clean_dicom_dp + "/" + self.input_dicom_hash + ".dcm"
         dcm.save_as(clean_dicom_fp)
