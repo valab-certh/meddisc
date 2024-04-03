@@ -16,6 +16,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import aiofiles
 import cv2
 import keras_ocr
 import nibabel as nib
@@ -461,8 +462,8 @@ async def get_files(files: list[UploadFile]) -> UploadFilesResponse:
     for file in files:
         contents = await file.read()
         fp = Path("./tmp/session-data/raw/" + file.filename.split("/")[-1])  # type: ignore[union-attr]
-        with fp.open("wb") as f:
-            f.write(contents)
+        async with aiofiles.open(fp, "wb") as f:
+            await f.write(contents)
         try:
             dcm = pydicom.dcmread(fp)
             if len(dcm.pixel_array.shape) == 2:  # noqa: PLR2004
@@ -472,9 +473,9 @@ async def get_files(files: list[UploadFile]) -> UploadFilesResponse:
                     total_uploaded_file_bytes / (10**3) ** 2
                 )
             else:
-                Path.unlink(fp)
+                fp.unlink()
         except InvalidDicomError:
-            Path.unlink(fp)
+            fp.unlink()
     return UploadFilesResponse(
         n_uploaded_files=len(proper_dicom_paths),
         total_size=total_uploaded_file_megabytes,
@@ -564,8 +565,8 @@ async def correct_seg_homogeneity() -> None:
         return True
 
     user_fp = Path("./tmp/session-data/user-options.json")
-    with user_fp.open() as file:
-        user_input = json.load(file)
+    async with aiofiles.open(user_fp) as file:
+        user_input = json.loads(await file.read())
     output_fp = Path(user_input["output_dcm_dp"])
     fps = list(output_fp.rglob("*.dcm"))
     homogeneity_state = segment_sequence_homogeneity_check(fps)  # type: ignore[arg-type]
@@ -576,8 +577,8 @@ async def correct_seg_homogeneity() -> None:
 @app.post("/get_batch_classes")
 async def get_batch_classes() -> dict[str, list[str]]:
     user_fp = Path("./tmp/session-data/user-options.json")
-    with user_fp.open() as file:
-        user_input = json.load(file)
+    async with aiofiles.open(user_fp) as file:
+        user_input = json.loads(await file.read())
     output_fp = Path(user_input["output_dcm_dp"])
     fps = list(output_fp.rglob("*.dcm"))
     try:
@@ -594,8 +595,8 @@ async def get_batch_classes() -> dict[str, list[str]]:
 @app.post("/align_classes")
 async def align_classes(classes: list[str]) -> None:
     user_fp = Path("./tmp/session-data/user-options.json")
-    with user_fp.open() as file:
-        user_input = json.load(file)
+    async with aiofiles.open(user_fp) as file:
+        user_input = json.loads(await file.read())
     output_fp = Path(user_input["output_dcm_dp"])
     fps = list(output_fp.rglob("*.dcm"))
     renew_segm_seq(fps, classes)  # type: ignore[arg-type]
@@ -604,16 +605,16 @@ async def align_classes(classes: list[str]) -> None:
 @app.post("/session", name="session")
 async def handle_session_button_click(session_dict: dict[str, Any]) -> None:
     session_fp = Path("./tmp/session-data/clean/de-identified-files/session.json")
-    with session_fp.open("w") as file:
-        json.dump(session_dict, file)
+    async with aiofiles.open(session_fp, "w") as file:
+        await file.write(json.dumps(session_dict))
 
 
 @app.post("/custom_config/", name="custom_config")
 async def custom_config(config_file: UploadFile) -> None:
     contents = await config_file.read()
     custom_fp = Path("./tmp/session-data/custom-config.csv")
-    with custom_fp.open("wb") as file:
-        file.write(contents)
+    async with aiofiles.open(custom_fp, "wb") as file:
+        await file.write(contents)
 
 
 @torch.no_grad()
@@ -985,9 +986,9 @@ def adjust_dicom_metadata(  # noqa: C901, PLR0913
                             days_total_offset=days_total_offset,  # type: ignore[arg-type]
                         )
                     elif ds[ds_tag_idx].VR == "TM":
-                        tag_value_replacements[
-                            "seconds_total_offset"
-                        ] = seconds_total_offset
+                        tag_value_replacements["seconds_total_offset"] = (
+                            seconds_total_offset
+                        )
                         ds[ds_tag_idx].value = seconds2daytime(
                             seconds_total_offset=tag_value_replacements[
                                 "seconds_total_offset"
@@ -1111,7 +1112,9 @@ def dicom_deidentifier(  # noqa: PLR0912, PLR0915
     if session_filepath is None or not Path(session_filepath).is_file():
         session = {}
     else:
-        with Path("./tmp/session-data/clean/de-identified-files/session.json").open() as file:
+        with Path(
+            "./tmp/session-data/clean/de-identified-files/session.json",
+        ).open() as file:
             session = json.load(file)
     if Path("./tmp/session-data/user-options.json").is_file():
         with Path("./tmp/session-data/user-options.json").open() as file:
@@ -1209,14 +1212,14 @@ async def handle_submit_button_click(user_options: UserOptionsClass) -> list[Any
     user_options["input_dcm_dp"] = default_options["input_dcm_dp"]  # type: ignore[index]
     user_options["output_dcm_dp"] = default_options["output_dcm_dp"]  # type: ignore[index]
     user_fp = Path("./tmp/session-data/user-options.json")
-    with user_fp.open("w") as file:
-        json.dump(user_options, file)
+    async with aiofiles.open(user_fp, "w") as file:
+        await file.write(json.dumps(user_options))
     session, dicom_pair_fps = dicom_deidentifier(
         session_filepath="./tmp/session-data/clean/de-identified-files/session.json",
     )
     session_fp = Path("./tmp/session-data/clean/de-identified-files/session.json")
-    with session_fp.open("w") as file:
-        json.dump(session, file)
+    async with aiofiles.open(session_fp, "w") as file:
+        await file.write(json.dumps(session))
     if user_options["annotation"]:  # type: ignore[index]
         prepare_medsam()
     return dicom_pair_fps
