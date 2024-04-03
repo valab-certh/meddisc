@@ -464,12 +464,12 @@ async def get_files(files: list[UploadFile]) -> UploadFilesResponse:
         with fp.open("wb") as f:
             f.write(contents)
         try:
-            pydicom.dcmread(fp)
-            proper_dicom_paths.append(fp)
-            total_uploaded_file_bytes += len(contents)
+            dcm = pydicom.dcmread(fp)
+            if len(dcm.pixel_array.shape) == 2:  # noqa: PLR2004
+                proper_dicom_paths.append(fp)
+                total_uploaded_file_bytes += len(contents)
         except InvalidDicomError:
-            inv_fp = Path(fp)
-            inv_fp.unlink()
+            pass
     total_uploaded_file_megabytes = "%.1f" % (total_uploaded_file_bytes / (10**3) ** 2)
     return UploadFilesResponse(
         n_uploaded_files=len(proper_dicom_paths),
