@@ -523,7 +523,7 @@ def export_classes(classes: list[str]) -> None:
     fps = list(output_fp.rglob("*.dcm"))
     session_classes = classes
     session_classes.remove("background")
-    session_fp = Path("./tmp/session-data/session.json")
+    session_fp = Path("./tmp/session-data/clean/de-identified-files/session.json")
     with session_fp.open() as file:
         session_file = json.load(file)
     for entry_key in session_file:
@@ -603,7 +603,7 @@ async def align_classes(classes: list[str]) -> None:
 
 @app.post("/session", name="session")
 async def handle_session_button_click(session_dict: dict[str, Any]) -> None:
-    session_fp = Path("./tmp/session-data/session.json")
+    session_fp = Path("./tmp/session-data/clean/de-identified-files/session.json")
     with session_fp.open("w") as file:
         json.dump(session_dict, file)
 
@@ -1088,7 +1088,7 @@ class Rwdcm:
         self,  # noqa: ANN101
         session: dict[str, dict[str, str]],
     ) -> None:
-        session_fp = Path(self.clean_data_dp + "/session.json")
+        session_fp = Path("./tmp/session-data/clean/de-identified-files/session.json")
         with session_fp.open("w") as file:
             json.dump(session, file)
 
@@ -1111,7 +1111,7 @@ def dicom_deidentifier(  # noqa: PLR0912, PLR0915
     if session_filepath is None or not Path(session_filepath).is_file():
         session = {}
     else:
-        with Path("./tmp/session-data/session.json").open() as file:
+        with Path("./tmp/session-data/clean/de-identified-files/session.json").open() as file:
             session = json.load(file)
     if Path("./tmp/session-data/user-options.json").is_file():
         with Path("./tmp/session-data/user-options.json").open() as file:
@@ -1212,9 +1212,9 @@ async def handle_submit_button_click(user_options: UserOptionsClass) -> list[Any
     with user_fp.open("w") as file:
         json.dump(user_options, file)
     session, dicom_pair_fps = dicom_deidentifier(
-        session_filepath="./tmp/session-data/session.json",
+        session_filepath="./tmp/session-data/clean/de-identified-files/session.json",
     )
-    session_fp = Path("./tmp/session-data/session.json")
+    session_fp = Path("./tmp/session-data/clean/de-identified-files/session.json")
     with session_fp.open("w") as file:
         json.dump(session, file)
     if user_options["annotation"]:  # type: ignore[index]
