@@ -1153,9 +1153,7 @@ def dicom_deidentifier(  # noqa: PLR0912, PLR0915
             session[real_patient_id] = {
                 "patient_pseudo_id": "%.6d" % max_pseudo_patient_id,
             }
-            days_total_offset = secrets.randbelow((2 * 10 * 365) - (10 * 365) + 1) + (
-                10 * 365
-            )
+            days_total_offset = 10 * 365 + secrets.randbelow(1 + 10 * 365)
             seconds_total_offset = secrets.randbelow(24 * 60 * 60)
         else:
             days_total_offset = session[real_patient_id]["days_offset"]
