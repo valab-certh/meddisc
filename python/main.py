@@ -468,9 +468,13 @@ async def get_files(files: list[UploadFile]) -> UploadFilesResponse:
             if len(dcm.pixel_array.shape) == 2:  # noqa: PLR2004
                 proper_dicom_paths.append(fp)
                 total_uploaded_file_bytes += len(contents)
+                total_uploaded_file_megabytes = "%.1f" % (
+                    total_uploaded_file_bytes / (10**3) ** 2
+                )
+            else:
+                Path.unlink(fp)
         except InvalidDicomError:
-            pass
-    total_uploaded_file_megabytes = "%.1f" % (total_uploaded_file_bytes / (10**3) ** 2)
+            Path.unlink(fp)
     return UploadFilesResponse(
         n_uploaded_files=len(proper_dicom_paths),
         total_size=total_uploaded_file_megabytes,
@@ -686,7 +690,6 @@ def prepare_medsam() -> None:
     medsam_model = load_model()
     raw_fp = Path("./tmp/session-data/raw")
     dcm_fps = sorted(raw_fp.glob("*"))
-    time.time()
     temp_dir = Path("./tmp/session-data/embed")
     hs, ws = [], []
     for idx, dcm_fp in enumerate(dcm_fps):
@@ -699,7 +702,6 @@ def prepare_medsam() -> None:
         hs.append(h)
         ws.append(w)
         img_256 = cv2.resize(src=img_3c, dsize=(256, 256)).astype(np.float32)
-        newh, neww = img_256.shape[:2]
         img_256 = (img_256 - img_256.min()) / np.clip(
             img_256.max() - img_256.min(),
             a_min=1e-8,
@@ -1047,13 +1049,7 @@ class Rwdcm:
         self,  # noqa: ANN101
         data_dp: str,
     ) -> list[Path]:
-        dicom_paths = list(Path(data_dp).rglob("*"))
-        proper_dicom_paths = []
-        for dicom_path in dicom_paths:
-            ds = pydicom.dcmread(dicom_path, stop_before_pixels=True)
-            if ds:
-                proper_dicom_paths.append(dicom_path)
-        return proper_dicom_paths
+        return list(Path(data_dp).rglob("*"))
 
     def parse_file(
         self,  # noqa: ANN101
