@@ -117,39 +117,6 @@ class Export2niftiResponse(BaseModel):
     export2nifti: bool
 
 
-def clean_config_session() -> None:
-    session_fp = Path("./tmp/session-data/session.json")
-    if session_fp.is_file():
-        session_fp.unlink()
-    action_fp = Path("./tmp/session-data/requested-action-group-dcm.csv")
-    if action_fp.is_file():
-        action_fp.unlink()
-    custom_fp = Path("./tmp/session-data/custom-config.csv")
-    if custom_fp.is_file():
-        custom_fp.unlink()
-
-
-def clean_imgs() -> None:
-    dp, _, fps = next(iter(os.walk("./tmp/session-data/raw")))
-    for fp in fps:
-        if fp != ".gitkeep":
-            Path(dp + "/" + fp).unlink()
-    fps = list(Path("./tmp/session-data/clean").glob("*"))  # type: ignore[arg-type]
-    for fp in fps:
-        if str(fp).split(".")[-1] == "png":
-            Path(fp).unlink()
-    edp, _, efps = next(iter(os.walk("./tmp/session-data/embed")))
-    for efp in efps:
-        Path(edp + "/" + efp).unlink()
-    if Path("./tmp/session-data/clean/de-identified-files").exists():
-        shutil.rmtree("./tmp/session-data/clean/de-identified-files")
-
-
-def clean_all() -> None:
-    clean_config_session()
-    clean_imgs()
-
-
 def dcm2dictmetadata(ds: pydicom.dataset.Dataset) -> dict[str, dict[str, str]]:
     ds_metadata_dict = {}
     for ds_attr in ds:
@@ -239,7 +206,6 @@ def authenticate(credentials: HTTPBasicCredentials = Depends(security)) -> bool:
 
 @app.get("/", response_class=HTMLResponse, dependencies=[Depends(authenticate)])
 async def get_root(request: Request) -> HTMLResponse:
-    clean_all()
     return templates.TemplateResponse("index.html", {"request": request})
 
 
@@ -456,7 +422,6 @@ async def export_masks(data: SegData) -> ModifyResponse:
 
 @app.post("/upload_files/", name="upload_files")
 async def get_files(files: list[UploadFile]) -> UploadFilesResponse:
-    clean_imgs()
     proper_dicom_paths = []
     total_uploaded_file_bytes = 0
     for file in files:
