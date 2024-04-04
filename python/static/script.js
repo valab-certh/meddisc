@@ -5,6 +5,8 @@ var DICOMOverview = document.getElementById('DICOMOverview');
 var RawImg = document.getElementById('RawImg');
 var PixelDataDisplay = document.getElementById('PixelDataDisplay');
 var DICOMSlider = document.getElementById('DICOMSlider');
+var prevSlice = document.getElementById("prev-slice");
+var nextSlice = document.getElementById("next-slice");
 var ExportAnnot2Nifti = document.getElementById('ExportAnnot2Nifti');
 var clean_image = document.getElementById('clean-image');
 var annotation = document.getElementById('annotation');
@@ -359,6 +361,16 @@ async function UpdateDICOMInformation(dcm_idx)
     }
 }
 
+prevSlice.addEventListener("click", function () {
+    DICOMSlider.value = Math.max(parseInt(DICOMSlider.value) - 1, parseInt(DICOMSlider.min));
+    DICOMSlider.dispatchEvent(new Event("input"));
+});
+
+nextSlice.addEventListener("click", function () {
+    DICOMSlider.value = Math.min(parseInt(DICOMSlider.value) + 1, parseInt(DICOMSlider.max));
+    DICOMSlider.dispatchEvent(new Event("input"));
+});
+
 function base64torgba(encodedData) {
     const binaryString = window.atob(encodedData);
     const len = binaryString.length;
@@ -418,6 +430,8 @@ document.querySelector('#UploadForm input[name="files"]').addEventListener
             retain_descriptors_input_checkbox.disabled = false;
             patient_pseudo_id_prefix_input_text.disabled = false;
             DICOMSlider.disabled = true;
+            prevSlice.disabled = true;
+            nextSlice.disabled = true;
             resetGUIElements();
             ctx.clearRect(0, 0, OverlayCanvas.width, OverlayCanvas.height);
         }
@@ -527,6 +541,8 @@ async function submit_dicom_processing_request()
     }
     dicom_data_fps = await dicom_data_fps_response.json();
     DICOMSlider.disabled = false;
+    prevSlice.disabled = false;
+    nextSlice.disabled = false;
     DICOMSlider.max = n_uploaded_files-1;
     DICOMSlider.value = 0;
     await UpdateDICOMInformation(0);
@@ -649,6 +665,8 @@ BrushSizeSlider.addEventListener('input', (event) => {
 
 ToggleEdit.addEventListener('click', () => {
     isEditing = !isEditing;
+    Mode.disabled = !Mode.disabled;
+    BrushSizeButton.disabled = (isEditing && editMode === 'brush') ? false : true;
     ToggleEdit.innerHTML = isEditing ? '<i class="bi bi-pencil-fill"></i>' : '<i class="bi bi-eye-fill"></i>';
     OverlayCanvas.style.pointerEvents = isEditing ? 'auto' : 'none';
     BoxCanvas.style.pointerEvents = (isEditing && editMode === 'boundingBox') ? 'auto' : 'none';
@@ -788,6 +806,7 @@ async function medsam_estimation(normalizedStart,normalizedEnd) {
 Mode.addEventListener('click', function () {
     if (editMode === 'brush') {
         editMode = 'boundingBox';
+        BrushSizeButton.disabled = true;
         Mode.innerHTML = '<i class="bi bi-bounding-box-circles"></i>';
         BoxCanvas.style.pointerEvents = isEditing ? 'auto' : 'none';
         document.querySelector('#BrushSelect option[value="background"]').disabled = true;
@@ -807,6 +826,7 @@ Mode.addEventListener('click', function () {
         }
     } else {
         editMode = 'brush';
+        BrushSizeButton.disabled = false;
         Mode.innerHTML = '<i class="bi bi-brush-fill"></i>';
         BoxCanvas.style.pointerEvents = 'none';
         document.querySelector('#BrushSelect option[value="background"]').disabled = false;
@@ -918,9 +938,6 @@ async function submit_classes(){
     classes_submitted_state = true;
     ToggleEdit.disabled = false;
     ToggleMask.disabled = false;
-    if (classesMap.length > 1){
-        Mode.disabled = false;
-    }
     BrushSizeSlider.disabled = false;
     Undo.disabled = false;
     Redo.disabled = false;
@@ -931,7 +948,6 @@ async function submit_classes(){
     ClassText.disabled = true;
     SubmitClasses.disabled = true;
     DisplayRadio.disabled=false;
-    BrushSizeButton.disabled=false;
     if (classesMap.length !== predefinedClassesMap.length && predefinedClassesMap.length !== 1)
     {
         var optionModal = new bootstrap.Modal(document.getElementById('optionModal'), {

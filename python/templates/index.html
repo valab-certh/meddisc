@@ -167,7 +167,22 @@
             <div class="col-sm-9">
                 <div class="container">
                     <div class="d-flex align-items-center">
-                        <label for="DICOMSlider">File</label>
+                        <label for="DICOMSlider">Index:</label>
+                        <span id="sliderLabel">0</span>
+                        <button type="button"
+                                id="prev-slice"
+                                class="btn btn-secondary"
+                                title="Previous Slice"
+                                disabled>
+                            <i class="bi bi-arrow-left"></i>
+                        </button>
+                        <button type="button"
+                                id="next-slice"
+                                class="btn btn-secondary"
+                                title="Next Slice"
+                                disabled>
+                            <i class="bi bi-arrow-right"></i>
+                        </button>
                         <input id="DICOMSlider"
                                type="range"
                                class="form-range"
@@ -177,7 +192,6 @@
                                step="1"
                                oninput="UpdateDICOMInformation(this.value)"
                                disabled>
-                        <span id="sliderLabel">0</span>
                     </div>
                 </div>
                 <div class="container">
