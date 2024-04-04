@@ -17,3 +17,4 @@ cd python/ && make clean check all && cd ..
 printf 'USERNAME=user\n' >> python/.env
 printf 'PASSWORD=pass\n' >> python/.env
 cd python/ && make STAGING=1
+
