@@ -6,8 +6,8 @@ Git
 Docker
 
 # Download
-git clone https://github.com/fl0wxr/meddisc $HOME/github.com/fl0wxr/meddisc
-cd $HOME/github.com/fl0wxr/meddisc
+git clone https://github.com/valab-certh/meddisc $HOME/github.com/valab-certh/meddisc
+cd $HOME/github.com/valab-certh/meddisc
 
 # Development
 cd python/python/ && make clean check all && cd ../..
