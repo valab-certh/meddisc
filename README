@@ -14,4 +14,7 @@ cd python/python/ && make clean check all && cd ../..
 cd python/ && make clean check all && cd ..
 
 # Staging
+printf 'USERNAME=user\n' >> python/.env
+printf 'PASSWORD=pass\n' >> python/.env
 cd python/ && make STAGING=1
+
