@@ -357,7 +357,6 @@ async def conversion_info(dicom_pair_fp: list[str]) -> dict:  # type: ignore[typ
     )
     raw_buf = BytesIO()
     Image.fromarray(raw_img).save(raw_buf, format="PNG")  # type: ignore[no-untyped-call]
-    base64.b64encode(raw_buf.getvalue()).decode("utf-8")
     cleaned_dcm = pydicom.dcmread(dicom_pair_fp[1])
     cleaned_img = image_preprocessing(
         cleaned_dcm.pixel_array,
