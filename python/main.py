@@ -1337,8 +1337,13 @@ async def handle_submit_button_click(user_options: UserOptionsClass) -> list[Any
 def ndarray_size(arr: NDArray[Any]) -> int:
     return arr.itemsize * arr.size
 
+def main_cli() -> None:
+    import fire
 
-if __name__ == "__main__":
+    fire.Fire(meddisc)
+
+
+def meddisc() -> None:
     tmp_directories = [
         Path("tmp/session-data/raw"),
         Path("tmp/session-data/clean"),
@@ -1374,3 +1379,6 @@ if __name__ == "__main__":
         results = pytest.main(["-rA", "-o", "cache_dir=tmp", __file__])
         if results.value != 0:  # type: ignore[attr-defined]
             sys.exit(results)
+
+if __name__ == "__main__":
+    meddisc()

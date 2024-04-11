@@ -2,6 +2,7 @@
 dependencies = [
   "aiofiles==23.2.1",
   "fastapi==0.110.0",
+  "fire==0.6.0",
   "keras-ocr==0.9.3",
   "pydicom==2.4.4",
   "pylibjpeg-libjpeg==2.1.0",
@@ -15,7 +16,7 @@ dependencies = [
   "torchvision@https://download.pytorch.org/whl/cpu/torchvision-0.17.1%2Bcpu-cp312-cp312-linux_x86_64.whl",
   "uvicorn==0.27.1"
 ]
-name = "UNKNOWN"
+name = "meddisc"
 version = "0.0.0"
 
 [project.optional-dependencies]
@@ -27,3 +28,9 @@ dev = [
   "ssort==0.12.4",
   "toml-sort==0.23.1"
 ]
+
+[project.scripts]
+meddisc = "main:main_cli"
+
+[tool.setuptools]
+py-modules = ["main"]
