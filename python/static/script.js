@@ -7,7 +7,6 @@ var PixelDataDisplay = document.getElementById('PixelDataDisplay');
 var DICOMSlider = document.getElementById('DICOMSlider');
 var prevSlice = document.getElementById("prev-slice");
 var nextSlice = document.getElementById("next-slice");
-var ExportAnnot2Nifti = document.getElementById('ExportAnnot2Nifti');
 var clean_image = document.getElementById('clean-image');
 var annotation = document.getElementById('annotation');
 var BrushSizeButton = document.getElementById('BrushSizeButton');
@@ -36,8 +35,11 @@ var date_processing_select = document.getElementById('date-processing-select');
 var retain_descriptors_input_checkbox = document.getElementById('retain-descriptors-input-checkbox');
 var patient_pseudo_id_prefix_input_text = document.getElementById('patient-pseudo-id-prefix-input-text');
 var UploadStatus = document.getElementById('UploadStatus');
+var SubmitClasses = document.getElementById('SubmitClasses');
 var n_uploaded_files;
+var skip_deidentification;
 var dicom_data_fps;
+var current_dicom_data_fp;
 var OpenSequences = [];
 var DiffEnabled = false;
 var dcm_idx_;
@@ -99,7 +101,7 @@ function ShowDiffTable(ToggleValue)
     MetadataTable.innerHTML = table(dicom_data['raw_dicom_metadata'], dicom_data['cleaned_dicom_metadata'], DiffEnabled);
 }
 
-function DisplayMode(DisplayModeSelection_)
+async function DisplayMode(DisplayModeSelection_)
 {
     DisplayModeSelection = DisplayModeSelection_
     if (DisplayModeSelection == "cleaned-display-option")
@@ -108,11 +110,37 @@ function DisplayMode(DisplayModeSelection_)
     }
     else if (DisplayModeSelection == "bboxes-display-option")
     {
-        PixelDataDisplay.src = `data:image/png;base64,${dicom_data['bboxes_dicom_img_data']}`;
+        const bboxes_dicom_img_data = await fetch
+        (
+            '/get_bboxes_dicom_img_data/',
+            {
+                method: 'POST',
+                headers:
+                {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(current_dicom_data_fp)
+            }
+        );
+        const dicom_pixel_data = await bboxes_dicom_img_data.json();
+        PixelDataDisplay.src = `data:image/png;base64,${dicom_pixel_data["bboxes_dicom_img_data"]}`;
     }
     else if (DisplayModeSelection == "raw-display-option")
     {
-        PixelDataDisplay.src = `data:image/png;base64,${dicom_data['raw_dicom_img_data']}`;
+        const raw_dicom_img_data = await fetch
+        (
+            '/get_raw_dicom_img_data/',
+            {
+                method: 'POST',
+                headers:
+                {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(current_dicom_data_fp)
+            }
+        );
+        const dicom_pixel_data = await raw_dicom_img_data.json();
+        PixelDataDisplay.src = `data:image/png;base64,${dicom_pixel_data["raw_dicom_img_data"]}`;
     }
 }
 
@@ -299,7 +327,8 @@ async function UpdateDICOMInformation(dcm_idx)
         slider_pending_update = false;
         LoadingState = true;
         dcm_idx_ = dcm_idx
-        const dicom_data_fp = await dicom_data_fps[dcm_idx_]
+        current_dicom_data_fp = await dicom_data_fps[dcm_idx_]
+        DisplayRadio.value = "cleaned-display-option";
         const conversion_info_response = await fetch
         (
             '/conversion_info/',
@@ -309,10 +338,17 @@ async function UpdateDICOMInformation(dcm_idx)
                 {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(dicom_data_fp)
+                body: JSON.stringify(current_dicom_data_fp)
             }
         );
+        if (classes_submitted_state)
+        {
+            await get_mask_from_file();
+            undoStack = [];
+            redoStack = [];
+        }
         dicom_data = await conversion_info_response.json();
+        DisplayMode("cleaned-display-option");
         const dicom_metadata_table = table(dicom_data['raw_dicom_metadata'], dicom_data['cleaned_dicom_metadata'], DiffEnabled);
         try
         {
@@ -322,18 +358,12 @@ async function UpdateDICOMInformation(dcm_idx)
         {
             modality = '-';
         }
-        if (classes_submitted_state)
-        {
-            await get_mask_from_file();
-            undoStack = [];
-            redoStack = [];
-        }
         document.getElementById('sliderLabel').textContent = dcm_idx_;
         DICOMOverview.innerHTML =
         `
-            Raw File Path: ./${dicom_data_fp[0]}
+            Raw File Path: ./${current_dicom_data_fp[0]}
             </br>
-            Clean File Path: ${dicom_data_fp[1]}
+            Clean File Path: ${current_dicom_data_fp[1]}
             </br>
             Patient's Original ID: ${dicom_data['raw_dicom_metadata']['00100020'].value}
             </br>
@@ -342,7 +372,6 @@ async function UpdateDICOMInformation(dcm_idx)
             Total number of altered tags (excluding the pixel data): ${total_altered_dicom_tags}
         `;
         MetadataTable.innerHTML = dicom_metadata_table;
-        DisplayMode(DisplayModeSelection);
         LoadingState = false;
     }
     else
@@ -408,17 +437,35 @@ document.querySelector('#UploadForm input[name="files"]').addEventListener
         const dcm_files = await dcm_files_response.json();
         if (dcm_files_response.ok && dcm_files.n_uploaded_files > 0)
         {
+            showNotification("success", "Files uploaded", 3000);
+            skip_deidentification = dcm_files.skip_deidentification;
             n_uploaded_files = dcm_files.n_uploaded_files;
-            UploadStatus.innerHTML = 
-            `
-                Files Uploaded Successfully\n
-                </br>\n
-                Total DICOM files: ${n_uploaded_files}\n
-                </br>\n
-                Total size of DICOM content: ${dcm_files.total_size} MB\n
-                </br>\n
-                </br>
-            `;
+            if (skip_deidentification)
+            {
+                UploadStatus.innerHTML = 
+                `
+                    Files Uploaded Successfully\n
+                    <br>\n
+                    Total DICOM files: ${n_uploaded_files}\n
+                    <br>\n
+                    Total size of DICOM content: ${dcm_files.total_size} MB\n
+                    <br>\n
+                    Found session file
+                `;
+            }
+            else
+            {
+                UploadStatus.innerHTML = 
+                `
+                    Files Uploaded Successfully\n
+                    <br>\n
+                    Total DICOM files: ${n_uploaded_files}\n
+                    <br>\n
+                    Total size of DICOM content: ${dcm_files.total_size} MB\n
+                    <br>\n
+                    <br>
+                `;
+            }
             SubmitAnonymizationProcess.disabled = false;
             annotation.disabled = false;
             clean_image.disabled = false;
@@ -439,35 +486,6 @@ document.querySelector('#UploadForm input[name="files"]').addEventListener
         {
             alert('W: Invalid directory input. Make sure it contains at least one DICOM file')
         }
-    }
-);
-
-document.querySelector('#SessionForm input[name="SessionFile"]').addEventListener
-(
-    'change',
-    async function(e)
-    {
-        e.preventDefault();
-        const fileInput = this;
-        const file = fileInput.files[0];
-        const reader = new FileReader();
-        reader.onload = async function()
-        {
-            const payload = JSON.parse(reader.result);
-            const response = await fetch
-            (
-                '/session/',
-                {
-                    method: 'POST',
-                    headers:
-                    {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                }
-            );
-        };
-        reader.readAsText(file);
     }
 );
 
@@ -513,6 +531,7 @@ async function submit_dicom_processing_request()
     SubmitAnonymizationProcess.disabled = true;
     const data =
     {
+        'skip_deidentification': skip_deidentification,
         'clean_image': clean_image.checked,
         'annotation': annotation.checked,
         'retain_safe_private': retain_safe_private_input_checkbox.checked,
@@ -536,10 +555,10 @@ async function submit_dicom_processing_request()
         }
     );
 
+    dicom_data_fps = await dicom_data_fps_response.json();
     if (clean_image.checked) {
         DisplayRadio.disabled=false;
     }
-    dicom_data_fps = await dicom_data_fps_response.json();
     DICOMSlider.disabled = false;
     prevSlice.disabled = false;
     nextSlice.disabled = false;
@@ -556,7 +575,6 @@ async function submit_dicom_processing_request()
     date_processing_select.disabled = true;
     retain_descriptors_input_checkbox.disabled = true;
     patient_pseudo_id_prefix_input_text.disabled = true;
-    ExportAnnot2Nifti.disabled=true;
     ToggleDiff.disabled = false;
     if (annotation.checked) {
         BrushSelect.disabled=false;
@@ -585,7 +603,6 @@ async function submit_dicom_processing_request()
             }
         );
         predefinedClassesMap = await predefinedClassesMap_responce.json()
-        predefinedClassesMap = predefinedClassesMap.classes
         classesMap = Array.from(predefinedClassesMap)
         for (let class_idx = 1; class_idx < classesMap.length; class_idx++)
         {
@@ -594,6 +611,7 @@ async function submit_dicom_processing_request()
         }
     }
     document.body.style.cursor = 'default';
+    showNotification("success", "DICOM files are now de-identified", 3000);
 }
 
 async function get_mask_from_file() {
@@ -609,7 +627,7 @@ async function get_mask_from_file() {
     if (reset_response.ok) {
         const response_data = await reset_response.json();
         fillCanvas(response_data['PixelData'], response_data['dimensions']);
-        showNotification("success", "Loaded mask from DICOM", 1500);
+        showNotification("success", "Loaded mask from NIfTI", 1500);
     }
 }
 
@@ -618,7 +636,6 @@ async function export_masks() {
         pixel_data: canvastobase64(),
         filepath: dicom_data_fps[dcm_idx_][1],
         classes: classesMap,
-        export2nifti: ExportAnnot2Nifti.checked,
         n_dicom: n_uploaded_files,
         dcm_idx: dcm_idx_ 
     }; 
@@ -633,7 +650,7 @@ async function export_masks() {
         });
     if (modify_response.ok) {
         progress_saved = true
-        showNotification("success", "Saved to DICOM", 1500);    
+        showNotification("success", "Saved to NIfTI", 1500);    
     }
 }
 
@@ -952,7 +969,7 @@ async function submit_classes(){
     {
         var optionModal = new bootstrap.Modal(document.getElementById('optionModal'), {
             keyboard: false
-          });
+        });
         optionModal.show();
     }
     else if (classesMap.length == predefinedClassesMap.length)
@@ -963,7 +980,7 @@ async function submit_classes(){
             {
                 var optionModal = new bootstrap.Modal(document.getElementById('optionModal'), {
                     keyboard: false
-                  });
+                });
                 optionModal.show();
                 break;
             }
@@ -1106,7 +1123,6 @@ function resetGUIElements() {
     BrushSelect.disabled = true;
     DisplayRadio.disabled=true;
     BrushSizeButton.disabled=true;
-    ExportAnnot2Nifti.disabled=false;
 }
 
 function showNotification(type, text, duration) {

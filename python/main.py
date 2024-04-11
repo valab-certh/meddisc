@@ -24,6 +24,7 @@ import pandas as pd
 import pydicom
 import pytest
 import torch
+import glob
 from dotenv import dotenv_values
 from fastapi import Body, Depends, FastAPI, HTTPException, Request, UploadFile, status
 from fastapi.responses import HTMLResponse
@@ -45,6 +46,7 @@ if TYPE_CHECKING:
 
 
 class UserOptionsClass(BaseModel):
+    skip_deidentification: bool
     clean_image: bool
     annotation: bool
     retain_safe_private: bool
@@ -74,7 +76,6 @@ class SegData(BaseModel):
     pixel_data: str
     filepath: str
     classes: list[str]
-    export2nifti: bool
     n_dicom: int
     dcm_idx: int
 
@@ -110,10 +111,7 @@ class ModifyResponse(BaseModel):
 class UploadFilesResponse(BaseModel):
     n_uploaded_files: int
     total_size: str
-
-
-class Export2niftiResponse(BaseModel):
-    export2nifti: bool
+    skip_deidentification: bool
 
 
 def dcm2dictmetadata(ds: pydicom.dataset.Dataset) -> dict[str, dict[str, str]]:
@@ -375,47 +373,68 @@ async def conversion_info(dicom_pair_fp: list[str]) -> dict:  # type: ignore[typ
         bboxes_dicom_img = cache_bbox_img(dcm_hash=dcm_hash)
     return {
         "raw_dicom_metadata": dcm2dictmetadata(ds=raw_dcm),
-        "raw_dicom_img_data": raw_img_base64,
         "cleaned_dicom_metadata": dcm2dictmetadata(ds=cleaned_dcm),
         "cleaned_dicom_img_data": cleaned_img_base64,
-        "bboxes_dicom_img_data": bboxes_dicom_img,
     }
+
+
+@app.post("/get_raw_dicom_img_data/")
+async def get_raw_dicom_img_data(dicom_pair_fp: list[str]) -> dict:
+    raw_img_base64 = get_raw_dicom_img_data_(dicom_pair_fp[0])
+    return {"raw_dicom_img_data": raw_img_base64}
+
+
+def get_raw_dicom_img_data_(fp):
+    downscale_dimensionality = 1024
+    raw_dcm = pydicom.dcmread(fp)
+    raw_img = image_preprocessing(
+        raw_dcm.pixel_array,
+        downscale_dimensionality=downscale_dimensionality,
+        multichannel=True,
+        retain_aspect_ratio=True,
+    )
+    raw_buf = BytesIO()
+    Image.fromarray(raw_img).save(raw_buf, format="PNG")  # type: ignore[no-untyped-call]
+    raw_img_base64 = base64.b64encode(raw_buf.getvalue()).decode("utf-8")
+    return raw_img_base64
+
+
+@app.post("/get_bboxes_dicom_img_data/")
+async def get_bboxes_dicom_img_data(dicom_pair_fp: list[str]) -> dict:
+    raw_img_base64 = get_raw_dicom_img_data_(dicom_pair_fp[0])
+    dcm_hash = dicom_pair_fp[1].split("/")[-1].split(".")[0]
+    if cache_bbox_img(dcm_hash=dcm_hash) is None:
+        bboxes_dicom_img = raw_img_base64
+    else:
+        bboxes_dicom_img = cache_bbox_img(dcm_hash=dcm_hash)
+    return {"bboxes_dicom_img_data": bboxes_dicom_img}
 
 
 @app.post("/get_mask_from_file/")
 async def get_mask_from_file(current_dcm_fp: str = Body(...)) -> MaskFromFileResponse:
-    current_dcm = pydicom.dcmread(current_dcm_fp)
+    _, dicom_fps_to_segm_info = generate_nifti_info()
+    nifti_fp = dicom_fps_to_segm_info[current_dcm_fp]['nifti_fp']
+    slice = dicom_fps_to_segm_info[current_dcm_fp]['slice']
+    h = dicom_fps_to_segm_info[current_dcm_fp]['height']
+    w = dicom_fps_to_segm_info[current_dcm_fp]['width']
+    mask = nib.load(nifti_fp).get_fdata()[..., slice].astype(np.uint8).copy(order='C')
     return MaskFromFileResponse(
-        PixelData=base64.b64encode(current_dcm.SegmentSequence[0].PixelData).decode(
-            "utf-8",
-        ),
-        dimensions=[current_dcm.Columns, current_dcm.Rows],
+        PixelData=base64.b64encode(mask).decode("utf-8"),
+        dimensions=[w, h],
     )
 
 
 @app.post("/export_masks/")
 async def export_masks(data: SegData) -> ModifyResponse:
-    pixel_data = base64.b64decode(data.pixel_data)
-    fp = data.filepath
-    modified_dcm = pydicom.dcmread(fp)
-    modified_dcm.SegmentSequence[0].PixelData = pixel_data
-    modified_dcm.SegmentSequence[0].SegmentDescription = ";".join(data.classes)
-    modified_dcm.save_as(fp)
-    h, w = modified_dcm.SegmentSequence[0].Rows, modified_dcm.SegmentSequence[0].Columns
-    arr = np.frombuffer(pixel_data, dtype=np.uint8).reshape((h, w))
-    nii_file = Path(fp).parent / "masks.nii.gz"
-    if data.export2nifti:
-        if nii_file.exists():
-            nii_img = nib.load(nii_file)  # type: ignore[attr-defined]
-        else:
-            nii_img_data = np.zeros((h, w, data.n_dicom), dtype=np.uint8)
-            nii_img = nib.Nifti1Image(nii_img_data, np.eye(4))  # type: ignore[attr-defined,no-untyped-call]
-        if data.dcm_idx < data.n_dicom:
-            nii_img_data = nii_img.get_fdata()  # type: ignore[attr-defined]
-            nii_img_data[:, :, data.dcm_idx] = arr
-            nii_img = nib.Nifti1Image(nii_img_data, np.eye(4))  # type: ignore[attr-defined,no-untyped-call]
+    _, dicom_fps_to_segm_info = generate_nifti_info()
+    segm_info_slice = dicom_fps_to_segm_info[data.filepath]
+    mask = np.frombuffer(base64.b64decode(data.pixel_data), dtype=np.uint8).reshape((segm_info_slice['height'], segm_info_slice['width']))
+    nifti = nib.load(segm_info_slice['nifti_fp'])
+    masks = nifti.get_fdata().astype(np.uint8)
+    masks[..., segm_info_slice['slice']] = mask
+    nifti = nib.Nifti1Image(masks, np.eye(4))
+    nib.save(nifti, segm_info_slice['nifti_fp'])
 
-        nib.save(nii_img, nii_file)  # type: ignore[attr-defined]
     return ModifyResponse(success=True)
 
 
@@ -423,154 +442,214 @@ async def export_masks(data: SegData) -> ModifyResponse:
 async def get_files(files: list[UploadFile]) -> UploadFilesResponse:
     proper_dicom_paths = []
     total_uploaded_file_bytes = 0
+    skip_deidentification = False
     for file in files:
-        contents = await file.read()
-        fp = Path("./tmp/session-data/raw/" + file.filename.split("/")[-1])  # type: ignore[union-attr]
-        async with aiofiles.open(fp, "wb") as f:
-            await f.write(contents)
-        try:
-            dcm = pydicom.dcmread(fp)
-            if len(dcm.pixel_array.shape) == 2:  # noqa: PLR2004
+        if file.filename.split("/")[0] == 'de-identified-files' and file.filename.split("/")[-1] == 'session.json':
+            contents = await file.read()
+            fp = Path(os.path.join("./tmp/session-data/clean/", '/'.join(file.filename.split("/")[-2:])))
+            dp = Path(os.path.join("./tmp/session-data/clean/", '/'.join(file.filename.split("/")[-2:-1])))
+            if not os.path.exists(dp):
+                os.makedirs(dp)
+            async with aiofiles.open(fp, "wb") as f:
+                await f.write(contents)
+            skip_deidentification = True
+    if not skip_deidentification:
+        for file in files:
+            contents = await file.read()
+            fp = Path("./tmp/session-data/raw/" + file.filename.split("/")[-1])  # type: ignore[union-attr]
+            async with aiofiles.open(fp, "wb") as f:
+                await f.write(contents)
+            try:
+                dcm = pydicom.dcmread(fp)
+                if len(dcm.pixel_array.shape) == 2:  # noqa: PLR2004
+                    proper_dicom_paths.append(fp)
+                    total_uploaded_file_bytes += len(contents)
+                    total_uploaded_file_megabytes = "%.1f" % (
+                        total_uploaded_file_bytes / (10**3) ** 2
+                    )
+                else:
+                    fp.unlink()
+            except InvalidDicomError:
+                fp.unlink()
+    else:
+        for file in files:
+            contents = await file.read()
+            if file.filename.split(".")[-1] == 'dcm':
+                fp = Path(os.path.join("./tmp/session-data/clean/", '/'.join(file.filename.split("/")[-5:])))
                 proper_dicom_paths.append(fp)
                 total_uploaded_file_bytes += len(contents)
                 total_uploaded_file_megabytes = "%.1f" % (
                     total_uploaded_file_bytes / (10**3) ** 2
                 )
-            else:
-                fp.unlink()
-        except InvalidDicomError:
-            fp.unlink()
+                dp = Path(os.path.join("./tmp/session-data/clean/", '/'.join(file.filename.split("/")[-5:-1])))
+                if not os.path.exists(dp):
+                    os.makedirs(dp)
+                async with aiofiles.open(fp, "wb") as f:
+                    await f.write(contents)
+            elif file.filename.split(".")[-1] == 'nii':
+                fp = Path(os.path.join("./tmp/session-data/clean/", '/'.join(file.filename.split("/")[-5:])))
+                dp = Path(os.path.join("./tmp/session-data/clean/", '/'.join(file.filename.split("/")[-5:-1])))
+                if not os.path.exists(dp):
+                    os.makedirs(dp)
+                async with aiofiles.open(fp, "wb") as f:
+                    await f.write(contents)
+            elif file.filename.split(".")[-1] == 'csv':
+                fp = Path(os.path.join("./tmp/session-data/clean/", '/'.join(file.filename.split("/")[-2:])))
+                dp = Path(os.path.join("./tmp/session-data/clean/", '/'.join(file.filename.split("/")[-2:-1])))
+                if not os.path.exists(dp):
+                    os.makedirs(dp)
+                async with aiofiles.open(fp, "wb") as f:
+                    await f.write(contents)
+
     return UploadFilesResponse(
         n_uploaded_files=len(proper_dicom_paths),
         total_size=total_uploaded_file_megabytes,
+        skip_deidentification=skip_deidentification,
     )
 
 
-def attach_segm_data(
-    dcm: pydicom.dataset.FileDataset,
-    seg_mask: np.array,  # type: ignore[valid-type]
-    class_names: list[str],
-) -> pydicom.dataset.FileDataset:
-    if type(seg_mask[0, 0]) != np.uint8:  # type: ignore[index]
-        msg = "E: Incompatible element-wise data type"
-        raise TypeError(msg)
-    seg_dataset = pydicom.dataset.Dataset()
-    img = dcm.pixel_array
-    two_d = 2
-    if len(img.shape) != two_d:
-        msg = "E: Incompatible image shape"
-        raise ValueError(msg)
-    seg_dataset.Rows, seg_dataset.Columns = img.shape
-    seg_dataset.SOPClassUID = "1.2.840.10008.5.1.4.1.1.66.4"
-    seg_dataset.BitsAllocated = 8
-    seg_dataset.SegmentDescription = ";".join(class_names)
-    seg_dataset.PixelData = seg_mask.tobytes()  # type: ignore[attr-defined]
-    dcm.SegmentSequence = pydicom.sequence.Sequence([seg_dataset])
-    return dcm
+def generate_nifti_info() -> tuple[list[dict], dict]:
+    user_fp = Path("./tmp/session-data/user-options.json")
+    with open(user_fp) as file:
+        user_input = json.loads(file.read())
+    output_dp = user_input["output_dcm_dp"]
+    dcm_fps = list(glob.glob(os.path.join(output_dp, '**/*.dcm'), recursive = True))
+    series_info = {}
+    for dcm_fp in sorted(dcm_fps):
+        dcm = pydicom.dcmread(dcm_fp)
+        series_dp = '/'.join(str(dcm_fp).split('/')[:-1])
+        if series_dp not in series_info.keys():
+            series_info[series_dp] = {'dcm_fps': [], 'height': dcm.Rows, 'width': dcm.Columns}
+        series_info[series_dp]['dcm_fps'].append(dcm_fp)
+    nifti_info = []
+    dicom_fps_to_segm_info = {}
+    for series_dp in sorted(series_info.keys()):
+        dcm_fps_ = glob.glob(os.path.join(series_dp, '*.dcm'))
+        if series_dp.split('/')[-1] != 'None':
+            nifti_info.append({})
+            nifti_info[-1]['fp'] = os.path.join(series_dp, 'segmentation.nii')
+            nifti_info[-1]['n_slices'] = len(glob.glob(os.path.join(series_dp, '*.dcm')))
+            nifti_info[-1]['series_number'] = series_dp.split('/')[-1]
+            dcm = pydicom.dcmread(glob.glob(os.path.join(series_dp, '*.dcm'))[0])
+            nifti_info[-1]['height'] = dcm.Rows
+            nifti_info[-1]['width'] = dcm.Columns
+            nifti_info[-1]['dicom_fps'] = []
+            for dcm_series_idx, dcm_fp in enumerate(sorted(dcm_fps_)):
+                dicom_fps_to_segm_info[dcm_fp] = {'height': dcm.Rows, 'width': dcm.Columns, 'slice': dcm_series_idx, 'nifti_fp': nifti_info[-1]['fp']}
+                nifti_info[-1]['dicom_fps'].append(dcm_fp)
+            nifti_info[-1]['dicom_fps'] = sorted(nifti_info[-1]['dicom_fps'])
+        else:
+            for dcm_fp in sorted(dcm_fps_):
+                nifti_info.append({})
+                nifti_info[-1]['fp'] = '.'.join(dcm_fp.split('.')[:-1]) + '.nii'
+                nifti_info[-1]['n_slices'] = 1
+                nifti_info[-1]['series_number'] = series_dp.split('/')[-1]
+                dcm = pydicom.dcmread(dcm_fp)
+                nifti_info[-1]['height'] = dcm.Rows
+                nifti_info[-1]['width'] = dcm.Columns
+                dicom_fps_to_segm_info[dcm_fp] = {'height': dcm.Rows, 'width': dcm.Columns, 'slice': 0, 'nifti_fp': nifti_info[-1]['fp']}
+    return nifti_info, dicom_fps_to_segm_info
 
 
-def renew_segm_seq(fps: list[str], classes: list[str]) -> None:
-    for fp in fps:
-        fp_str = str(fp)
-        dcm = pydicom.dcmread(fp_str)
-        img_shape = dcm.pixel_array.shape
-        mask = np.zeros(shape=img_shape, dtype=np.uint8)
-        dcm = attach_segm_data(dcm=dcm, seg_mask=mask, class_names=classes)
-        dcm.save_as(fp_str)
+def renew_segmentation_data(classes: list[str]) -> None:
+    export_classes_to_session(session_classes=classes)
+    nifti_info, _ = generate_nifti_info()
+    for nifti_ in nifti_info:
+        arr = np.zeros(shape=(nifti_['height'], nifti_['width'], nifti_['n_slices']), dtype=np.uint8)
+        nifti = nib.Nifti1Image(arr, np.eye(4))
+        nib.save(nifti, nifti_['fp'])
+
+
+def export_classes_to_session(session_classes: list[str]) -> None:
+    session_fp = Path("./tmp/session-data/clean/de-identified-files/session.json")
+    with session_fp.open() as file:
+        session = json.load(file)
+    session["classes"] = []
+    for class_name in session_classes:
+        session["classes"].append(class_name)
+    with session_fp.open("w") as file:
+        json.dump(session, file, indent=4)
 
 
 @app.post("/export_classes")
 def export_classes(classes: list[str]) -> None:
-    user_fp = Path("./tmp/session-data/user-options.json")
-    with user_fp.open() as file:
-        user_input = json.load(file)
-    output_fp = Path(user_input["output_dcm_dp"])
-    fps = list(output_fp.rglob("*.dcm"))
-    session_classes = classes
-    session_classes.remove("background")
+    export_classes_to_session(session_classes=classes)
+
+
+def get_classes_from_session() -> list[str]:
     session_fp = Path("./tmp/session-data/clean/de-identified-files/session.json")
+    class_names = []
     with session_fp.open() as file:
-        session_file = json.load(file)
-    for entry_key in session_file:
-        entry = session_file[entry_key]
-        if "classes" not in entry:
-            entry["classes"] = []
-        for class_name in session_classes:
-            entry["classes"].append({len(entry["classes"]) + 1: class_name})
-    with session_fp.open("w") as file:
-        json.dump(session_file, file, indent=4)
-    for fp in fps:
-        dcm = pydicom.dcmread(fp)
-        dcm.SegmentSequence[0].SegmentDescription = ";".join(classes)
-        dcm.save_as(fp)
+        class_names = json.load(file)['classes']
+    return class_names
 
 
 @app.post("/correct_seg_homogeneity")
 async def correct_seg_homogeneity() -> None:
-    def segment_sequence_homogeneity_check(fps: list[str]) -> bool:
-        for fp in fps:
-            try:
-                dcm = pydicom.dcmread(fp)
-            except AttributeError:
-                continue
-            try:
-                dcm.SegmentSequence  # noqa: B018
-                mask = np.frombuffer(
-                    dcm.SegmentSequence[0].PixelData,
-                    dtype=np.uint8,
-                ).reshape((dcm.Rows, dcm.Columns))
-                found_classes = dcm.SegmentSequence[0].SegmentDescription.split(";")
-                if len(found_classes) < (len(np.unique(mask))):
-                    return False
-            except AttributeError:
-                return False
-        if dcm.SegmentSequence[0].SegmentDescription.split(";")[0] != "background":
+    def check_class_names_integrity() -> bool:
+        session_fp = Path("./tmp/session-data/clean/de-identified-files/session.json")
+        with session_fp.open() as file:
+            session = json.load(file)
+        if 'classes' not in session.keys():
+            return False
+        if session['classes'][0] != 'background':
             return False
         return True
+    
+    def check_nifti_fp() -> bool:
+        nifti_info, _ = generate_nifti_info()
+        generated_nifti_fps = {nifti_info[nifti_idx]['fp'] for nifti_idx in range(len(nifti_info))}
+        user_fp = Path("./tmp/session-data/user-options.json")
+        with open(user_fp) as file:
+            user_input = json.loads(file.read())
+        output_dp = user_input["output_dcm_dp"]
+        found_nifti_fps = set(glob.glob(os.path.join(output_dp, '**/*.nii'), recursive = True))
+        if generated_nifti_fps == found_nifti_fps:
+            return True
+        else:
+            return False
 
-    user_fp = Path("./tmp/session-data/user-options.json")
-    async with aiofiles.open(user_fp) as file:
-        user_input = json.loads(await file.read())
-    output_fp = Path(user_input["output_dcm_dp"])
-    fps = list(output_fp.rglob("*.dcm"))
-    homogeneity_state = segment_sequence_homogeneity_check(fps)  # type: ignore[arg-type]
+    def check_nifti_integrity() -> bool:
+        nifti_info, _ = generate_nifti_info()
+        session_fp = Path("./tmp/session-data/clean/de-identified-files/session.json")
+        with session_fp.open() as file:
+            class_names = json.load(file)['classes']
+        class_idcs = set(range(len(class_names)))
+        intensity_value_set = set()
+        for nifti_ in nifti_info:
+            nifti_fp = nifti_['fp']
+            intensity_value_set = set(np.unique(nib.load(nifti_fp).get_fdata().astype(np.uint8))).union(intensity_value_set)
+        if intensity_value_set == class_idcs:
+            return True
+        else:
+            return False
+
+    homogeneity_state = check_class_names_integrity()
     if not homogeneity_state:
-        renew_segm_seq(fps, ["background"])  # type: ignore[arg-type]
+        renew_segmentation_data(["background"])  # type: ignore[arg-type]
+        return None
+    homogeneity_state = check_nifti_fp()  # type: ignore[arg-type]
+    if not homogeneity_state:
+        renew_segmentation_data(["background"])  # type: ignore[arg-type]
+        return None
+    homogeneity_state = check_nifti_integrity()
+    if not homogeneity_state:
+        renew_segmentation_data(["background"])  # type: ignore[arg-type]
+        return None
 
 
 @app.post("/get_batch_classes")
-async def get_batch_classes() -> dict[str, list[str]]:
-    user_fp = Path("./tmp/session-data/user-options.json")
-    async with aiofiles.open(user_fp) as file:
-        user_input = json.loads(await file.read())
-    output_fp = Path(user_input["output_dcm_dp"])
-    fps = list(output_fp.rglob("*.dcm"))
+async def get_batch_classes() -> list[str]:
     try:
-        found_classes = {
-            "classes": pydicom.dcmread(fps[0])
-            .SegmentSequence[0]
-            .SegmentDescription.split(";"),
-        }
+        found_classes = get_classes_from_session()
     except AttributeError:
-        sys.exit("E: Fatal Error; corrupted segmentation sequence attribute detected")
+        sys.exit("E: Fatal Error; corrupted session file attribute detected")
     return found_classes
 
 
 @app.post("/align_classes")
 async def align_classes(classes: list[str]) -> None:
-    user_fp = Path("./tmp/session-data/user-options.json")
-    async with aiofiles.open(user_fp) as file:
-        user_input = json.loads(await file.read())
-    output_fp = Path(user_input["output_dcm_dp"])
-    fps = list(output_fp.rglob("*.dcm"))
-    renew_segm_seq(fps, classes)  # type: ignore[arg-type]
-
-
-@app.post("/session", name="session")
-async def handle_session_button_click(session_dict: dict[str, Any]) -> None:
-    session_fp = Path("./tmp/session-data/clean/de-identified-files/session.json")
-    async with aiofiles.open(session_fp, "w") as file:
-        await file.write(json.dumps(session_dict))
+    renew_segmentation_data(classes)  # type: ignore[arg-type]
 
 
 @app.post("/custom_config/", name="custom_config")
@@ -986,19 +1065,38 @@ class Rwdcm:
             pass
         if in_dp[-1] != "/":
             in_dp = in_dp + "/"
-        self.raw_data_dp = in_dp
-        self.raw_dicom_paths = sorted(self.get_dicom_paths(data_dp=self.raw_data_dp))
-        self.dicom_pair_fps = []  # type: ignore[var-annotated]
         self.out_dp = out_dp
-        self.clean_data_dp = out_dp + "/" + "de-identified-files/"
-        already_cleaned_dicom_paths = str(
-            self.get_dicom_paths(data_dp=self.clean_data_dp),
-        )
-        self.hashes_of_already_converted_files = [
-            already_cleaned_dicom_path.split("/")[-1].split(".")[0]
-            for already_cleaned_dicom_path in already_cleaned_dicom_paths
-        ]
-        self.n_dicom_files = len(self.raw_dicom_paths)
+        self.raw_data_dp = in_dp
+        self.clean_data_dp = os.path.join(out_dp, "de-identified-files/")
+        self.raw_dicom_paths = sorted(glob.glob(os.path.join(self.raw_data_dp, '*')))
+        self.clean_dicom_paths = sorted(glob.glob(os.path.join(self.clean_data_dp, '**/*.dcm'), recursive=True))
+        self.dicom_pair_fps = []
+        self.raw_dicom_hashes = []
+        hashes_of_raw_files = []
+        self.hashes_of_already_converted_files = []
+        self.pending_deidentification = []
+        for already_cleaned_dicom_path in self.clean_dicom_paths:
+            self.hashes_of_already_converted_files.append(already_cleaned_dicom_path.split('/')[-1].split('.')[0])
+        for raw_dicom_fp in self.raw_dicom_paths:
+            with open(file = raw_dicom_fp, mode = "rb") as f:
+                raw_dicom_bin = f.read()
+                hashes_of_raw_files.append(hashlib.sha256(raw_dicom_bin).hexdigest())
+        for hash_of_raw_file, raw_dicom_fp in zip(hashes_of_raw_files, self.raw_dicom_paths):
+            if hash_of_raw_file in self.hashes_of_already_converted_files:
+                clean_dicom_fp = self.clean_dicom_paths[self.hashes_of_already_converted_files.index(hash_of_raw_file)]
+                self.dicom_pair_fps.append([raw_dicom_fp, clean_dicom_fp])
+                self.pending_deidentification.append(False)
+                self.raw_dicom_hashes.append(hash_of_raw_file)
+            else:
+                self.dicom_pair_fps.append([raw_dicom_fp, None])
+                self.pending_deidentification.append(True)
+                self.raw_dicom_hashes.append(hash_of_raw_file)
+        for hash_of_already_converted_file, clean_dicom_fp in zip(self.hashes_of_already_converted_files, self.clean_dicom_paths):
+            if hash_of_already_converted_file not in hashes_of_raw_files:
+                self.dicom_pair_fps.append([clean_dicom_fp, clean_dicom_fp])
+                self.pending_deidentification.append(False)
+                self.raw_dicom_hashes.append(hash_of_already_converted_file)
+        self.n_dicom_files = len(self.dicom_pair_fps)
         self.DICOM_IDX = -1
 
     def __next__(
@@ -1006,48 +1104,37 @@ class Rwdcm:
     ) -> bool:
         self.DICOM_IDX += 1
         if self.n_dicom_files - 1 >= self.DICOM_IDX:
-            self.raw_dicom_path = self.raw_dicom_paths[self.DICOM_IDX]
+            self.raw_dicom_fp, self.clean_dicom_fp = self.dicom_pair_fps[self.DICOM_IDX]
+            self.deintentify = self.pending_deidentification[self.DICOM_IDX]
+            self.raw_dicom_hash = self.raw_dicom_hashes[self.DICOM_IDX]
             return True
         return False
 
-    def get_dicom_paths(
-        self,  # noqa: ANN101
-        data_dp: str,
-    ) -> list[Path]:
-        return list(Path(data_dp).rglob("*"))
+    def define_undefined_clean_dicom_fp(self, clean_dcm):
+        if self.deintentify:
+            clean_dicom_dp = (
+                self.clean_data_dp
+                + str(clean_dcm[0x0010, 0x0020].value)
+                + "/"
+                + str(clean_dcm[0x0008, 0x0060].value)
+                + "/"
+                + str(clean_dcm[0x0020, 0x0011].value)
+            )
+            if not Path(clean_dicom_dp).exists():
+                Path(clean_dicom_dp).mkdir(parents=True)
+            clean_dicom_fp = os.path.join(clean_dicom_dp, self.raw_dicom_hash + '.dcm')
+            self.dicom_pair_fps[self.DICOM_IDX][1] = self.clean_dicom_fp = clean_dicom_fp
 
-    def parse_file(
-        self,  # noqa: ANN101
-    ) -> pydicom.dataset.FileDataset | bool:
-        self.input_dicom_hash = hashlib.sha256(
-            str(self.raw_dicom_path).encode("UTF-8"),
-        ).hexdigest()
-        if self.input_dicom_hash in self.hashes_of_already_converted_files:
-            return False
-        return pydicom.dcmread(self.raw_dicom_path)
-
-    def export_processed_file(
+    def export_processed_data(
         self,  # noqa: ANN101
         dcm: pydicom.dataset.FileDataset,
         bbox_img: NDArray[Any],
     ) -> None:
-        self.clean_dicom_dp = (
-            self.clean_data_dp
-            + str(dcm[0x0010, 0x0020].value)
-            + "/"
-            + str(dcm[0x0008, 0x0060].value)
-            + "/"
-            + str(dcm[0x0020, 0x0011].value)
-        )
-        if not Path(self.clean_dicom_dp).exists():
-            Path(self.clean_dicom_dp).mkdir(parents=True)
         if bbox_img is not None:
-            bbox_img_fp = self.out_dp + "/" + self.input_dicom_hash + "_bbox" + ".png"
+            bbox_img_fp = os.path.join(self.out_dp, self.raw_dicom_hash + '_bbox.png')
             Image.fromarray(bbox_img).save(bbox_img_fp)  # type: ignore[no-untyped-call]
-            cache_bbox_img(self.input_dicom_hash)
-        clean_dicom_fp = self.clean_dicom_dp + "/" + self.input_dicom_hash + ".dcm"
-        dcm.save_as(clean_dicom_fp)
-        self.dicom_pair_fps.append((self.raw_dicom_path, clean_dicom_fp))
+            cache_bbox_img(self.raw_dicom_hash)
+        dcm.save_as(self.clean_dicom_fp)
 
     def export_session(
         self,  # noqa: ANN101
@@ -1055,11 +1142,11 @@ class Rwdcm:
     ) -> None:
         session_fp = Path("./tmp/session-data/clean/de-identified-files/session.json")
         with session_fp.open("w") as file:
-            json.dump(session, file)
+            json.dump(session, file, indent=4)
 
 
 def dicom_deidentifier(  # noqa: PLR0912, PLR0915
-    session_filepath: None | str = None,
+    session: dict,
 ) -> tuple[dict[str, dict[str, str]], list[tuple[str]]]:
     if Path("./tmp/session-data/custom-config.csv").is_file():
         custom_config_df = pd.read_csv(
@@ -1073,22 +1160,11 @@ def dicom_deidentifier(  # noqa: PLR0912, PLR0915
         filepath_or_buffer="./python/tmp/action-groups-dcm.csv",
         index_col=0,
     )
-    if session_filepath is None or not Path(session_filepath).is_file():
-        session = {}
-    else:
-        with Path(
-            "./tmp/session-data/clean/de-identified-files/session.json",
-        ).open() as file:
-            session = json.load(file)
-    if Path("./tmp/session-data/user-options.json").is_file():
-        with Path("./tmp/session-data/user-options.json").open() as file:
-            user_input = json.load(file)
-    else:
-        sys.exit("E: No client de-identification configuration was provided")
-    pseudo_patient_ids = []
+    with Path("./tmp/session-data/user-options.json").open() as file:
+        user_input = json.load(file)
     pseudo_patient_ids = [
         int(patient_deidentification_properties["patient_pseudo_id"])
-        for patient_deidentification_properties in session.values()
+        for patient_deidentification_properties in session['de-identification'].values()
     ]
     max_pseudo_patient_id = -1 if pseudo_patient_ids == [] else max(pseudo_patient_ids)
     requested_action_group_df = get_action_group(
@@ -1101,53 +1177,51 @@ def dicom_deidentifier(  # noqa: PLR0912, PLR0915
     )
     rw_obj = Rwdcm(in_dp=user_input["input_dcm_dp"], out_dp=user_input["output_dcm_dp"])
     while next(rw_obj):
-        dcm = rw_obj.parse_file()
-        if dcm is False:
-            msg = "E: DICOM file is corrupted or missing"
-            raise ValueError(msg)
-        date_processing_choices = {"keep", "offset", "remove"}
-        if user_input["date_processing"] not in date_processing_choices:
-            msg = "E: Invalid date processing input"
-            raise ValueError(msg)
-        patient_pseudo_id_prefix = user_input["patient_pseudo_id_prefix"]
-        real_patient_id = dcm[0x0010, 0x0020].value  # type: ignore[index]
-        patient_deidentification_properties = session.get(real_patient_id, False)
-        if not patient_deidentification_properties:
-            max_pseudo_patient_id += 1
-            session[real_patient_id] = {
-                "patient_pseudo_id": "%.6d" % max_pseudo_patient_id,
-            }
-            days_total_offset = 10 * 365 + secrets.randbelow(1 + 10 * 365)
-            seconds_total_offset = secrets.randbelow(24 * 60 * 60)
-        else:
-            days_total_offset = session[real_patient_id]["days_offset"]
-            seconds_total_offset = session[real_patient_id]["seconds_offset"]
-        dcm, tag_value_replacements = adjust_dicom_metadata(
-            dcm=dcm,  # type: ignore[arg-type]
-            action_group_fp="./tmp/session-data/requested-action-group-dcm.csv",
-            patient_pseudo_id=session[real_patient_id]["patient_pseudo_id"],
-            days_total_offset=days_total_offset,
-            seconds_total_offset=seconds_total_offset,
-            patient_pseudo_id_prefix=patient_pseudo_id_prefix,
-        )
-        session[real_patient_id]["days_offset"] = tag_value_replacements[
-            "days_total_offset"
-        ]
-        session[real_patient_id]["seconds_offset"] = tag_value_replacements[
-            "seconds_total_offset"
-        ]
-        dcm = deidentification_attributes(user_input=user_input, dcm=dcm)
-        if user_input["clean_image"]:
-            dcm, bbox_img = image_deintentifier(dcm=dcm)  # type: ignore[assignment]
-            bbox_img = image_preprocessing(  # type: ignore[assignment]
-                bbox_img,  # type: ignore[arg-type]
-                downscale_dimensionality=max(bbox_img.shape),  # type: ignore[attr-defined]
-                multichannel=True,
-                retain_aspect_ratio=True,
+        dcm = pydicom.dcmread(rw_obj.raw_dicom_fp)
+        bbox_img = None
+        if rw_obj.deintentify:
+            date_processing_choices = {"keep", "offset", "remove"}
+            if user_input["date_processing"] not in date_processing_choices:
+                msg = "E: Invalid date processing input"
+                raise ValueError(msg)
+            patient_pseudo_id_prefix = user_input["patient_pseudo_id_prefix"]
+            real_patient_id = dcm[0x0010, 0x0020].value  # type: ignore[index]
+            patient_deidentification_properties = session['de-identification'].get(real_patient_id, False)
+            if not patient_deidentification_properties:
+                max_pseudo_patient_id += 1
+                session['de-identification'][real_patient_id] = {
+                    "patient_pseudo_id": "%.6d" % max_pseudo_patient_id,
+                }
+                days_total_offset = 10 * 365 + secrets.randbelow(1 + 10 * 365)
+                seconds_total_offset = secrets.randbelow(24 * 60 * 60)
+            else:
+                days_total_offset = session['de-identification'][real_patient_id]["days_offset"]
+                seconds_total_offset = session['de-identification'][real_patient_id]["seconds_offset"]
+            dcm, tag_value_replacements = adjust_dicom_metadata(
+                dcm=dcm,  # type: ignore[arg-type]
+                action_group_fp="./tmp/session-data/requested-action-group-dcm.csv",
+                patient_pseudo_id=session['de-identification'][real_patient_id]["patient_pseudo_id"],
+                days_total_offset=days_total_offset,
+                seconds_total_offset=seconds_total_offset,
+                patient_pseudo_id_prefix=patient_pseudo_id_prefix,
             )
-        else:
-            bbox_img = None
-        rw_obj.export_processed_file(dcm=dcm, bbox_img=bbox_img)  # type: ignore[arg-type]
+            session['de-identification'][real_patient_id]["days_offset"] = tag_value_replacements[
+                "days_total_offset"
+            ]
+            session['de-identification'][real_patient_id]["seconds_offset"] = tag_value_replacements[
+                "seconds_total_offset"
+            ]
+            dcm = deidentification_attributes(user_input=user_input, dcm=dcm)
+            if user_input["clean_image"]:
+                dcm, bbox_img = image_deintentifier(dcm=dcm)  # type: ignore[assignment]
+                bbox_img = image_preprocessing(  # type: ignore[assignment]
+                    bbox_img,  # type: ignore[arg-type]
+                    downscale_dimensionality=max(bbox_img.shape),  # type: ignore[attr-defined]
+                    multichannel=True,
+                    retain_aspect_ratio=True,
+                )
+            rw_obj.define_undefined_clean_dicom_fp(dcm)
+            rw_obj.export_processed_data(dcm=dcm, bbox_img=bbox_img)  # type: ignore[arg-type]
         rw_obj.export_session(session=session)
     return session, rw_obj.dicom_pair_fps
 
@@ -1155,33 +1229,22 @@ def dicom_deidentifier(  # noqa: PLR0912, PLR0915
 @app.post("/submit_button")
 async def handle_submit_button_click(user_options: UserOptionsClass) -> list[Any]:
     user_options = dict(user_options)  # type: ignore[assignment]
-    dp, _, fps = next(iter(os.walk("./tmp/session-data/raw")))
-    if set(fps).issubset({".gitkeep"}):
-        return False  # type: ignore[return-value]
-    default_options = {
-        "input_dcm_dp": "./tmp/session-data/raw",
-        "output_dcm_dp": "./tmp/session-data/clean",
-        "clean_image": True,
-        "annotation": True,
-        "retain_safe_private": False,
-        "retain_uids": False,
-        "retain_device_identity": False,
-        "retain_patient_characteristics": False,
-        "date_processing": "offset",
-        "retain_descriptors": False,
-        "patient_pseudo_id_prefix": "<PREFIX ID> - ",
-    }
-    user_options["input_dcm_dp"] = default_options["input_dcm_dp"]  # type: ignore[index]
-    user_options["output_dcm_dp"] = default_options["output_dcm_dp"]  # type: ignore[index]
+    user_options["input_dcm_dp"] = "./tmp/session-data/raw"  # type: ignore[index]
+    user_options["output_dcm_dp"] = "./tmp/session-data/clean"  # type: ignore[index]
     user_fp = Path("./tmp/session-data/user-options.json")
     async with aiofiles.open(user_fp, "w") as file:
-        await file.write(json.dumps(user_options))
+        await file.write(json.dumps(user_options, indent=4))
+    session_filepath = "./tmp/session-data/clean/de-identified-files/session.json"
+    if not Path(session_filepath).is_file():
+        session = {"de-identification": {}, "classes": ["background"]}
+    else:
+        with Path(
+            "./tmp/session-data/clean/de-identified-files/session.json",
+        ).open() as file:
+            session = json.load(file)
     session, dicom_pair_fps = dicom_deidentifier(
-        session_filepath="./tmp/session-data/clean/de-identified-files/session.json",
+        session=session,
     )
-    session_fp = Path("./tmp/session-data/clean/de-identified-files/session.json")
-    async with aiofiles.open(session_fp, "w") as file:
-        await file.write(json.dumps(session))
     if user_options["annotation"]:  # type: ignore[index]
         prepare_medsam()
     return dicom_pair_fps

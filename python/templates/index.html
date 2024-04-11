@@ -41,37 +41,6 @@
                             <br>
                             <br>
                         </div>
-                    </form>
-                    <form id="SessionForm"
-                          action="{{ url_for("session") }}"
-                          enctype="application/json"
-                          method="post">
-                        <label for="formFile" class="form-label">Load session file:</label>
-                        <input name="SessionFile" class="form-control" type="file">
-                    </form>
-                    <form id="CustomDeidentificationConfig"
-                          action="{{ url_for("custom_config") }}"
-                          enctype="multipart/form-data"
-                          method="post">
-                        <label for="formFile" class="form-label">Load configuration file (.csv):</label>
-                        <input name="ConfigFile" class="form-control" type="file">
-                    </form>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input"
-                               type="checkbox"
-                               role="switch"
-                               id="annotation"
-                               checked>
-                        <label class="form-check-label" for="annotation">Enable annotation</label>
-                    </div>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input"
-                               type="checkbox"
-                               role="switch"
-                               id="ExportAnnot2Nifti"
-                               checked>
-                        <label class="form-check-label" for="ExportAnnot2Nifti">Export annotation masks to NIfTI</label>
-                    </div>
                     <br>
                     <b>De-identification options</b>
                     <br>
@@ -80,13 +49,21 @@
                         <a href="https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html"> DICOM
                         PS3.15</a>
                     </i>
+                    </form>
+                    <form id="CustomDeidentificationConfig"
+                        action="{{ url_for("custom_config") }}"
+                        enctype="multipart/form-data"
+                        method="post">
+                        <label for="formFile" class="form-label">Load configuration file (.csv):</label>
+                        <input name="ConfigFile" class="form-control" type="file">
+                    </form>
+                    <br>
                     <div class="d-flex align-items-center">
                         <div class="form-check form-switch me-2">
                             <input class="form-check-input"
                                    type="checkbox"
                                    role="switch"
-                                   id="clean-image"
-                                   checked>
+                                   id="clean-image">
                             <label class="form-check-label" for="clean-image">Clean pixel data</label>
                         </div>
                         <select id="display-radio"
@@ -157,11 +134,22 @@
                                aria-label="ID"
                                aria-describedby="basic-addon1">
                     </div>
+                    <br>
+                    <b>Other options</b>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input"
+                               type="checkbox"
+                               role="switch"
+                               id="annotation"
+                               checked>
+                        <label class="form-check-label" for="annotation">Enable annotation</label>
+                    </div>
+                    <br>
                     <button type="button"
                             id="SubmitAnonymizationProcess"
                             class="btn btn-primary"
                             onclick="submit_dicom_processing_request()"
-                            disabled>De-Identify DICOM Files</button>
+                            disabled>Submit Options</button>
                 </div>
             </div>
             <div class="col-sm-9">
