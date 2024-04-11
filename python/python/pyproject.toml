@@ -1,6 +1,6 @@
 [project]
 dependencies = [
-  "lxml==5.2.0",
+  "lxml==5.2.1",
   "pandas==2.2.1",
   "urllib3==2.2.1"
 ]
