@@ -41,19 +41,19 @@
                             <br>
                             <br>
                         </div>
-                    <br>
-                    <b>De-identification options</b>
-                    <br>
-                    <i>
-                        Based on
-                        <a href="https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html"> DICOM
-                        PS3.15</a>
-                    </i>
+                        <br>
+                        <b>De-identification options</b>
+                        <br>
+                        <i>
+                            Based on
+                            <a href="https://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_e.html"> DICOM
+                            PS3.15</a>
+                        </i>
                     </form>
                     <form id="CustomDeidentificationConfig"
-                        action="{{ url_for("custom_config") }}"
-                        enctype="multipart/form-data"
-                        method="post">
+                          action="{{ url_for("custom_config") }}"
+                          enctype="multipart/form-data"
+                          method="post">
                         <label for="formFile" class="form-label">Load configuration file (.csv):</label>
                         <input name="ConfigFile" class="form-control" type="file">
                     </form>

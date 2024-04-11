@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import datetime
+import glob
 import hashlib
 import json
 import os
@@ -24,7 +25,6 @@ import pandas as pd
 import pydicom
 import pytest
 import torch
-import glob
 from dotenv import dotenv_values
 from fastapi import Body, Depends, FastAPI, HTTPException, Request, UploadFile, status
 from fastapi.responses import HTMLResponse
@@ -356,7 +356,7 @@ async def conversion_info(dicom_pair_fp: list[str]) -> dict:  # type: ignore[typ
     )
     raw_buf = BytesIO()
     Image.fromarray(raw_img).save(raw_buf, format="PNG")  # type: ignore[no-untyped-call]
-    raw_img_base64 = base64.b64encode(raw_buf.getvalue()).decode("utf-8")
+    base64.b64encode(raw_buf.getvalue()).decode("utf-8")
     cleaned_dcm = pydicom.dcmread(dicom_pair_fp[1])
     cleaned_img = image_preprocessing(
         cleaned_dcm.pixel_array,
@@ -368,9 +368,9 @@ async def conversion_info(dicom_pair_fp: list[str]) -> dict:  # type: ignore[typ
     Image.fromarray(cleaned_img).save(cleaned_buf, format="PNG")  # type: ignore[no-untyped-call]
     cleaned_img_base64 = base64.b64encode(cleaned_buf.getvalue()).decode("utf-8")
     if cache_bbox_img(dcm_hash=dcm_hash) is None:
-        bboxes_dicom_img = raw_img_base64
+        pass
     else:
-        bboxes_dicom_img = cache_bbox_img(dcm_hash=dcm_hash)
+        cache_bbox_img(dcm_hash=dcm_hash)
     return {
         "raw_dicom_metadata": dcm2dictmetadata(ds=raw_dcm),
         "cleaned_dicom_metadata": dcm2dictmetadata(ds=cleaned_dcm),
@@ -378,13 +378,7 @@ async def conversion_info(dicom_pair_fp: list[str]) -> dict:  # type: ignore[typ
     }
 
 
-@app.post("/get_raw_dicom_img_data/")
-async def get_raw_dicom_img_data(dicom_pair_fp: list[str]) -> dict:
-    raw_img_base64 = get_raw_dicom_img_data_(dicom_pair_fp[0])
-    return {"raw_dicom_img_data": raw_img_base64}
-
-
-def get_raw_dicom_img_data_(fp):
+def get_raw_dicom_img_data_(fp):  # type: ignore[no-untyped-def] # noqa: ANN201, ANN001
     downscale_dimensionality = 1024
     raw_dcm = pydicom.dcmread(fp)
     raw_img = image_preprocessing(
@@ -395,13 +389,18 @@ def get_raw_dicom_img_data_(fp):
     )
     raw_buf = BytesIO()
     Image.fromarray(raw_img).save(raw_buf, format="PNG")  # type: ignore[no-untyped-call]
-    raw_img_base64 = base64.b64encode(raw_buf.getvalue()).decode("utf-8")
-    return raw_img_base64
+    return base64.b64encode(raw_buf.getvalue()).decode("utf-8")
+
+
+@app.post("/get_raw_dicom_img_data/")
+async def get_raw_dicom_img_data(dicom_pair_fp: list[str]) -> dict:  # type: ignore[type-arg]
+    raw_img_base64 = get_raw_dicom_img_data_(dicom_pair_fp[0])  # type: ignore[no-untyped-call]
+    return {"raw_dicom_img_data": raw_img_base64}
 
 
 @app.post("/get_bboxes_dicom_img_data/")
-async def get_bboxes_dicom_img_data(dicom_pair_fp: list[str]) -> dict:
-    raw_img_base64 = get_raw_dicom_img_data_(dicom_pair_fp[0])
+async def get_bboxes_dicom_img_data(dicom_pair_fp: list[str]) -> dict:  # type: ignore[type-arg]
+    raw_img_base64 = get_raw_dicom_img_data_(dicom_pair_fp[0])  # type: ignore[no-untyped-call]
     dcm_hash = dicom_pair_fp[1].split("/")[-1].split(".")[0]
     if cache_bbox_img(dcm_hash=dcm_hash) is None:
         bboxes_dicom_img = raw_img_base64
@@ -410,14 +409,73 @@ async def get_bboxes_dicom_img_data(dicom_pair_fp: list[str]) -> dict:
     return {"bboxes_dicom_img_data": bboxes_dicom_img}
 
 
+def generate_nifti_info() -> tuple[list[dict], dict]:  # type: ignore[type-arg]
+    user_fp = Path("./tmp/session-data/user-options.json")
+    with user_fp.open() as file:
+        user_input = json.loads(file.read())
+    output_dp = user_input["output_dcm_dp"]
+    dcm_fps = list(glob.glob(os.path.join(output_dp, "**/*.dcm"), recursive=True))  # noqa: PTH207, PTH118
+    series_info = {}
+    for dcm_fp in sorted(dcm_fps):
+        dcm = pydicom.dcmread(dcm_fp)
+        series_dp = "/".join(str(dcm_fp).split("/")[:-1])
+        if series_dp not in series_info:
+            series_info[series_dp] = {
+                "dcm_fps": [],
+                "height": dcm.Rows,
+                "width": dcm.Columns,
+            }
+        series_info[series_dp]["dcm_fps"].append(dcm_fp)
+    nifti_info = []  # type: ignore[var-annotated]
+    dicom_fps_to_segm_info = {}
+    for series_dp in sorted(series_info.keys()):
+        dcm_fps_ = glob.glob(os.path.join(series_dp, "*.dcm"))  # noqa: PTH207, PTH118
+        if series_dp.split("/")[-1] != "None":
+            nifti_info.append({})
+            nifti_info[-1]["fp"] = os.path.join(series_dp, "segmentation.nii")  # noqa: PTH118
+            nifti_info[-1]["n_slices"] = len(
+                glob.glob(os.path.join(series_dp, "*.dcm")),  # noqa: PTH207, PTH118
+            )
+            nifti_info[-1]["series_number"] = series_dp.split("/")[-1]
+            dcm = pydicom.dcmread(glob.glob(os.path.join(series_dp, "*.dcm"))[0])  # noqa: PTH207, PTH118
+            nifti_info[-1]["height"] = dcm.Rows
+            nifti_info[-1]["width"] = dcm.Columns
+            nifti_info[-1]["dicom_fps"] = []
+            for dcm_series_idx, dcm_fp in enumerate(sorted(dcm_fps_)):
+                dicom_fps_to_segm_info[dcm_fp] = {
+                    "height": dcm.Rows,
+                    "width": dcm.Columns,
+                    "slice": dcm_series_idx,
+                    "nifti_fp": nifti_info[-1]["fp"],
+                }
+                nifti_info[-1]["dicom_fps"].append(dcm_fp)
+            nifti_info[-1]["dicom_fps"] = sorted(nifti_info[-1]["dicom_fps"])
+        else:
+            for dcm_fp in sorted(dcm_fps_):
+                nifti_info.append({})
+                nifti_info[-1]["fp"] = ".".join(dcm_fp.split(".")[:-1]) + ".nii"
+                nifti_info[-1]["n_slices"] = 1
+                nifti_info[-1]["series_number"] = series_dp.split("/")[-1]
+                dcm = pydicom.dcmread(dcm_fp)
+                nifti_info[-1]["height"] = dcm.Rows
+                nifti_info[-1]["width"] = dcm.Columns
+                dicom_fps_to_segm_info[dcm_fp] = {
+                    "height": dcm.Rows,
+                    "width": dcm.Columns,
+                    "slice": 0,
+                    "nifti_fp": nifti_info[-1]["fp"],
+                }
+    return nifti_info, dicom_fps_to_segm_info
+
+
 @app.post("/get_mask_from_file/")
 async def get_mask_from_file(current_dcm_fp: str = Body(...)) -> MaskFromFileResponse:
     _, dicom_fps_to_segm_info = generate_nifti_info()
-    nifti_fp = dicom_fps_to_segm_info[current_dcm_fp]['nifti_fp']
-    slice = dicom_fps_to_segm_info[current_dcm_fp]['slice']
-    h = dicom_fps_to_segm_info[current_dcm_fp]['height']
-    w = dicom_fps_to_segm_info[current_dcm_fp]['width']
-    mask = nib.load(nifti_fp).get_fdata()[..., slice].astype(np.uint8).copy(order='C')
+    nifti_fp = dicom_fps_to_segm_info[current_dcm_fp]["nifti_fp"]
+    slice_ = dicom_fps_to_segm_info[current_dcm_fp]["slice"]
+    h = dicom_fps_to_segm_info[current_dcm_fp]["height"]
+    w = dicom_fps_to_segm_info[current_dcm_fp]["width"]
+    mask = nib.load(nifti_fp).get_fdata()[..., slice_].astype(np.uint8).copy(order="C")  # type: ignore[attr-defined]
     return MaskFromFileResponse(
         PixelData=base64.b64encode(mask).decode("utf-8"),
         dimensions=[w, h],
@@ -428,28 +486,43 @@ async def get_mask_from_file(current_dcm_fp: str = Body(...)) -> MaskFromFileRes
 async def export_masks(data: SegData) -> ModifyResponse:
     _, dicom_fps_to_segm_info = generate_nifti_info()
     segm_info_slice = dicom_fps_to_segm_info[data.filepath]
-    mask = np.frombuffer(base64.b64decode(data.pixel_data), dtype=np.uint8).reshape((segm_info_slice['height'], segm_info_slice['width']))
-    nifti = nib.load(segm_info_slice['nifti_fp'])
-    masks = nifti.get_fdata().astype(np.uint8)
-    masks[..., segm_info_slice['slice']] = mask
-    nifti = nib.Nifti1Image(masks, np.eye(4))
-    nib.save(nifti, segm_info_slice['nifti_fp'])
+    mask = np.frombuffer(base64.b64decode(data.pixel_data), dtype=np.uint8).reshape(
+        (segm_info_slice["height"], segm_info_slice["width"]),
+    )
+    nifti = nib.load(segm_info_slice["nifti_fp"])  # type: ignore[attr-defined]
+    masks = nifti.get_fdata().astype(np.uint8)  # type: ignore[attr-defined]
+    masks[..., segm_info_slice["slice"]] = mask
+    nifti = nib.Nifti1Image(masks, np.eye(4))  # type: ignore[no-untyped-call, attr-defined]
+    nib.save(nifti, segm_info_slice["nifti_fp"])  # type: ignore[attr-defined]
 
     return ModifyResponse(success=True)
 
 
 @app.post("/upload_files/", name="upload_files")
-async def get_files(files: list[UploadFile]) -> UploadFilesResponse:
+async def get_files(files: list[UploadFile]) -> UploadFilesResponse:  # noqa: C901, PLR0912, PLR0915
     proper_dicom_paths = []
     total_uploaded_file_bytes = 0
     skip_deidentification = False
     for file in files:
-        if file.filename.split("/")[0] == 'de-identified-files' and file.filename.split("/")[-1] == 'session.json':
+        if (
+            file.filename.split("/")[0] == "de-identified-files"  # type: ignore[union-attr]
+            and file.filename.split("/")[-1] == "session.json"  # type: ignore[union-attr]
+        ):
             contents = await file.read()
-            fp = Path(os.path.join("./tmp/session-data/clean/", '/'.join(file.filename.split("/")[-2:])))
-            dp = Path(os.path.join("./tmp/session-data/clean/", '/'.join(file.filename.split("/")[-2:-1])))
-            if not os.path.exists(dp):
-                os.makedirs(dp)
+            fp = Path(
+                os.path.join(  # noqa: PTH118
+                    "./tmp/session-data/clean/",
+                    "/".join(file.filename.split("/")[-2:]),  # type: ignore[union-attr]
+                ),
+            )
+            dp = Path(
+                os.path.join(  # noqa: PTH118
+                    "./tmp/session-data/clean/",
+                    "/".join(file.filename.split("/")[-2:-1]),  # type: ignore[union-attr]
+                ),
+            )
+            if not os.path.exists(dp):  # noqa: PTH110
+                os.makedirs(dp)  # noqa: PTH103
             async with aiofiles.open(fp, "wb") as f:
                 await f.write(contents)
             skip_deidentification = True
@@ -474,30 +547,60 @@ async def get_files(files: list[UploadFile]) -> UploadFilesResponse:
     else:
         for file in files:
             contents = await file.read()
-            if file.filename.split(".")[-1] == 'dcm':
-                fp = Path(os.path.join("./tmp/session-data/clean/", '/'.join(file.filename.split("/")[-5:])))
+            if file.filename.split(".")[-1] == "dcm":  # type: ignore[union-attr]
+                fp = Path(
+                    os.path.join(  # noqa: PTH118
+                        "./tmp/session-data/clean/",
+                        "/".join(file.filename.split("/")[-5:]),  # type: ignore[union-attr]
+                    ),
+                )
                 proper_dicom_paths.append(fp)
                 total_uploaded_file_bytes += len(contents)
                 total_uploaded_file_megabytes = "%.1f" % (
                     total_uploaded_file_bytes / (10**3) ** 2
                 )
-                dp = Path(os.path.join("./tmp/session-data/clean/", '/'.join(file.filename.split("/")[-5:-1])))
-                if not os.path.exists(dp):
-                    os.makedirs(dp)
+                dp = Path(
+                    os.path.join(  # noqa: PTH118
+                        "./tmp/session-data/clean/",
+                        "/".join(file.filename.split("/")[-5:-1]),  # type: ignore[union-attr]
+                    ),
+                )
+                if not os.path.exists(dp):  # noqa: PTH110
+                    os.makedirs(dp)  # noqa: PTH103
                 async with aiofiles.open(fp, "wb") as f:
                     await f.write(contents)
-            elif file.filename.split(".")[-1] == 'nii':
-                fp = Path(os.path.join("./tmp/session-data/clean/", '/'.join(file.filename.split("/")[-5:])))
-                dp = Path(os.path.join("./tmp/session-data/clean/", '/'.join(file.filename.split("/")[-5:-1])))
-                if not os.path.exists(dp):
-                    os.makedirs(dp)
+            elif file.filename.split(".")[-1] == "nii":  # type: ignore[union-attr]
+                fp = Path(
+                    os.path.join(  # noqa: PTH118
+                        "./tmp/session-data/clean/",
+                        "/".join(file.filename.split("/")[-5:]),  # type: ignore[union-attr]
+                    ),
+                )
+                dp = Path(
+                    os.path.join(  # noqa: PTH118
+                        "./tmp/session-data/clean/",
+                        "/".join(file.filename.split("/")[-5:-1]),  # type: ignore[union-attr]
+                    ),
+                )
+                if not os.path.exists(dp):  # noqa: PTH110
+                    os.makedirs(dp)  # noqa: PTH103
                 async with aiofiles.open(fp, "wb") as f:
                     await f.write(contents)
-            elif file.filename.split(".")[-1] == 'csv':
-                fp = Path(os.path.join("./tmp/session-data/clean/", '/'.join(file.filename.split("/")[-2:])))
-                dp = Path(os.path.join("./tmp/session-data/clean/", '/'.join(file.filename.split("/")[-2:-1])))
-                if not os.path.exists(dp):
-                    os.makedirs(dp)
+            elif file.filename.split(".")[-1] == "csv":  # type: ignore[union-attr]
+                fp = Path(
+                    os.path.join(  # noqa: PTH118
+                        "./tmp/session-data/clean/",
+                        "/".join(file.filename.split("/")[-2:]),  # type: ignore[union-attr]
+                    ),
+                )
+                dp = Path(
+                    os.path.join(  # noqa: PTH118
+                        "./tmp/session-data/clean/",
+                        "/".join(file.filename.split("/")[-2:-1]),  # type: ignore[union-attr]
+                    ),
+                )
+                if not os.path.exists(dp):  # noqa: PTH110
+                    os.makedirs(dp)  # noqa: PTH103
                 async with aiofiles.open(fp, "wb") as f:
                     await f.write(contents)
 
@@ -506,58 +609,6 @@ async def get_files(files: list[UploadFile]) -> UploadFilesResponse:
         total_size=total_uploaded_file_megabytes,
         skip_deidentification=skip_deidentification,
     )
-
-
-def generate_nifti_info() -> tuple[list[dict], dict]:
-    user_fp = Path("./tmp/session-data/user-options.json")
-    with open(user_fp) as file:
-        user_input = json.loads(file.read())
-    output_dp = user_input["output_dcm_dp"]
-    dcm_fps = list(glob.glob(os.path.join(output_dp, '**/*.dcm'), recursive = True))
-    series_info = {}
-    for dcm_fp in sorted(dcm_fps):
-        dcm = pydicom.dcmread(dcm_fp)
-        series_dp = '/'.join(str(dcm_fp).split('/')[:-1])
-        if series_dp not in series_info.keys():
-            series_info[series_dp] = {'dcm_fps': [], 'height': dcm.Rows, 'width': dcm.Columns}
-        series_info[series_dp]['dcm_fps'].append(dcm_fp)
-    nifti_info = []
-    dicom_fps_to_segm_info = {}
-    for series_dp in sorted(series_info.keys()):
-        dcm_fps_ = glob.glob(os.path.join(series_dp, '*.dcm'))
-        if series_dp.split('/')[-1] != 'None':
-            nifti_info.append({})
-            nifti_info[-1]['fp'] = os.path.join(series_dp, 'segmentation.nii')
-            nifti_info[-1]['n_slices'] = len(glob.glob(os.path.join(series_dp, '*.dcm')))
-            nifti_info[-1]['series_number'] = series_dp.split('/')[-1]
-            dcm = pydicom.dcmread(glob.glob(os.path.join(series_dp, '*.dcm'))[0])
-            nifti_info[-1]['height'] = dcm.Rows
-            nifti_info[-1]['width'] = dcm.Columns
-            nifti_info[-1]['dicom_fps'] = []
-            for dcm_series_idx, dcm_fp in enumerate(sorted(dcm_fps_)):
-                dicom_fps_to_segm_info[dcm_fp] = {'height': dcm.Rows, 'width': dcm.Columns, 'slice': dcm_series_idx, 'nifti_fp': nifti_info[-1]['fp']}
-                nifti_info[-1]['dicom_fps'].append(dcm_fp)
-            nifti_info[-1]['dicom_fps'] = sorted(nifti_info[-1]['dicom_fps'])
-        else:
-            for dcm_fp in sorted(dcm_fps_):
-                nifti_info.append({})
-                nifti_info[-1]['fp'] = '.'.join(dcm_fp.split('.')[:-1]) + '.nii'
-                nifti_info[-1]['n_slices'] = 1
-                nifti_info[-1]['series_number'] = series_dp.split('/')[-1]
-                dcm = pydicom.dcmread(dcm_fp)
-                nifti_info[-1]['height'] = dcm.Rows
-                nifti_info[-1]['width'] = dcm.Columns
-                dicom_fps_to_segm_info[dcm_fp] = {'height': dcm.Rows, 'width': dcm.Columns, 'slice': 0, 'nifti_fp': nifti_info[-1]['fp']}
-    return nifti_info, dicom_fps_to_segm_info
-
-
-def renew_segmentation_data(classes: list[str]) -> None:
-    export_classes_to_session(session_classes=classes)
-    nifti_info, _ = generate_nifti_info()
-    for nifti_ in nifti_info:
-        arr = np.zeros(shape=(nifti_['height'], nifti_['width'], nifti_['n_slices']), dtype=np.uint8)
-        nifti = nib.Nifti1Image(arr, np.eye(4))
-        nib.save(nifti, nifti_['fp'])
 
 
 def export_classes_to_session(session_classes: list[str]) -> None:
@@ -571,6 +622,18 @@ def export_classes_to_session(session_classes: list[str]) -> None:
         json.dump(session, file, indent=4)
 
 
+def renew_segmentation_data(classes: list[str]) -> None:
+    export_classes_to_session(session_classes=classes)
+    nifti_info, _ = generate_nifti_info()
+    for nifti_ in nifti_info:
+        arr = np.zeros(
+            shape=(nifti_["height"], nifti_["width"], nifti_["n_slices"]),
+            dtype=np.uint8,
+        )
+        nifti = nib.Nifti1Image(arr, np.eye(4))  # type: ignore[no-untyped-call, attr-defined]
+        nib.save(nifti, nifti_["fp"])  # type: ignore[attr-defined]
+
+
 @app.post("/export_classes")
 def export_classes(classes: list[str]) -> None:
     export_classes_to_session(session_classes=classes)
@@ -578,10 +641,8 @@ def export_classes(classes: list[str]) -> None:
 
 def get_classes_from_session() -> list[str]:
     session_fp = Path("./tmp/session-data/clean/de-identified-files/session.json")
-    class_names = []
     with session_fp.open() as file:
-        class_names = json.load(file)['classes']
-    return class_names
+        return json.load(file)["classes"]  # type: ignore[no-any-return]
 
 
 @app.post("/correct_seg_homogeneity")
@@ -590,52 +651,52 @@ async def correct_seg_homogeneity() -> None:
         session_fp = Path("./tmp/session-data/clean/de-identified-files/session.json")
         with session_fp.open() as file:
             session = json.load(file)
-        if 'classes' not in session.keys():
+        if "classes" not in session:
             return False
-        if session['classes'][0] != 'background':
+        if session["classes"][0] != "background":
             return False
         return True
-    
+
     def check_nifti_fp() -> bool:
         nifti_info, _ = generate_nifti_info()
-        generated_nifti_fps = {nifti_info[nifti_idx]['fp'] for nifti_idx in range(len(nifti_info))}
+        generated_nifti_fps = {
+            nifti_info[nifti_idx]["fp"] for nifti_idx in range(len(nifti_info))
+        }
         user_fp = Path("./tmp/session-data/user-options.json")
-        with open(user_fp) as file:
+        with open(user_fp) as file:  # noqa: PTH123
             user_input = json.loads(file.read())
         output_dp = user_input["output_dcm_dp"]
-        found_nifti_fps = set(glob.glob(os.path.join(output_dp, '**/*.nii'), recursive = True))
-        if generated_nifti_fps == found_nifti_fps:
-            return True
-        else:
-            return False
+        found_nifti_fps = set(
+            glob.glob(os.path.join(output_dp, "**/*.nii"), recursive=True),  # noqa: PTH207, PTH118
+        )
+        return generated_nifti_fps == found_nifti_fps
 
     def check_nifti_integrity() -> bool:
         nifti_info, _ = generate_nifti_info()
         session_fp = Path("./tmp/session-data/clean/de-identified-files/session.json")
         with session_fp.open() as file:
-            class_names = json.load(file)['classes']
+            class_names = json.load(file)["classes"]
         class_idcs = set(range(len(class_names)))
-        intensity_value_set = set()
+        intensity_value_set = set()  # type: ignore[var-annotated]
         for nifti_ in nifti_info:
-            nifti_fp = nifti_['fp']
-            intensity_value_set = set(np.unique(nib.load(nifti_fp).get_fdata().astype(np.uint8))).union(intensity_value_set)
-        if intensity_value_set == class_idcs:
-            return True
-        else:
-            return False
+            nifti_fp = nifti_["fp"]
+            intensity_value_set = set(
+                np.unique(nib.load(nifti_fp).get_fdata().astype(np.uint8)),  # type: ignore[attr-defined]
+            ).union(intensity_value_set)
+        return intensity_value_set == class_idcs
 
     homogeneity_state = check_class_names_integrity()
     if not homogeneity_state:
-        renew_segmentation_data(["background"])  # type: ignore[arg-type]
-        return None
-    homogeneity_state = check_nifti_fp()  # type: ignore[arg-type]
+        renew_segmentation_data(["background"])
+        return
+    homogeneity_state = check_nifti_fp()
     if not homogeneity_state:
-        renew_segmentation_data(["background"])  # type: ignore[arg-type]
-        return None
+        renew_segmentation_data(["background"])
+        return
     homogeneity_state = check_nifti_integrity()
     if not homogeneity_state:
-        renew_segmentation_data(["background"])  # type: ignore[arg-type]
-        return None
+        renew_segmentation_data(["background"])
+        return
 
 
 @app.post("/get_batch_classes")
@@ -649,7 +710,7 @@ async def get_batch_classes() -> list[str]:
 
 @app.post("/align_classes")
 async def align_classes(classes: list[str]) -> None:
-    renew_segmentation_data(classes)  # type: ignore[arg-type]
+    renew_segmentation_data(classes)
 
 
 @app.post("/custom_config/", name="custom_config")
@@ -1067,31 +1128,43 @@ class Rwdcm:
             in_dp = in_dp + "/"
         self.out_dp = out_dp
         self.raw_data_dp = in_dp
-        self.clean_data_dp = os.path.join(out_dp, "de-identified-files/")
-        self.raw_dicom_paths = sorted(glob.glob(os.path.join(self.raw_data_dp, '*')))
-        self.clean_dicom_paths = sorted(glob.glob(os.path.join(self.clean_data_dp, '**/*.dcm'), recursive=True))
+        self.clean_data_dp = os.path.join(out_dp, "de-identified-files/")  # noqa: PTH118
+        self.raw_dicom_paths = sorted(glob.glob(os.path.join(self.raw_data_dp, "*")))  # noqa: PTH207, PTH118
+        self.clean_dicom_paths = sorted(
+            glob.glob(os.path.join(self.clean_data_dp, "**/*.dcm"), recursive=True),  # noqa: PTH207, PTH118
+        )
         self.dicom_pair_fps = []
         self.raw_dicom_hashes = []
         hashes_of_raw_files = []
         self.hashes_of_already_converted_files = []
         self.pending_deidentification = []
         for already_cleaned_dicom_path in self.clean_dicom_paths:
-            self.hashes_of_already_converted_files.append(already_cleaned_dicom_path.split('/')[-1].split('.')[0])
+            self.hashes_of_already_converted_files.append(
+                already_cleaned_dicom_path.split("/")[-1].split(".")[0],
+            )
         for raw_dicom_fp in self.raw_dicom_paths:
-            with open(file = raw_dicom_fp, mode = "rb") as f:
+            with open(file=raw_dicom_fp, mode="rb") as f:  # noqa: PTH123
                 raw_dicom_bin = f.read()
                 hashes_of_raw_files.append(hashlib.sha256(raw_dicom_bin).hexdigest())
-        for hash_of_raw_file, raw_dicom_fp in zip(hashes_of_raw_files, self.raw_dicom_paths):
+        for hash_of_raw_file, raw_dicom_fp in zip(
+            hashes_of_raw_files,
+            self.raw_dicom_paths,
+        ):
             if hash_of_raw_file in self.hashes_of_already_converted_files:
-                clean_dicom_fp = self.clean_dicom_paths[self.hashes_of_already_converted_files.index(hash_of_raw_file)]
+                clean_dicom_fp = self.clean_dicom_paths[
+                    self.hashes_of_already_converted_files.index(hash_of_raw_file)
+                ]
                 self.dicom_pair_fps.append([raw_dicom_fp, clean_dicom_fp])
                 self.pending_deidentification.append(False)
                 self.raw_dicom_hashes.append(hash_of_raw_file)
             else:
-                self.dicom_pair_fps.append([raw_dicom_fp, None])
+                self.dicom_pair_fps.append([raw_dicom_fp, None])  # type: ignore[list-item]
                 self.pending_deidentification.append(True)
                 self.raw_dicom_hashes.append(hash_of_raw_file)
-        for hash_of_already_converted_file, clean_dicom_fp in zip(self.hashes_of_already_converted_files, self.clean_dicom_paths):
+        for hash_of_already_converted_file, clean_dicom_fp in zip(
+            self.hashes_of_already_converted_files,
+            self.clean_dicom_paths,
+        ):
             if hash_of_already_converted_file not in hashes_of_raw_files:
                 self.dicom_pair_fps.append([clean_dicom_fp, clean_dicom_fp])
                 self.pending_deidentification.append(False)
@@ -1110,7 +1183,7 @@ class Rwdcm:
             return True
         return False
 
-    def define_undefined_clean_dicom_fp(self, clean_dcm):
+    def define_undefined_clean_dicom_fp(self, clean_dcm) -> None:  # type: ignore[no-untyped-def] # noqa: ANN101, ANN001
         if self.deintentify:
             clean_dicom_dp = (
                 self.clean_data_dp
@@ -1122,8 +1195,10 @@ class Rwdcm:
             )
             if not Path(clean_dicom_dp).exists():
                 Path(clean_dicom_dp).mkdir(parents=True)
-            clean_dicom_fp = os.path.join(clean_dicom_dp, self.raw_dicom_hash + '.dcm')
-            self.dicom_pair_fps[self.DICOM_IDX][1] = self.clean_dicom_fp = clean_dicom_fp
+            clean_dicom_fp = os.path.join(clean_dicom_dp, self.raw_dicom_hash + ".dcm")  # noqa: PTH118
+            self.dicom_pair_fps[self.DICOM_IDX][1] = self.clean_dicom_fp = (
+                clean_dicom_fp
+            )
 
     def export_processed_data(
         self,  # noqa: ANN101
@@ -1131,7 +1206,7 @@ class Rwdcm:
         bbox_img: NDArray[Any],
     ) -> None:
         if bbox_img is not None:
-            bbox_img_fp = os.path.join(self.out_dp, self.raw_dicom_hash + '_bbox.png')
+            bbox_img_fp = os.path.join(self.out_dp, self.raw_dicom_hash + "_bbox.png")  # noqa: PTH118
             Image.fromarray(bbox_img).save(bbox_img_fp)  # type: ignore[no-untyped-call]
             cache_bbox_img(self.raw_dicom_hash)
         dcm.save_as(self.clean_dicom_fp)
@@ -1145,8 +1220,8 @@ class Rwdcm:
             json.dump(session, file, indent=4)
 
 
-def dicom_deidentifier(  # noqa: PLR0912, PLR0915
-    session: dict,
+def dicom_deidentifier(
+    session: dict,  # type: ignore[type-arg]
 ) -> tuple[dict[str, dict[str, str]], list[tuple[str]]]:
     if Path("./tmp/session-data/custom-config.csv").is_file():
         custom_config_df = pd.read_csv(
@@ -1164,7 +1239,7 @@ def dicom_deidentifier(  # noqa: PLR0912, PLR0915
         user_input = json.load(file)
     pseudo_patient_ids = [
         int(patient_deidentification_properties["patient_pseudo_id"])
-        for patient_deidentification_properties in session['de-identification'].values()
+        for patient_deidentification_properties in session["de-identification"].values()
     ]
     max_pseudo_patient_id = -1 if pseudo_patient_ids == [] else max(pseudo_patient_ids)
     requested_action_group_df = get_action_group(
@@ -1185,32 +1260,41 @@ def dicom_deidentifier(  # noqa: PLR0912, PLR0915
                 msg = "E: Invalid date processing input"
                 raise ValueError(msg)
             patient_pseudo_id_prefix = user_input["patient_pseudo_id_prefix"]
-            real_patient_id = dcm[0x0010, 0x0020].value  # type: ignore[index]
-            patient_deidentification_properties = session['de-identification'].get(real_patient_id, False)
+            real_patient_id = dcm[0x0010, 0x0020].value
+            patient_deidentification_properties = session["de-identification"].get(
+                real_patient_id,
+                False,
+            )
             if not patient_deidentification_properties:
                 max_pseudo_patient_id += 1
-                session['de-identification'][real_patient_id] = {
+                session["de-identification"][real_patient_id] = {
                     "patient_pseudo_id": "%.6d" % max_pseudo_patient_id,
                 }
                 days_total_offset = 10 * 365 + secrets.randbelow(1 + 10 * 365)
                 seconds_total_offset = secrets.randbelow(24 * 60 * 60)
             else:
-                days_total_offset = session['de-identification'][real_patient_id]["days_offset"]
-                seconds_total_offset = session['de-identification'][real_patient_id]["seconds_offset"]
+                days_total_offset = session["de-identification"][real_patient_id][
+                    "days_offset"
+                ]
+                seconds_total_offset = session["de-identification"][real_patient_id][
+                    "seconds_offset"
+                ]
             dcm, tag_value_replacements = adjust_dicom_metadata(
-                dcm=dcm,  # type: ignore[arg-type]
+                dcm=dcm,
                 action_group_fp="./tmp/session-data/requested-action-group-dcm.csv",
-                patient_pseudo_id=session['de-identification'][real_patient_id]["patient_pseudo_id"],
+                patient_pseudo_id=session["de-identification"][real_patient_id][
+                    "patient_pseudo_id"
+                ],
                 days_total_offset=days_total_offset,
                 seconds_total_offset=seconds_total_offset,
                 patient_pseudo_id_prefix=patient_pseudo_id_prefix,
             )
-            session['de-identification'][real_patient_id]["days_offset"] = tag_value_replacements[
-                "days_total_offset"
-            ]
-            session['de-identification'][real_patient_id]["seconds_offset"] = tag_value_replacements[
-                "seconds_total_offset"
-            ]
+            session["de-identification"][real_patient_id]["days_offset"] = (
+                tag_value_replacements["days_total_offset"]
+            )
+            session["de-identification"][real_patient_id]["seconds_offset"] = (
+                tag_value_replacements["seconds_total_offset"]
+            )
             dcm = deidentification_attributes(user_input=user_input, dcm=dcm)
             if user_input["clean_image"]:
                 dcm, bbox_img = image_deintentifier(dcm=dcm)  # type: ignore[assignment]
@@ -1223,7 +1307,7 @@ def dicom_deidentifier(  # noqa: PLR0912, PLR0915
             rw_obj.define_undefined_clean_dicom_fp(dcm)
             rw_obj.export_processed_data(dcm=dcm, bbox_img=bbox_img)  # type: ignore[arg-type]
         rw_obj.export_session(session=session)
-    return session, rw_obj.dicom_pair_fps
+    return session, rw_obj.dicom_pair_fps  # type: ignore[return-value]
 
 
 @app.post("/submit_button")
@@ -1238,11 +1322,11 @@ async def handle_submit_button_click(user_options: UserOptionsClass) -> list[Any
     if not Path(session_filepath).is_file():
         session = {"de-identification": {}, "classes": ["background"]}
     else:
-        with Path(
+        with Path(  # noqa: ASYNC101
             "./tmp/session-data/clean/de-identified-files/session.json",
         ).open() as file:
             session = json.load(file)
-    session, dicom_pair_fps = dicom_deidentifier(
+    session, dicom_pair_fps = dicom_deidentifier(  # type: ignore[assignment]
         session=session,
     )
     if user_options["annotation"]:  # type: ignore[index]
