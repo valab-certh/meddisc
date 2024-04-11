@@ -159,6 +159,7 @@ def test_upload_files() -> None:
 
 def test_submit_button() -> None:
     test_options = {
+        "skip_deidentification": False,
         "clean_image": True,
         "annotation": False,
         "retain_safe_private": False,
