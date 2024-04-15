@@ -1,6 +1,5 @@
 FROM python:3.12-slim
-RUN apt-get update && apt-get install git libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender1 libfontconfig1 libice6 -y
+RUN apt-get update && apt-get install libgl1-mesa-glx libglib2.0-0 -y
 WORKDIR /usr/src/app
 COPY pyproject.toml .
 RUN python3 -m pip install --upgrade pip && python3 -m pip install .[dev]
-RUN git clone -b LiteMedSAM https://github.com/bowang-lab/MedSAM/ /usr/src/MedSAM && cd /usr/src/MedSAM/ && python3 -m pip install -e .

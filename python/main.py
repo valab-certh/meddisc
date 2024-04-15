@@ -25,6 +25,7 @@ import numpy as np
 import pandas as pd
 import pydicom
 import pytest
+import requests
 import torch
 from fastapi import Body, FastAPI, Request, UploadFile, status
 from fastapi.responses import HTMLResponse
@@ -35,13 +36,14 @@ from PIL import Image
 from pydantic import BaseModel
 from pydicom.errors import InvalidDicomError
 from segment_anything.modeling import MaskDecoder, PromptEncoder, TwoWayTransformer
-from tiny_vit_sam import TinyViT
 from torch import nn
 from torch.nn import functional
 from uvicorn import run
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
+
+    from tmp.tiny_vit_sam import TinyViT
 
 
 class UserOptionsClass(BaseModel):
@@ -275,6 +277,8 @@ class MedsamLite(nn.Module):
 
 @lru_cache(maxsize=1)
 def load_model() -> MedsamLite:
+    from tmp.tiny_vit_sam import TinyViT
+
     medsam_lite_image_encoder = TinyViT(
         img_size=256,
         in_chans=3,
@@ -1482,8 +1486,16 @@ def meddisc() -> None:
     for directory in tmp_directories:
         directory.mkdir(parents=True, exist_ok=True)
     csv_path = Path("tmp/action-groups-dcm.csv")
+    vit_path = Path("tmp/tiny_vit_sam.py")
+    vit_url = "https://api.github.com/repos/bowang-lab/MedSAM/contents/tiny_vit_sam.py?ref=LiteMedSAM"
     if not csv_path.exists():
         generate_action_groups()
+    if not vit_path.exists():
+        response = requests.get(vit_url, timeout=10)
+        content = response.json()["content"]
+        file_content = base64.b64decode(content).decode("utf-8")
+        with vit_path.open("w") as f:
+            f.write(file_content)
     if os.getenv("STAGING"):
         if not Path("tmp/fullchain.pem").exists():
             subprocess.run(
