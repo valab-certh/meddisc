@@ -171,10 +171,10 @@ def test_submit_button() -> None:
         "retain_descriptors": False,
         "patient_pseudo_id_prefix": "OrgX - ",
     }
-        response = client.post(self.app_url() + "/submit_button", json=test_options)
-        if response.status_code != status.HTTP_200_OK:
-            raise AssertionError
-        json_response = response.json()
+    response = client.post(app_url() + "/submit_button", json=test_options)
+    if response.status_code != status.HTTP_200_OK:
+        raise AssertionError
+    json_response = response.json()
     desired_hash = "cd6e8eae4006ca7b150c3217667de6b6f7b435f93961d182e72b4da7773884a9"
     hasher = hashlib.sha256()
     block_size = 65536
