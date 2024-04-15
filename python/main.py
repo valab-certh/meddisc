@@ -139,8 +139,6 @@ templates = Jinja2Templates(directory="templates")
 app.mount(path="/static", app=StaticFiles(directory="static"), name="static")
 
 client = TestClient(app)
-security = HTTPBasic()
-env_vars = dotenv_values(".env")
 
 
 def app_url() -> str:
