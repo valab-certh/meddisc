@@ -326,7 +326,7 @@ async function UpdateDICOMInformation(dcm_idx)
         }
         slider_pending_update = false;
         LoadingState = true;
-        dcm_idx_ = dcm_idx
+        dcm_idx_ = dcm_idx;
         current_dicom_data_fp = await dicom_data_fps[dcm_idx_]
         DisplayRadio.value = "cleaned-display-option";
         const conversion_info_response = await fetch
@@ -380,13 +380,12 @@ async function UpdateDICOMInformation(dcm_idx)
         if (save)
         {
             await export_masks()
-            await UpdateDICOMInformation(dcm_idx)
         }
         else
         {
             progress_saved = true
-            await UpdateDICOMInformation(dcm_idx)
         }
+        await UpdateDICOMInformation(dcm_idx)
     }
 }
 
@@ -402,7 +401,7 @@ nextSlice.addEventListener("click", function () {
 
 document.addEventListener("DOMContentLoaded", function() {
     check_existence_of_clean();
-  });
+});
 
 async function check_existence_of_clean()
 {
@@ -417,7 +416,9 @@ async function check_existence_of_clean()
     if (dcm_files_response.ok && dcm_files.n_uploaded_files > 0)
     {
         skip_deidentification = dcm_files.skip_deidentification
+        uploaded_files_info(dcm_files_response, dcm_files);
         await submit_dicom_processing_request();
+        await submit_classes();
     }
 }
 
@@ -435,6 +436,61 @@ function base64torgba(encodedData) {
         }
     }
     return bytes
+}
+
+async function uploaded_files_info(dcm_files_response, dcm_files)
+{
+    if (dcm_files_response.ok && dcm_files.n_uploaded_files > 0)
+    {
+        showNotification("success", "Files uploaded", 3000);
+        skip_deidentification = dcm_files.skip_deidentification;
+        n_uploaded_files = dcm_files.n_uploaded_files;
+        if (skip_deidentification)
+        {
+            UploadStatus.innerHTML = 
+            `
+                Files Uploaded Successfully\n
+                <br>\n
+                Total DICOM files: ${n_uploaded_files}\n
+                <br>\n
+                Total size of DICOM content: ${dcm_files.total_size} MB\n
+                <br>\n
+                Found session file
+            `;
+        }
+        else
+        {
+            UploadStatus.innerHTML = 
+            `
+                Files Uploaded Successfully\n
+                <br>\n
+                Total DICOM files: ${n_uploaded_files}\n
+                <br>\n
+                Total size of DICOM content: ${dcm_files.total_size} MB\n
+                <br>\n
+                <br>
+            `;
+        }
+        SubmitAnonymizationProcess.disabled = false;
+        annotation.disabled = false;
+        clean_image.disabled = false;
+        retain_safe_private_input_checkbox.disabled = false;
+        retain_uids_input_checkbox.disabled = false;
+        retain_device_identity_input_checkbox.disabled = false;
+        retain_patient_characteristics_input_checkbox.disabled = false;
+        date_processing_select.disabled = false;
+        retain_descriptors_input_checkbox.disabled = false;
+        patient_pseudo_id_prefix_input_text.disabled = false;
+        DICOMSlider.disabled = true;
+        prevSlice.disabled = true;
+        nextSlice.disabled = true;
+        resetGUIElements();
+        ctx.clearRect(0, 0, OverlayCanvas.width, OverlayCanvas.height);
+    }
+    else
+    {
+        alert('W: Invalid directory input. Make sure it contains at least one DICOM file')
+    }
 }
 
 document.querySelector('#UploadForm input[name="files"]').addEventListener
@@ -456,57 +512,7 @@ document.querySelector('#UploadForm input[name="files"]').addEventListener
             }
         );
         const dcm_files = await dcm_files_response.json();
-        if (dcm_files_response.ok && dcm_files.n_uploaded_files > 0)
-        {
-            showNotification("success", "Files uploaded", 3000);
-            skip_deidentification = dcm_files.skip_deidentification;
-            n_uploaded_files = dcm_files.n_uploaded_files;
-            if (skip_deidentification)
-            {
-                UploadStatus.innerHTML = 
-                `
-                    Files Uploaded Successfully\n
-                    <br>\n
-                    Total DICOM files: ${n_uploaded_files}\n
-                    <br>\n
-                    Total size of DICOM content: ${dcm_files.total_size} MB\n
-                    <br>\n
-                    Found session file
-                `;
-            }
-            else
-            {
-                UploadStatus.innerHTML = 
-                `
-                    Files Uploaded Successfully\n
-                    <br>\n
-                    Total DICOM files: ${n_uploaded_files}\n
-                    <br>\n
-                    Total size of DICOM content: ${dcm_files.total_size} MB\n
-                    <br>\n
-                    <br>
-                `;
-            }
-            SubmitAnonymizationProcess.disabled = false;
-            annotation.disabled = false;
-            clean_image.disabled = false;
-            retain_safe_private_input_checkbox.disabled = false;
-            retain_uids_input_checkbox.disabled = false;
-            retain_device_identity_input_checkbox.disabled = false;
-            retain_patient_characteristics_input_checkbox.disabled = false;
-            date_processing_select.disabled = false;
-            retain_descriptors_input_checkbox.disabled = false;
-            patient_pseudo_id_prefix_input_text.disabled = false;
-            DICOMSlider.disabled = true;
-            prevSlice.disabled = true;
-            nextSlice.disabled = true;
-            resetGUIElements();
-            ctx.clearRect(0, 0, OverlayCanvas.width, OverlayCanvas.height);
-        }
-        else
-        {
-            alert('W: Invalid directory input. Make sure it contains at least one DICOM file')
-        }
+        await uploaded_files_info(dcm_files_response, dcm_files);
     }
 );
 
@@ -644,14 +650,14 @@ async function submit_dicom_processing_request()
 
 async function get_mask_from_file() {
     const reset_response = await fetch(
-        '/get_mask_from_file/',
-        {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(dicom_data_fps[dcm_idx_][1])
-        });
+    '/get_mask_from_file/',
+    {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(dicom_data_fps[dcm_idx_][1])
+    });
     if (reset_response.ok) {
         const response_data = await reset_response.json();
         fillCanvas(response_data['PixelData'], response_data['dimensions']);

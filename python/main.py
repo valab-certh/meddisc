@@ -211,12 +211,11 @@ async def check_existence_of_clean() -> UploadFilesResponse:
     skip_deidentification = True
     if os.path.exists(session_fp) and len(proper_dicom_paths) != 0:
         for dcm_fp in proper_dicom_paths:
-            total_uploaded_file_bytes += sys.getsizeof(dcm_fp)
-            total_uploaded_file_megabytes = "%.1f" % (
-                total_uploaded_file_bytes / (10**3) ** 2
-            )
+            with open(file = dcm_fp, mode = "br") as f:
+                total_uploaded_file_bytes += len(f.read())
+            total_uploaded_file_megabytes = "%.1f" % (total_uploaded_file_bytes / ((10 ** 3) ** 2))
     else:
-        total_uploaded_file_megabytes = 0
+        total_uploaded_file_megabytes = "0.0"
 
     return UploadFilesResponse(
         n_uploaded_files=len(proper_dicom_paths),
