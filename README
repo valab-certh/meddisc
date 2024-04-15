@@ -10,7 +10,6 @@ git clone https://github.com/valab-certh/meddisc $HOME/github.com/valab-certh/me
 cd $HOME/github.com/valab-certh/meddisc
 
 # Development
-cd python/python/ && make clean check all && cd ../..
 cd python/ && make clean check all && cd ..
 
 # Staging
