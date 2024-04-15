@@ -14,7 +14,7 @@ dependencies = [
   "tensorflow==2.16.1",
   "torch==2.2.2",
   "torchvision==0.17.2",
-  "uvicorn==0.27.1"
+  "uvicorn==0.29.0"
 ]
 name = "meddisc"
 version = "0.0.0"
