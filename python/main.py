@@ -137,8 +137,10 @@ def dcm2dictmetadata(ds: pydicom.dataset.Dataset) -> dict[str, dict[str, str]]:
 
 
 app = FastAPI()
-templates = Jinja2Templates(directory="templates")
-app.mount(path="/static", app=StaticFiles(directory="static"), name="static")
+templates_dir = Path(__file__).parent / "templates"
+static_dir = Path(__file__).parent / "static"
+templates = Jinja2Templates(directory=templates_dir)
+app.mount(path="/static", app=StaticFiles(directory=static_dir), name="static")
 
 client = TestClient(app)
 
@@ -169,10 +171,10 @@ def test_submit_button() -> None:
         "retain_descriptors": False,
         "patient_pseudo_id_prefix": "OrgX - ",
     }
-    response = client.post(app_url() + "/submit_button", json=test_options)
-    if response.status_code != status.HTTP_200_OK:
-        raise AssertionError
-    json_response = response.json()
+        response = client.post(self.app_url() + "/submit_button", json=test_options)
+        if response.status_code != status.HTTP_200_OK:
+            raise AssertionError
+        json_response = response.json()
     desired_hash = "cd6e8eae4006ca7b150c3217667de6b6f7b435f93961d182e72b4da7773884a9"
     hasher = hashlib.sha256()
     block_size = 65536
@@ -317,7 +319,8 @@ def load_model() -> MedsamLite:
         mask_decoder=medsam_lite_mask_decoder,
         prompt_encoder=medsam_lite_prompt_encoder,
     )
-    medsam_lite_checkpoint = torch.load("./prm/lite_medsam.pth", map_location="cpu")
+    medsam_dir = Path(__file__).parent / "templates" / "lite_medsam.pth"
+    medsam_lite_checkpoint = torch.load(medsam_dir, map_location="cpu")
     medsam_model.load_state_dict(medsam_lite_checkpoint)
     medsam_model.to("cpu")
 
@@ -1479,6 +1482,7 @@ def ndarray_size(arr: NDArray[Any]) -> int:
 
 def meddisc() -> None:
     tmp_directories = [
+        Path("tmp"),
         Path("tmp/session-data/raw"),
         Path("tmp/session-data/clean"),
         Path("tmp/session-data/embed"),
@@ -1516,7 +1520,7 @@ def meddisc() -> None:
         run(
             app,
             host="0.0.0.0",  # noqa: S104
-            port=443,
+            port=8000,
             ssl_certfile="tmp/fullchain.pem",
             ssl_keyfile="tmp/privkey.pem",
         )
