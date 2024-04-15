@@ -4,6 +4,7 @@ dependencies = [
   "fastapi==0.110.0",
   "fire==0.6.0",
   "keras-ocr==0.9.3",
+  "lxml==5.2.0",
   "pydicom==2.4.4",
   "pylibjpeg-libjpeg==2.1.0",
   "pylibjpeg==2.0.0",
