@@ -683,7 +683,7 @@ async def correct_seg_homogeneity() -> None:
             intensity_value_set = set(
                 np.unique(nib.load(nifti_fp).get_fdata().astype(np.uint8)),  # type: ignore[attr-defined]
             ).union(intensity_value_set)
-        return intensity_value_set == class_idcs
+        return intensity_value_set.issubset(class_idcs)
 
     homogeneity_state = check_class_names_integrity()
     if not homogeneity_state:
