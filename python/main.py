@@ -204,16 +204,22 @@ def authenticate(credentials: HTTPBasicCredentials = Depends(security)) -> bool:
 
 @app.get("/check_existence_of_clean")
 async def check_existence_of_clean() -> UploadFilesResponse:
-
     session_fp = "./tmp/session-data/clean/de-identified-files/session.json"
-    proper_dicom_paths = sorted(glob.glob("./tmp/session-data/clean/de-identified-files/**/*.dcm", recursive = True))
+    proper_dicom_paths = sorted(
+        glob.glob(  # noqa: PTH207
+            "./tmp/session-data/clean/de-identified-files/**/*.dcm",
+            recursive=True,
+        ),
+    )
     total_uploaded_file_bytes = 0
     skip_deidentification = True
-    if os.path.exists(session_fp) and len(proper_dicom_paths) != 0:
+    if os.path.exists(session_fp) and len(proper_dicom_paths) != 0:  # noqa: PTH110
         for dcm_fp in proper_dicom_paths:
-            with open(file = dcm_fp, mode = "br") as f:
+            with open(file=dcm_fp, mode="br") as f:  # noqa: ASYNC101, PTH123
                 total_uploaded_file_bytes += len(f.read())
-            total_uploaded_file_megabytes = "%.1f" % (total_uploaded_file_bytes / ((10 ** 3) ** 2))
+            total_uploaded_file_megabytes = "%.1f" % (
+                total_uploaded_file_bytes / ((10**3) ** 2)
+            )
     else:
         total_uploaded_file_megabytes = "0.0"
 
@@ -1359,11 +1365,6 @@ async def handle_submit_button_click(user_options: UserOptionsClass) -> list[Any
 def ndarray_size(arr: NDArray[Any]) -> int:
     return arr.itemsize * arr.size
 
-def main_cli() -> None:
-    import fire
-
-    fire.Fire(meddisc)
-
 
 def meddisc() -> None:
     tmp_directories = [
@@ -1401,6 +1402,13 @@ def meddisc() -> None:
         results = pytest.main(["-rA", "-o", "cache_dir=tmp", __file__])
         if results.value != 0:  # type: ignore[attr-defined]
             sys.exit(results)
+
+
+def main_cli() -> None:
+    import fire
+
+    fire.Fire(meddisc)
+
 
 if __name__ == "__main__":
     meddisc()
