@@ -15,6 +15,7 @@ from functools import lru_cache
 from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from urllib import request
 
 import aiofiles
 import cv2
