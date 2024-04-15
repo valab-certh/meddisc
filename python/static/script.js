@@ -400,6 +400,27 @@ nextSlice.addEventListener("click", function () {
     DICOMSlider.dispatchEvent(new Event("input"));
 });
 
+document.addEventListener("DOMContentLoaded", function() {
+    check_existence_of_clean();
+  });
+
+async function check_existence_of_clean()
+{
+    const dcm_files_response = await fetch
+    (
+        '/check_existence_of_clean',
+        {
+            method: 'GET'
+        }
+    );
+    const dcm_files = await dcm_files_response.json();
+    if (dcm_files_response.ok && dcm_files.n_uploaded_files > 0)
+    {
+        skip_deidentification = dcm_files.skip_deidentification
+        await submit_dicom_processing_request();
+    }
+}
+
 function base64torgba(encodedData) {
     const binaryString = window.atob(encodedData);
     const len = binaryString.length;
@@ -611,7 +632,14 @@ async function submit_dicom_processing_request()
         }
     }
     document.body.style.cursor = 'default';
-    showNotification("success", "DICOM files are now de-identified", 3000);
+    if (skip_deidentification)
+    {
+        showNotification("success", "Loaded de-identified DICOM files", 3000);
+    }
+    else
+    {
+        showNotification("success", "DICOM files are now de-identified", 3000);
+    }
 }
 
 async function get_mask_from_file() {

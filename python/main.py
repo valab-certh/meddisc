@@ -202,6 +202,29 @@ def authenticate(credentials: HTTPBasicCredentials = Depends(security)) -> bool:
     return True
 
 
+@app.get("/check_existence_of_clean")
+async def check_existence_of_clean() -> UploadFilesResponse:
+
+    session_fp = "./tmp/session-data/clean/de-identified-files/session.json"
+    proper_dicom_paths = sorted(glob.glob("./tmp/session-data/clean/de-identified-files/**/*.dcm", recursive = True))
+    total_uploaded_file_bytes = 0
+    skip_deidentification = True
+    if os.path.exists(session_fp) and len(proper_dicom_paths) != 0:
+        for dcm_fp in proper_dicom_paths:
+            total_uploaded_file_bytes += sys.getsizeof(dcm_fp)
+            total_uploaded_file_megabytes = "%.1f" % (
+                total_uploaded_file_bytes / (10**3) ** 2
+            )
+    else:
+        total_uploaded_file_megabytes = 0
+
+    return UploadFilesResponse(
+        n_uploaded_files=len(proper_dicom_paths),
+        total_size=total_uploaded_file_megabytes,
+        skip_deidentification=skip_deidentification,
+    )
+
+
 @app.get("/", response_class=HTMLResponse, dependencies=[Depends(authenticate)])
 async def get_root(request: Request) -> HTMLResponse:
     return templates.TemplateResponse("index.html", {"request": request})
