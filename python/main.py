@@ -11,6 +11,7 @@ import secrets
 import subprocess
 import sys
 import time
+import unittest
 from functools import lru_cache
 from io import BytesIO
 from pathlib import Path
@@ -24,7 +25,6 @@ import nibabel as nib
 import numpy as np
 import pandas as pd
 import pydicom
-import pytest
 import requests
 import torch
 from fastapi import Body, FastAPI, Request, UploadFile, status
@@ -145,50 +145,51 @@ app.mount(path="/static", app=StaticFiles(directory=static_dir), name="static")
 client = TestClient(app)
 
 
-def app_url() -> str:
-    return "http://0.0.0.0:443"
+class TestEndpoints(unittest.TestCase):
+    def app_url(self: TestEndpoints) -> str:
+        return "http://0.0.0.0:8000"
 
+    def test_upload_files(self: TestEndpoints) -> None:
+        with Path("./prm/1-1.dcm").open("rb") as file:
+            files = {"files": ("./prm/1-1.dcm", file, "application/dicom")}
+            response = client.post(self.app_url() + "/upload_files", files=files)
+            if response.status_code != status.HTTP_200_OK:
+                raise AssertionError
+            UploadFilesResponse.model_validate(response.json())
 
-def test_upload_files() -> None:
-    with Path("./prm/1-1.dcm").open("rb") as file:
-        files = {"files": ("./prm/1-1.dcm", file, "application/dicom")}
-        response = client.post(app_url() + "/upload_files", files=files)
+    def test_submit_button(self: TestEndpoints) -> None:
+        test_options = {
+            "skip_deidentification": False,
+            "clean_image": True,
+            "annotation": False,
+            "retain_safe_private": False,
+            "retain_uids": False,
+            "retain_device_identity": False,
+            "retain_patient_characteristics": False,
+            "date_processing": "remove",
+            "retain_descriptors": False,
+            "patient_pseudo_id_prefix": "OrgX - ",
+        }
+        response = client.post(self.app_url() + "/submit_button", json=test_options)
         if response.status_code != status.HTTP_200_OK:
             raise AssertionError
-        UploadFilesResponse.model_validate(response.json())
-
-
-def test_submit_button() -> None:
-    test_options = {
-        "skip_deidentification": False,
-        "clean_image": True,
-        "annotation": False,
-        "retain_safe_private": False,
-        "retain_uids": False,
-        "retain_device_identity": False,
-        "retain_patient_characteristics": False,
-        "date_processing": "remove",
-        "retain_descriptors": False,
-        "patient_pseudo_id_prefix": "OrgX - ",
-    }
-    response = client.post(app_url() + "/submit_button", json=test_options)
-    if response.status_code != status.HTTP_200_OK:
-        raise AssertionError
-    json_response = response.json()
-    desired_hash = "cd6e8eae4006ca7b150c3217667de6b6f7b435f93961d182e72b4da7773884a9"
-    hasher = hashlib.sha256()
-    block_size = 65536
-    with Path(json_response[0][1]).open("rb") as file:
-        buf = file.read(block_size)
-        while len(buf) > 0:
-            hasher.update(buf)
-            buf = file.read(block_size)
-    generated_hash = hasher.hexdigest()
-    if desired_hash != generated_hash:
-        msg = "E: Generated hash doesn't match"
-        raise ValueError(
-            msg,
+        json_response = response.json()
+        desired_hash = (
+            "cd6e8eae4006ca7b150c3217667de6b6f7b435f93961d182e72b4da7773884a9"
         )
+        hasher = hashlib.sha256()
+        block_size = 65536
+        with Path(json_response[0][1]).open("rb") as file:
+            buf = file.read(block_size)
+            while len(buf) > 0:
+                hasher.update(buf)
+                buf = file.read(block_size)
+        generated_hash = hasher.hexdigest()
+        if desired_hash != generated_hash:
+            msg = "E: Generated hash doesn't match"
+            raise ValueError(
+                msg,
+            )
 
 
 @app.get("/check_existence_of_clean")
@@ -1525,9 +1526,7 @@ def meddisc() -> None:
             ssl_keyfile="tmp/privkey.pem",
         )
     else:
-        results = pytest.main(["-rA", "-o", "cache_dir=tmp", __file__])
-        if results.value != 0:  # type: ignore[attr-defined]
-            sys.exit(results)
+        unittest.main()
 
 
 def main_cli() -> None:

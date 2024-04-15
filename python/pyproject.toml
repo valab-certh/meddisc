@@ -9,7 +9,6 @@ dependencies = [
   "pydicom==2.4.4",
   "pylibjpeg-libjpeg==2.1.0",
   "pylibjpeg==2.0.0",
-  "pytest==8.1.1",
   "python-multipart==0.0.9",
   "segment-anything@https://api.github.com/repos/facebookresearch/segment-anything/tarball/main",
   "tensorflow==2.16.1",
