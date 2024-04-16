@@ -1511,6 +1511,7 @@ def meddisc() -> None:
         file_content = base64.b64decode(content).decode("utf-8")
         with vit_path.open("w") as f:
             f.write(file_content)
+    sys.path.append(str(Path.cwd()))
     if os.getenv("STAGING"):
         if not Path("tmp/fullchain.pem").exists():
             subprocess.run(
