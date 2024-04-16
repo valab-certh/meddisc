@@ -4,6 +4,7 @@ import base64
 import datetime
 import glob
 import hashlib
+import importlib
 import json
 import os
 import re
@@ -43,8 +44,7 @@ from uvicorn import run
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
-
-    from tmp.tiny_vit_sam import TinyViT
+    from tiny_vit_sam import TinyViT
 
 
 class UserOptionsClass(BaseModel):
@@ -290,7 +290,7 @@ class MedsamLite(nn.Module):
 
 @lru_cache(maxsize=1)
 def load_model() -> MedsamLite:
-    from tmp.tiny_vit_sam import TinyViT
+    from tiny_vit_sam import TinyViT
 
     medsam_lite_image_encoder = TinyViT(
         img_size=256,
@@ -1501,17 +1501,16 @@ def meddisc() -> None:
     for directory in tmp_directories:
         directory.mkdir(parents=True, exist_ok=True)
     csv_path = Path("tmp/action-groups-dcm.csv")
-    vit_path = Path("tmp/tiny_vit_sam.py")
-    vit_url = "https://api.github.com/repos/bowang-lab/MedSAM/contents/tiny_vit_sam.py?ref=b042d247f92105d4b03372b18230aa08560959e7"
     if not csv_path.exists():
         generate_action_groups()
-    if not vit_path.exists():
-        response = requests.get(vit_url, timeout=10)
-        content = response.json()["content"]
-        file_content = base64.b64decode(content).decode("utf-8")
-        with vit_path.open("w") as f:
-            f.write(file_content)
-    sys.path.append(str(Path.cwd()))
+    vit_url = "https://api.github.com/repos/bowang-lab/MedSAM/contents/tiny_vit_sam.py?ref=b042d247f92105d4b03372b18230aa08560959e7"
+    response = requests.get(vit_url, timeout=10)
+    content = response.json()["content"]
+    decoded_content = base64.b64decode(content).decode("utf-8")
+    spec = importlib.util.spec_from_loader("tiny_vit_sam", loader=None, origin=vit_url)
+    module = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
+    exec(decoded_content, module.__dict__)  # noqa: S102
+    sys.modules["tiny_vit_sam"] = module
     os.environ["KERAS_OCR_CACHE_DIR"] = "tmp"
     if os.getenv("STAGING"):
         if not Path("tmp/fullchain.pem").exists():
