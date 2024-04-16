@@ -1502,7 +1502,7 @@ def meddisc() -> None:
         directory.mkdir(parents=True, exist_ok=True)
     csv_path = Path("tmp/action-groups-dcm.csv")
     vit_path = Path("tmp/tiny_vit_sam.py")
-    vit_url = "https://api.github.com/repos/bowang-lab/MedSAM/contents/tiny_vit_sam.py?ref=LiteMedSAM"
+    vit_url = "https://api.github.com/repos/bowang-lab/MedSAM/contents/tiny_vit_sam.py?ref=b042d247f92105d4b03372b18230aa08560959e7"
     if not csv_path.exists():
         generate_action_groups()
     if not vit_path.exists():
