@@ -8,6 +8,7 @@ import json
 import os
 import re
 import secrets
+import socket
 import subprocess
 import sys
 import time
@@ -146,13 +147,16 @@ client = TestClient(app)
 
 
 class TestEndpoints(unittest.TestCase):
-    def app_url(self: TestEndpoints) -> str:
-        return "http://0.0.0.0:8000"
-
-    def test_upload_files(self: TestEndpoints) -> None:
+    def setUp(self: TestEndpoints) -> None:
         with Path("./prm/1-1.dcm").open("rb") as file:
             files = {"files": ("./prm/1-1.dcm", file, "application/dicom")}
-            response = client.post(self.app_url() + "/upload_files", files=files)
+            response = client.post(
+                "http://"
+                + socket.gethostbyname(socket.gethostname())
+                + ":8000"
+                + "/upload_files",
+                files=files,
+            )
             if response.status_code != status.HTTP_200_OK:
                 raise AssertionError
             UploadFilesResponse.model_validate(response.json())
@@ -170,7 +174,13 @@ class TestEndpoints(unittest.TestCase):
             "retain_descriptors": False,
             "patient_pseudo_id_prefix": "OrgX - ",
         }
-        response = client.post(self.app_url() + "/submit_button", json=test_options)
+        response = client.post(
+            "http://"
+            + socket.gethostbyname(socket.gethostname())
+            + ":8000"
+            + "/submit_button",
+            json=test_options,
+        )
         if response.status_code != status.HTTP_200_OK:
             raise AssertionError
         json_response = response.json()
