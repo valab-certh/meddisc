@@ -1512,6 +1512,7 @@ def meddisc() -> None:
         with vit_path.open("w") as f:
             f.write(file_content)
     sys.path.append(str(Path.cwd()))
+    os.environ["KERAS_OCR_CACHE_DIR"] = "tmp"
     if os.getenv("STAGING"):
         if not Path("tmp/fullchain.pem").exists():
             subprocess.run(
