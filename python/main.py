@@ -330,7 +330,7 @@ def load_model() -> MedsamLite:
         mask_decoder=medsam_lite_mask_decoder,
         prompt_encoder=medsam_lite_prompt_encoder,
     )
-    medsam_dir = Path(__file__).parent / "templates" / "lite_medsam.pth"
+    medsam_dir = Path(__file__).parent / "prm" / "lite_medsam.pth"
     medsam_lite_checkpoint = torch.load(medsam_dir, map_location="cpu")
     medsam_model.load_state_dict(medsam_lite_checkpoint)
     medsam_model.to("cpu")
