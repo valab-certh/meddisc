@@ -19,5 +19,5 @@ cd python/ && make STAGING=1
 pip install https://api.github.com/repos/valab-certh/meddisc/tarball/main#subdirectory=python
 
 # Usage
-STAGING=1 meddisc
+meddisc
 

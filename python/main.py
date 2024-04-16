@@ -1542,6 +1542,7 @@ def meddisc() -> None:
 def main_cli() -> None:
     import fire
 
+    os.environ["STAGING"] = "1"
     fire.Fire(meddisc)
 
 
