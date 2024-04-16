@@ -1531,7 +1531,7 @@ def meddisc() -> None:
             )
         run(
             app,
-            host="0.0.0.0",  # noqa: S104
+            host=socket.gethostbyname(socket.gethostname()),
             port=8000,
             ssl_certfile="tmp/fullchain.pem",
             ssl_keyfile="tmp/privkey.pem",
