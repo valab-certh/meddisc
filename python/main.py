@@ -10,7 +10,6 @@ import os
 import re
 import secrets
 import socket
-import subprocess
 import sys
 import unittest
 from functools import lru_cache
@@ -1535,28 +1534,10 @@ def meddisc() -> None:
     sys.modules["tiny_vit_sam"] = module
     os.environ["KERAS_OCR_CACHE_DIR"] = "tmp"
     if os.getenv("STAGING"):
-        if not Path("tmp/fullchain.pem").exists():
-            subprocess.run(
-                [  # noqa: S603
-                    "/usr/bin/openssl",
-                    "req",
-                    "-subj",
-                    "/C=..",
-                    "-nodes",
-                    "-x509",
-                    "-keyout",
-                    "tmp/privkey.pem",
-                    "-out",
-                    "tmp/fullchain.pem",
-                ],
-                check=True,
-            )
         run(
             app,
             host=socket.gethostbyname(socket.gethostname()),
             port=8000,
-            ssl_certfile="tmp/fullchain.pem",
-            ssl_keyfile="tmp/privkey.pem",
         )
     else:
         unittest.main()
