@@ -826,11 +826,13 @@ async def medsam_estimation(boxdata: BoxData) -> BoxDataResponse:
 
 def prepare_medsam() -> None:
     def initialize_image_embeddings(dcm_hash, img) -> None:  # type: ignore[no-untyped-def] # noqa: ANN001
-        img_embeding_fp = embed_dp / f"{dcm_hash}.pt"
-        if not os.path.exists(img_embeding_fp):
+        img_embeding_fp = Path(embed_dp / f"{dcm_hash}.pt")
+        if not img_embeding_fp.exists():
             two_d = 2
             img_3c = (
-                np.repeat(img[:, :, None], 3, axis=-1) if len(img.shape) == two_d else img
+                np.repeat(img[:, :, None], 3, axis=-1)
+                if len(img.shape) == two_d
+                else img
             )
             img_256 = cv2.resize(src=img_3c, dsize=(256, 256)).astype(np.float32)
             img_256 = (img_256 - img_256.min()) / np.clip(
@@ -1525,13 +1527,24 @@ def meddisc() -> None:
     if not csv_path.exists():
         generate_action_groups()
     vit_url = "https://api.github.com/repos/bowang-lab/MedSAM/contents/tiny_vit_sam.py?ref=b042d247f92105d4b03372b18230aa08560959e7"
+    vit_hash = "7b2f2103b7bc19a09c1f1e2fe1097ead8105fed59ab62e436430032a3a0e6c49"
     response = requests.get(vit_url, timeout=10)
     content = response.json()["content"]
     decoded_content = base64.b64decode(content).decode("utf-8")
-    spec = importlib.util.spec_from_loader("tiny_vit_sam", loader=None, origin=vit_url)
-    module = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
-    exec(decoded_content, module.__dict__)  # noqa: S102
-    sys.modules["tiny_vit_sam"] = module
+    hash_object = hashlib.sha256(decoded_content.encode())
+    calculated_hash = hash_object.hexdigest()
+    if calculated_hash == vit_hash:
+        spec = importlib.util.spec_from_loader(
+            "tiny_vit_sam",
+            loader=None,
+            origin=vit_url,
+        )
+        module = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
+        exec(decoded_content, module.__dict__)  # noqa: S102
+        sys.modules["tiny_vit_sam"] = module
+    else:
+        msg = "E: Generated hash doesn't match"
+        raise ValueError(msg)
     os.environ["KERAS_OCR_CACHE_DIR"] = "tmp"
     if os.getenv("STAGING"):
         run(

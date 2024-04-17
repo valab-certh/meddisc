@@ -364,7 +364,7 @@ async function UpdateDICOMInformation(dcm_idx)
         document.getElementById('sliderLabel').textContent = dcm_idx_;
         DICOMOverview.innerHTML =
         `
-            Raw File Path: ./${current_dicom_data_fp[0]}
+            Raw File Path: ${current_dicom_data_fp[0]}
             </br>
             Clean File Path: ${current_dicom_data_fp[1]}
             </br>
