@@ -17,7 +17,7 @@ var ctx = OverlayCanvas.getContext('2d');
 var ToggleEdit = document.getElementById('ToggleEdit');
 var BrushSizeSlider = document.getElementById('BrushSizeSlider');
 var BrushSelect = document.getElementById('BrushSelect');
-var LoadDICOM = document.getElementById('ResetDICOM');
+var LoadMask = document.getElementById('ResetMask');
 var ExportMasks = document.getElementById('ExportMasks');
 var Undo = document.getElementById('Undo');
 var Redo = document.getElementById('Redo');
@@ -43,6 +43,7 @@ var current_dicom_data_fp;
 var OpenSequences = [];
 var DiffEnabled = false;
 var dcm_idx_;
+var dcm_hash;
 var isEditing = false;
 var currentBrush = 'background';
 var brushSize = 25;
@@ -56,6 +57,7 @@ var BoxStart = null;
 var BoxEnd = null;
 var progress_saved = true;
 var notificationTimeout;
+var dcm_hashes;
 ctx.lineJoin = 'round';
 ctx.lineCap = 'round';
 const colorMap = {
@@ -327,7 +329,8 @@ async function UpdateDICOMInformation(dcm_idx)
         slider_pending_update = false;
         LoadingState = true;
         dcm_idx_ = dcm_idx;
-        current_dicom_data_fp = await dicom_data_fps[dcm_idx_]
+        dcm_hash = dcm_hashes[dcm_idx_];
+        current_dicom_data_fp = await dicom_data_fps[dcm_idx_];
         DisplayRadio.value = "cleaned-display-option";
         const conversion_info_response = await fetch
         (
@@ -400,14 +403,14 @@ nextSlice.addEventListener("click", function () {
 });
 
 document.addEventListener("DOMContentLoaded", function() {
-    check_existence_of_clean();
+    get_clean_cache();
 });
 
-async function check_existence_of_clean()
+async function get_clean_cache()
 {
     const dcm_files_response = await fetch
     (
-        '/check_existence_of_clean',
+        '/get_clean_cache',
         {
             method: 'GET'
         }
@@ -569,7 +572,7 @@ async function submit_dicom_processing_request()
         'retain_descriptors': retain_descriptors_input_checkbox.checked,
         'patient_pseudo_id_prefix': patient_pseudo_id_prefix_input_text.value
     };
-    const dicom_data_fps_response = await fetch
+    const dicom_data_response = await fetch
     (
         '/submit_button',
         {
@@ -582,7 +585,9 @@ async function submit_dicom_processing_request()
         }
     );
 
-    dicom_data_fps = await dicom_data_fps_response.json();
+    dicom_data = await dicom_data_response.json();
+    dicom_data_fps = dicom_data.dicom_data_fps
+    dcm_hashes = dicom_data.dcm_hashes
     if (clean_image.checked) {
         DisplayRadio.disabled=false;
     }
@@ -835,7 +840,7 @@ async function medsam_estimation(normalizedStart,normalizedEnd) {
         normalized_start: normalizedStart,
         normalized_end: normalizedEnd,
         seg_class: classesMap.indexOf(BrushSelect.value),
-        inp_idx: dcm_idx_
+        dcm_hash: dcm_hash,
     };
     const box_response = await fetch(
         '/medsam_estimation/',
@@ -992,13 +997,13 @@ async function submit_classes(){
     BrushSizeSlider.disabled = false;
     Undo.disabled = false;
     Redo.disabled = false;
-    LoadDICOM.disabled = false;
+    LoadMask.disabled = false;
     ExportMasks.disabled = false;
     Add.disabled = true;
     Remove.disabled = true;
     ClassText.disabled = true;
     SubmitClasses.disabled = true;
-    DisplayRadio.disabled=false;
+    DisplayRadio.disabled = false;
     if (classesMap.length !== predefinedClassesMap.length && predefinedClassesMap.length !== 1)
     {
         var optionModal = new bootstrap.Modal(document.getElementById('optionModal'), {
@@ -1033,6 +1038,16 @@ async function submit_classes(){
             body: JSON.stringify(classesMap)
         });
         get_mask_from_file();
+    }
+    if (classesMap.length === 1)
+    {
+        ToggleEdit.disabled = true;
+        ToggleMask.disabled = true;
+        BrushSizeSlider.disabled = true;
+        Undo.disabled = true;
+        Redo.disabled = true;
+        LoadMask.disabled = true;
+        ExportMasks.disabled = true;
     }
     showNotification("success", "Submitted classes", 1500);
 }
@@ -1148,7 +1163,7 @@ function resetGUIElements() {
     BrushSizeSlider.disabled = true;
     Undo.disabled = true;
     Redo.disabled = true;
-    LoadDICOM.disabled = true;
+    LoadMask.disabled = true;
     ExportMasks.disabled = true;
     Add.disabled = true;
     Remove.disabled = true;
