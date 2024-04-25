@@ -293,8 +293,8 @@ function table(RawDCMMetadataObject, CleanedDCMMetadataObject, DiffEnabled)
             <div class="inner-table-column-names">
                 <div class="header-table-row">
                     <div class="cell-expand-row"></div>
-                    <div class="cell-dcmtag-name"${UppermostRowStyle}><b>Tag Name</b></div>
-                    <div class="cell-dcmtag-value"${UppermostRowStyle}><b>Tag Value</b></div>
+                    <div class="cell-dcmtag-name"${UppermostRowStyle}><b>Attribute Name</b></div>
+                    <div class="cell-dcmtag-value"${UppermostRowStyle}><b>Attribute Value</b></div>
                 </div>
             </div>
         </div>
@@ -372,7 +372,7 @@ async function UpdateDICOMInformation(dcm_idx)
             </br>
             Modality: ${modality}
             </br>
-            Total number of altered tags (excluding the pixel data): ${total_altered_dicom_tags}
+            Total number of altered attributes (excluding the pixel data): ${total_altered_dicom_tags}
         `;
         MetadataTable.innerHTML = dicom_metadata_table;
         LoadingState = false;

@@ -116,11 +116,11 @@
                                checked>
                         <label class="form-check-label" for="flexSwitchCheckDefault">Retain descriptors</label>
                     </div>
-                    <label>Date processing:</label>
+                    <label>Date/Time processing:</label>
                     <select id="date-processing-select"
                             class="form-select"
                             aria-label="Default select example">
-                        <option value="offset" selected>Offset</option>
+                        <option value="offset" selected>Clean</option>
                         <option value="remove">Remove</option>
                         <option value="keep">Keep</option>
                     </select>
@@ -142,14 +142,14 @@
                                role="switch"
                                id="annotation"
                                checked>
-                        <label class="form-check-label" for="annotation">Enable annotation</label>
+                        <label class="form-check-label" for="annotation">Enable segmentation</label>
                     </div>
                     <br>
                     <button type="button"
                             id="SubmitAnonymizationProcess"
                             class="btn btn-primary"
                             onclick="submit_dicom_processing_request()"
-                            disabled>Submit Options</button>
+                            disabled>Submit</button>
                 </div>
             </div>
             <div class="col-sm-9">
@@ -218,7 +218,7 @@
                                             <select id="BrushSelect"
                                                     class="form-select"
                                                     aria-label="Default select example"
-                                                    title="Select annotation class"
+                                                    title="Select segmentation class"
                                                     disabled>
                                                 <option value="background" selected>background</option>
                                             </select>
@@ -238,7 +238,7 @@
                                                     id="Add"
                                                     onclick="add_class()"
                                                     class="btn btn-primary"
-                                                    title="Add an annotation class"
+                                                    title="Add a segmentation class"
                                                     disabled>
                                                 <i class="bi bi-bookmark-plus-fill"></i>
                                             </button>
@@ -246,7 +246,7 @@
                                                     id="Remove"
                                                     onclick="remove_class()"
                                                     class="btn btn-primary"
-                                                    title="Remove existing annotation class"
+                                                    title="Remove existing segmentation class"
                                                     disabled>
                                                 <i class="bi bi-bookmark-x-fill"></i>
                                             </button>
@@ -254,7 +254,7 @@
                                                     id="SubmitClasses"
                                                     onclick="submit_classes()"
                                                     class="btn btn-primary"
-                                                    title="Submit classes to begin annotation"
+                                                    title="Submit classes to begin segmentation"
                                                     disabled>
                                                 <i class="bi bi-arrow-right-square-fill"></i>
                                             </button>
@@ -265,7 +265,7 @@
                                             <button type="button"
                                                     id="toggle-mask"
                                                     class="btn btn-primary"
-                                                    title="Show/hide annotation masks"
+                                                    title="Show/hide segmentation masks"
                                                     disabled>
                                                 <i class="bi bi-circle-fill"></i>
                                             </button>
@@ -279,7 +279,7 @@
                                             <button type="button"
                                                     id="Mode"
                                                     class="btn btn-primary"
-                                                    title="Toggle annotation tool"
+                                                    title="Toggle segmentation tool"
                                                     disabled>
                                                 <i class="bi bi-brush-fill"></i>
                                             </button>
@@ -309,7 +309,7 @@
                                                     id="ExportMasks"
                                                     class="btn btn-primary"
                                                     onclick="export_masks()"
-                                                    title="Save annotation data to DICOM file"
+                                                    title="Save segmentation data to DICOM file"
                                                     disabled>
                                                 <i class="bi bi-floppy-fill"></i>
                                             </button>
@@ -366,7 +366,7 @@
                                        id="ToggleDiff0"
                                        oninput="ShowDiffTable(this.checked)"
                                        disabled>
-                                <label class="form-check-label" for="flexSwitchCheckDefault">Only show altered tags</label>
+                                <label class="form-check-label" for="flexSwitchCheckDefault">Only show altered attributes</label>
                             </div>
                             <div id="MetadataTable" class="metadata-table"></div>
                         </div>
