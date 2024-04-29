@@ -4,19 +4,39 @@ updates:
     directory: '/python/'
     schedule:
       interval: 'monthly'
+    groups:
+      group:
+        patterns:
+          - "*"
   - package-ecosystem: 'docker'
     directory: '/python/python/'
     schedule:
       interval: 'monthly'
+    groups:
+      group:
+        patterns:
+          - "*"
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
       interval: 'monthly'
+    groups:
+      group:
+        patterns:
+          - "*"
   - package-ecosystem: 'pip'
     directory: '/python/'
     schedule:
       interval: 'monthly'
+    groups:
+      group:
+        patterns:
+          - "*"
   - package-ecosystem: 'pip'
     directory: '/python/python/'
     schedule:
       interval: 'monthly'
+    groups:
+      group:
+        patterns:
+          - "*"
