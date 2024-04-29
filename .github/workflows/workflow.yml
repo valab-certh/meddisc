@@ -24,4 +24,4 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Check pip installation
         run: |
-          pip install https://api.github.com/repos/valab-certh/meddisc/tarball/main#subdirectory=python
+          pip install python/
