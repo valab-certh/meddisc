@@ -12,8 +12,8 @@ dependencies = [
   "python-multipart==0.0.9",
   "segment-anything@https://api.github.com/repos/facebookresearch/segment-anything/tarball/6fdee8f2727f4506cfbbe553e23b895e27956588",
   "tensorflow==2.16.1",
-  "torch==2.3.0",
-  "torchvision==0.18.0",
+  "torch==2.2.2",
+  "torchvision==0.17.2",
   "uvicorn==0.29.0"
 ]
 name = "meddisc"
