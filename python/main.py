@@ -1556,7 +1556,7 @@ def meddisc() -> None:
         unittest.main()
 
 
-def main_cli() -> None:
+def main() -> None:
     import fire
 
     os.environ["STAGING"] = "1"

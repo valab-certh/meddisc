@@ -30,7 +30,7 @@ dev = [
 ]
 
 [project.scripts]
-meddisc = "main:main_cli"
+meddisc = "main:main"
 
 [tool.setuptools]
 py-modules = ["main"]
