@@ -1,30 +1,30 @@
 [project]
 dependencies = [
-  "aiofiles==23.2.1",
-  "fastapi==0.110.2",
+  "aiofiles==24.1.0",
+  "fastapi==0.111.0",
   "fire==0.6.0",
   "keras-ocr==0.9.3",
   "litemedsam@https://api.github.com/repos/bowang-lab/MedSAM/tarball/9df02bf96f77f47d998b5ebc1c152d543b769ca3",
-  "lxml==5.2.1",
+  "lxml==5.2.2",
   "pydicom==2.4.4",
-  "pylibjpeg-libjpeg==2.1.0",
-  "pylibjpeg==2.0.0",
+  "pylibjpeg-libjpeg==2.2.0",
+  "pylibjpeg==2.0.1",
   "python-multipart==0.0.9",
   "segment-anything@https://api.github.com/repos/facebookresearch/segment-anything/tarball/6fdee8f2727f4506cfbbe553e23b895e27956588",
-  "tensorflow==2.16.1",
-  "torch==2.2.2",
-  "torchvision==0.17.2",
-  "uvicorn==0.29.0"
+  "tensorflow==2.16.2",
+  "torch==2.3.1",
+  "torchvision==0.18.1",
+  "uvicorn==0.30.1"
 ]
 name = "meddisc"
 version = "0.0.0"
 
 [project.optional-dependencies]
 dev = [
-  "coverage==7.5.0",
+  "coverage==7.5.4",
   "djlint==1.34.1",
-  "mypy==1.10.0",
-  "ruff==0.4.2",
+  "mypy==1.10.1",
+  "ruff==0.5.0",
   "ssort==0.13.0",
   "toml-sort==0.23.1"
 ]
